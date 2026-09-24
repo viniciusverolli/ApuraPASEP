@@ -1,0 +1,452 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ApuraPASEP — Painel</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#23262B; --navy-2:#2E323A;
+    --gold:#2E7D6B; --gold-soft:#E3EFEC; --gold-claro:#3FA48C;
+    --paper:#F6F4EE; --panel:#FFFFFF;
+    --ink:#1D1D1B; --muted:#6B6656; --line:#E1DCC9;
+    --red:#8E3B33; --green:#2E5C3E;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--paper);}
+  .shell{ display:grid; grid-template-columns: 244px 1fr; min-height:100vh; }
+
+  .side{ background:var(--navy); color:#EFE9D8; padding: 26px 20px; display:flex; flex-direction:column; }
+  .side .brand{ display:flex; align-items:center; gap:10px; margin-bottom:34px; }
+  .side .brand .t{ font-family:'Source Serif 4',serif; font-size:16px; font-weight:700; }
+  .side .brand .t span{ color:var(--gold-claro); }
+  nav.main{ display:flex; flex-direction:column; gap:2px; }
+  nav.main a{ display:flex; align-items:center; gap:10px; color:#B9C0C4; text-decoration:none; font-size:14px; padding:10px 12px; border-radius:6px; }
+  nav.main a .dot{ width:5px; height:5px; border-radius:50%; background:transparent; }
+  nav.main a.active{ background:rgba(255,255,255,.06); color:#F2F0EA; }
+  nav.main a.active .dot{ background:var(--gold-claro); }
+  nav.main a:hover{ color:#F2F0EA; }
+  .side .spacer{ flex:1; }
+  .side .who{ border-top:1px solid rgba(233,225,197,.14); padding-top:16px; font-size:12.5px; color:#9BA3A6; line-height:1.6; }
+  .side .who strong{ color:#EFE9D8; display:block; font-size:13.5px; }
+  .side .sair{ color:#8b9498; font-size:12px; text-decoration:none; margin-top:10px; display:inline-block; }
+  .side .fechar-menu{
+    background:none; border:none; color:#F2F0EA; font-size:22px; align-self:flex-end;
+    cursor:pointer; margin:-6px -4px 14px 0; padding:6px; display:none;
+  }
+  .side .sair:hover{ color:#EFE9D8; }
+
+  main{ padding: 30px 44px 60px; max-width:1120px; }
+  .topbar{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:30px; }
+  .topbar h1{ font-family:'Source Serif 4',serif; font-weight:600; font-size:26px; margin:0; }
+  .topbar .comp{ font-size:13px; color:var(--muted); border:1px solid var(--line); background:var(--panel); padding:8px 14px; border-radius:6px; }
+  .topbar .comp b{ color:var(--ink); }
+
+  .cards{ display:grid; grid-template-columns: repeat(3, 1fr); gap:18px; margin-bottom:30px; }
+  @media (max-width:700px){ .cards{grid-template-columns:1fr} }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:20px 22px; }
+  .card .lab{ font-size:12.5px; color:var(--muted); margin-bottom:8px; }
+  .card .val{ font-family:'Source Serif 4',serif; font-size:25px; font-weight:600; color:var(--navy); }
+  .card .sub{ font-size:12.5px; color:var(--muted); margin-top:6px; }
+  .card.destaque{ border-color:var(--gold); }
+  .card.destaque .val{ color:var(--gold); }
+
+  .section-title{ font-size:13px; color:var(--muted); margin: 30px 0 12px; display:flex; justify-content:space-between; align-items:center; }
+  .section-title a{ color:var(--navy); text-decoration:none; font-size:13px; border-bottom:1px solid var(--line); }
+  .section-title a:hover{ border-color:var(--navy); }
+
+  .alert{ background:var(--gold-soft); border:1px solid #A8CFC4; border-radius:10px; padding:16px 18px; display:flex; gap:14px; align-items:flex-start; margin-bottom:26px; }
+  .alert .ic{ width:22px; height:22px; border-radius:50%; background:var(--gold); flex:none; margin-top:1px; display:flex; align-items:center; justify-content:center; color:#fff; font-size:13px; font-weight:700; }
+  .alert .body strong{ display:block; font-size:14px; margin-bottom:3px; }
+  .alert .body p{ margin:0; font-size:13.5px; color:#1F5044; line-height:1.5; }
+  .alert .body a{ color:var(--navy); font-weight:600; text-decoration:none; }
+  .alert .body a:hover{ text-decoration:underline; }
+
+  table.hist{ width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  table.hist th{ text-align:left; font-size:12px; color:var(--muted); font-weight:500; padding:12px 16px; border-bottom:1px solid var(--line); background:#FBFAF6; }
+  table.hist td{ padding:13px 16px; font-size:14px; border-bottom:1px solid var(--line); }
+  table.hist tr:last-child td{ border-bottom:none; }
+  table.hist tr:hover td{ background:#FBFAF6; }
+  table.hist tr.linha-apuracao{ cursor:pointer; }
+  table.hist tr.selecionada td{ background:var(--gold-soft); }
+  table.hist td.num{ font-variant-numeric: tabular-nums; text-align:right; }
+  .btn-excluir-apuracao{
+    background:none; border:1px solid var(--line); color:var(--red); border-radius:5px;
+    font-size:11.5px; padding:4px 9px; cursor:pointer;
+  }
+  .btn-excluir-apuracao:hover{ background:#F3E3E1; border-color:#DCB6B0; }
+  .status{ font-size:11.5px; padding:3px 10px; border-radius:20px; display:inline-block; white-space:nowrap; }
+  .status.ok{ background:#E4EEE6; color:var(--green); }
+  .status.pend{ background:var(--gold-soft); color:#1F5044; }
+
+  .actions{ display:flex; gap:12px; margin-top:26px; flex-wrap:wrap; }
+  .btn{ font:inherit; font-size:14px; padding:11px 18px; border-radius:6px; cursor:pointer; text-decoration:none; display:inline-block; }
+  .btn.primary{ background:var(--navy); color:#F6F4EE; border:none; }
+  .btn.primary:hover{ background:var(--navy-2); }
+  .btn.ghost{ background:transparent; color:var(--navy); border:1px solid var(--line); }
+  .btn.ghost:hover{ border-color:var(--navy); }
+
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
+
+  .tabela-scroll{ overflow-x:auto; border-radius:10px; }
+
+  .topbar-mobile{ display:none; }
+  .backdrop-menu{ display:none; }
+
+  /* Responsivo: fica no final da folha de estilo de propósito, para vencer o empate de
+     especificidade contra as regras base acima (mesmo peso, quem vem depois vence). */
+  @media (max-width:880px){
+    .shell{ grid-template-columns:1fr; }
+
+    .topbar-mobile{
+      display:flex; align-items:center; justify-content:space-between;
+      background:var(--navy); color:#F2F0EA; padding:14px 18px; position:sticky; top:0; z-index:20;
+    }
+    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-family:'Source Serif 4',serif; font-weight:700; font-size:15px; }
+    .topbar-mobile .marca-mini span{ color:var(--gold-claro); }
+    .btn-menu{
+      background:none; border:1px solid rgba(242,240,234,.3); border-radius:6px; color:#F2F0EA;
+      width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    }
+
+    .side{
+      position:fixed; top:0; left:0; height:100%; width:82%; max-width:300px; z-index:40;
+      transform:translateX(-100%); transition:transform .2s ease; box-shadow:2px 0 18px rgba(0,0,0,.25);
+    }
+    .side.aberto{ transform:translateX(0); }
+    .side .fechar-menu{ display:block; }
+
+    .backdrop-menu{
+      display:block; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30;
+      opacity:0; pointer-events:none; transition:opacity .2s ease;
+    }
+    .backdrop-menu.aberto{ opacity:1; pointer-events:auto; }
+
+    main{ padding:20px 16px 40px; }
+    .topbar h1{ display:none; }
+  }
+</style>
+</head>
+<body>
+<div class="topbar-mobile">
+  <div class="marca-mini">
+    <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    Apura<span>PASEP</span>
+  </div>
+  <button class="btn-menu" id="btnAbrirMenu" aria-label="Abrir menu" aria-expanded="false" aria-controls="menuLateral">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+</div>
+<div class="backdrop-menu" id="backdropMenu"></div>
+
+<div class="shell">
+  <aside class="side" id="menuLateral">
+    <button class="fechar-menu" id="btnFecharMenu" aria-label="Fechar menu">✕</button>
+    <div class="brand">
+      <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+        <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+        <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="t">Apura<span>PASEP</span></div>
+    </div>
+    <nav class="main" aria-label="Navegação principal">
+      <a class="active" href="painel.html"><span class="dot" aria-hidden="true"></span> Painel</a>
+      <a href="PASEP_teste_jspdf.html" id="navNovaApuracao"><span class="dot" aria-hidden="true"></span> Nova apuração</a>
+      <a href="#historico"><span class="dot" aria-hidden="true"></span> Histórico</a>
+      <a href="PASEP_teste_jspdf.html" id="navImportar"><span class="dot" aria-hidden="true"></span> Importar XML / balancete</a>
+      <a href="repositorio_pasep_cosit.html"><span class="dot" aria-hidden="true"></span> Repositório de normas</a>
+      <a href="#"><span class="dot" aria-hidden="true"></span> Configurações</a>
+      <a href="admin.html" id="linkAdmin" style="display:none"><span class="dot" aria-hidden="true"></span> Administração</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="who" id="infoUsuario"><strong>Carregando…</strong></div>
+    <a class="sair" href="#" id="linkSair">Sair</a>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <h1>Painel</h1>
+      <div class="comp" id="infoExercicio">Carregando…</div>
+    </div>
+
+    <div class="cards" id="cardsResumo">
+      <div class="card destaque">
+        <div class="lab">Valor a pagar</div>
+        <div class="val">—</div>
+        <div class="sub">Carregando…</div>
+      </div>
+      <div class="card">
+        <div class="lab">Base de cálculo</div>
+        <div class="val">—</div>
+        <div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div>
+      </div>
+      <div class="card">
+        <div class="lab">Retido na fonte</div>
+        <div class="val">—</div>
+        <div class="sub">Art. 2º, §6º</div>
+      </div>
+    </div>
+
+    <div class="alert" id="alertaPendencia" style="display:none">
+      <div class="ic" aria-hidden="true">!</div>
+      <div class="body">
+        <strong>Competência mais recente com pendência</strong>
+        <p>Há lançamentos de finalidade definida aguardando confirmação nesta competência. Nenhum valor foi incluído na base sem decisão do responsável técnico. <a href="PASEP_teste_jspdf.html">Revisar lançamentos</a></p>
+      </div>
+    </div>
+
+    <div class="section-title" id="historico">Apurações <span id="tituloMunicipioHist"></span> <a href="#">exportar histórico</a></div>
+    <div class="tabela-scroll">
+    <table class="hist">
+      <tr><th>Competência</th><th>Base de cálculo</th><th>Retido na fonte</th><th>Valor a pagar</th><th>Status</th><th></th></tr>
+      <tbody id="corpoTabelaHist">
+        <tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">Carregando…</td></tr>
+      </tbody>
+    </table>
+    </div>
+
+    <div class="actions" id="blocoAcoes">
+      <a class="btn primary" href="PASEP_teste_jspdf.html">Nova apuração — importar XML AUDESP</a>
+      <a class="btn ghost" href="PASEP_teste_jspdf.html">Auditar competência (XML × API × Balancete)</a>
+      <a class="btn ghost" href="repositorio_pasep_cosit.html">Consultar repositório de normas</a>
+    </div>
+  </main>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script>
+  var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
+  var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
+  var DATABASE_ID = 'apurapasep';
+  var TEAM_ADMINS_ID = '6ab476f0000e158fa770';
+
+  var client = new Appwrite.Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+  var account = new Appwrite.Account(client);
+  var tablesDB = new Appwrite.TablesDB(client);
+  var teams = new Appwrite.Teams(client);
+  var Query = Appwrite.Query;
+
+  var MESES = {1:'Janeiro',2:'Fevereiro',3:'Março',4:'Abril',5:'Maio',6:'Junho',7:'Julho',8:'Agosto',9:'Setembro',10:'Outubro',11:'Novembro',12:'Dezembro'};
+
+  function brl(v){
+    return (v==null) ? '—' : v.toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2});
+  }
+
+  // Menu móvel (gaveta): abre/fecha o mesmo <aside> usado no desktop, sem duplicar links.
+  var menuLateral = document.getElementById('menuLateral');
+  var backdropMenu = document.getElementById('backdropMenu');
+  var btnAbrirMenu = document.getElementById('btnAbrirMenu');
+
+  function abrirMenu(){
+    menuLateral.classList.add('aberto');
+    backdropMenu.classList.add('aberto');
+    btnAbrirMenu.setAttribute('aria-expanded', 'true');
+  }
+  function fecharMenu(){
+    menuLateral.classList.remove('aberto');
+    backdropMenu.classList.remove('aberto');
+    btnAbrirMenu.setAttribute('aria-expanded', 'false');
+  }
+  btnAbrirMenu.addEventListener('click', abrirMenu);
+  document.getElementById('btnFecharMenu').addEventListener('click', fecharMenu);
+  backdropMenu.addEventListener('click', fecharMenu);
+  // Fecha a gaveta ao navegar por um link do menu, para não ficar aberta na próxima tela.
+  menuLateral.querySelectorAll('nav.main a').forEach(function(a){ a.addEventListener('click', fecharMenu); });
+
+  document.getElementById('linkSair').addEventListener('click', async function(e){
+    e.preventDefault();
+    try { await account.deleteSession({ sessionId: 'current' }); } catch(err){}
+    window.location.href = 'login.html';
+  });
+
+  async function carregarPainel(){
+    var usuario;
+    try {
+      usuario = await account.get();
+    } catch (e) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    // Times aos quais este usuário pertence. plataforma-admins é global; qualquer outro
+    // time corresponde a um município específico (equivalente ao que era usuarios_municipio).
+    var minhasEquipes;
+    try {
+      minhasEquipes = await teams.list();
+    } catch (e) {
+      minhasEquipes = { teams: [] };
+    }
+    var souAdmin = minhasEquipes.teams.some(function(t){ return t.$id === TEAM_ADMINS_ID; });
+    if (souAdmin) document.getElementById('linkAdmin').style.display = '';
+
+    var equipeMunicipio = minhasEquipes.teams.find(function(t){ return t.$id !== TEAM_ADMINS_ID; });
+
+    if (!equipeMunicipio){
+      document.getElementById('infoUsuario').innerHTML = '<strong>Sem município vinculado</strong>' + usuario.email;
+      document.getElementById('infoExercicio').textContent = '';
+      document.getElementById('cardsResumo').innerHTML = '<div class="card"><div class="lab">Nenhum município vinculado a este usuário</div><div class="sub">Fale com o administrador do sistema para vincular seu acesso a um município.</div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+      return;
+    }
+
+    // Município cujo team_id bate com esse time.
+    var resultadoMunicipios;
+    try {
+      resultadoMunicipios = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'municipios',
+        queries: [Query.equal('team_id', equipeMunicipio.$id), Query.limit(1)]
+      });
+    } catch (e) {
+      resultadoMunicipios = { rows: [] };
+    }
+    var municipio = resultadoMunicipios.rows[0];
+
+    if (!municipio){
+      document.getElementById('infoUsuario').innerHTML = '<strong>Sem município vinculado</strong>' + usuario.email;
+      document.getElementById('cardsResumo').innerHTML = '<div class="card"><div class="lab">Município não encontrado</div><div class="sub">Seu time existe, mas não está associado a nenhum registro de município. Fale com o administrador.</div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+      return;
+    }
+
+    document.getElementById('infoUsuario').innerHTML = '<strong>' + municipio.nome + ' — ' + municipio.uf + '</strong>' + usuario.email;
+    document.getElementById('tituloMunicipioHist').textContent = '— ' + municipio.nome + '/' + municipio.uf;
+
+    // Município ainda não aprovado ou com acesso suspenso: mostra um aviso claro em vez da
+    // apuração normal, e interrompe aqui — não faz sentido buscar apurações para um
+    // município que ainda não tem (ou não tem mais) acesso liberado.
+    if (municipio.status === 'pendente'){
+      document.getElementById('infoExercicio').textContent = '';
+      document.getElementById('cardsResumo').innerHTML =
+        '<div class="card destaque"><div class="lab">Cadastro em análise</div><div class="sub">O cadastro de ' + municipio.nome + ' foi recebido e está aguardando aprovação do administrador da plataforma. Você será avisado assim que o acesso for liberado.</div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+      document.getElementById('navNovaApuracao').style.display = 'none';
+      document.getElementById('navImportar').style.display = 'none';
+      document.getElementById('blocoAcoes').style.display = 'none';
+      return;
+    }
+    if (municipio.status === 'suspenso'){
+      document.getElementById('infoExercicio').textContent = '';
+      document.getElementById('cardsResumo').innerHTML =
+        '<div class="card" style="border-color:#DCB6B0"><div class="lab" style="color:var(--red)">Acesso suspenso</div><div class="sub">O acesso de ' + municipio.nome + ' está suspenso. Fale com o administrador da plataforma para regularizar.</div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+      document.getElementById('navNovaApuracao').style.display = 'none';
+      document.getElementById('navImportar').style.display = 'none';
+      document.getElementById('blocoAcoes').style.display = 'none';
+      return;
+    }
+
+    // Apurações deste município, mais recente primeiro
+    var apuracoes;
+    try {
+      var resultadoApuracoes = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'apuracoes',
+        queries: [
+          Query.equal('municipio_id', municipio.$id),
+          Query.orderDesc('competencia_ano'),
+          Query.orderDesc('competencia_mes'),
+          Query.limit(100),
+        ]
+      });
+      apuracoes = resultadoApuracoes.rows;
+    } catch (e) {
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--red)">Erro ao carregar apurações: ' + e.message + '</td></tr>';
+      return;
+    }
+
+    if (!apuracoes || apuracoes.length === 0){
+      document.getElementById('infoExercicio').innerHTML = 'Nenhuma apuração registrada ainda';
+      document.getElementById('cardsResumo').innerHTML =
+        '<div class="card destaque"><div class="lab">Valor a pagar</div><div class="val">—</div><div class="sub">Nenhuma apuração registrada</div></div>' +
+        '<div class="card"><div class="lab">Base de cálculo</div><div class="val">—</div><div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div></div>' +
+        '<div class="card"><div class="lab">Retido na fonte</div><div class="val">—</div><div class="sub">Art. 2º, §6º</div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML =
+        '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">Nenhuma apuração registrada para ' + municipio.nome + ' ainda. Use "Nova apuração" para importar o primeiro XML AUDESP.</td></tr>';
+      return;
+    }
+
+    var maisRecente = apuracoes[0];
+    document.getElementById('infoExercicio').innerHTML =
+      'Exercício <b>' + maisRecente.competencia_ano + '</b> · Competência mais recente <b>' + MESES[maisRecente.competencia_mes] + '</b>';
+
+    function renderizarCards(ap){
+      document.getElementById('cardsResumo').innerHTML =
+        '<div class="card destaque"><div class="lab">Valor a pagar — ' + MESES[ap.competencia_mes] + '/' + ap.competencia_ano + '</div><div class="val">R$ ' + brl(ap.valor_pagar) + '</div><div class="sub">' + (ap.status === 'pendente' ? 'Pendência de revisão' : 'Guia ainda não emitida') + '</div></div>' +
+        '<div class="card"><div class="lab">Base de cálculo</div><div class="val">R$ ' + brl(ap.base_calculo) + '</div><div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div></div>' +
+        '<div class="card"><div class="lab">Retido na fonte</div><div class="val">R$ ' + brl(ap.pasep_retido) + '</div><div class="sub">Art. 2º, §6º</div></div>';
+
+      var alerta = document.getElementById('alertaPendencia');
+      if (ap.status === 'pendente'){
+        alerta.style.display = '';
+        alerta.querySelector('strong').textContent = 'Competência ' + MESES[ap.competencia_mes] + '/' + ap.competencia_ano + ' com pendência';
+      } else {
+        alerta.style.display = 'none';
+      }
+
+      document.querySelectorAll('#corpoTabelaHist tr.linha-apuracao').forEach(function(tr){
+        tr.classList.toggle('selecionada', tr.dataset.apuracaoId === ap.$id);
+      });
+    }
+
+    renderizarCards(maisRecente);
+
+    document.getElementById('corpoTabelaHist').innerHTML = apuracoes.map(function(ap){
+      var statusHtml = ap.status === 'concluida'
+        ? '<span class="status ok">Concluída</span>'
+        : '<span class="status pend">Pendente</span>';
+      return '<tr class="linha-apuracao' + (ap.$id === maisRecente.$id ? ' selecionada' : '') + '" data-apuracao-id="' + ap.$id + '">' +
+        '<td>' + MESES[ap.competencia_mes] + '/' + ap.competencia_ano + '</td>' +
+        '<td class="num">' + brl(ap.base_calculo) + '</td>' +
+        '<td class="num">' + brl(ap.pasep_retido) + '</td>' +
+        '<td class="num">' + brl(ap.valor_pagar) + '</td>' +
+        '<td>' + statusHtml + '</td>' +
+        '<td><button class="btn-excluir-apuracao" data-apuracao-id="' + ap.$id + '">Excluir</button></td></tr>';
+    }).join('');
+
+    // Clicar na linha (fora do botão de excluir) troca os cards de cima para essa competência.
+    document.querySelectorAll('#corpoTabelaHist tr.linha-apuracao').forEach(function(tr){
+      tr.addEventListener('click', function(e){
+        if (e.target.closest('.btn-excluir-apuracao')) return;
+        var ap = apuracoes.find(function(a){ return a.$id === tr.dataset.apuracaoId; });
+        if (ap) renderizarCards(ap);
+      });
+    });
+
+    // Excluir apuração, com confirmação explícita antes de gravar a exclusão.
+    document.querySelectorAll('.btn-excluir-apuracao').forEach(function(btn){
+      btn.addEventListener('click', async function(e){
+        e.stopPropagation();
+        var ap = apuracoes.find(function(a){ return a.$id === btn.dataset.apuracaoId; });
+        if (!ap) return;
+        var confirmado = confirm(
+          'Excluir a apuração de ' + MESES[ap.competencia_mes] + '/' + ap.competencia_ano + '?\n\n' +
+          'Valor a pagar registrado: R$ ' + brl(ap.valor_pagar) + '.\n\n' +
+          'Esta ação não pode ser desfeita — os valores calculados serão apagados permanentemente. ' +
+          'Se precisar deles de novo, será necessário reprocessar o XML desta competência.'
+        );
+        if (!confirmado) return;
+
+        btn.disabled = true; btn.textContent = 'Excluindo...';
+        try {
+          await tablesDB.deleteRow({ databaseId: DATABASE_ID, tableId: 'apuracoes', rowId: ap.$id });
+          await carregarPainel();
+        } catch (err) {
+          alert('Não foi possível excluir: ' + err.message);
+          btn.disabled = false; btn.textContent = 'Excluir';
+        }
+      });
+    });
+  }
+
+  carregarPainel();
+</script>
+</body>
+</html>

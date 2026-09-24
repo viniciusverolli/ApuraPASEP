@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ApuraPASEP — Acesso ao sistema</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --chumbo:#23262B; --chumbo-2:#2E323A;
+    --teal:#2E7D6B; --teal-soft:#E3EFEC; --teal-claro:#3FA48C;
+    --paper:#F6F4EE; --panel:#FFFFFF;
+    --ink:#1D1D1B; --muted:#6B6656; --line:#E1DCC9;
+    --red:#8E3B33; --red-soft:#F3E3E1;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; height:100%}
+  body{
+    font-family:'Inter',sans-serif; color:var(--ink);
+    background:var(--chumbo);
+    display:grid; grid-template-columns: 1fr 460px; min-height:100vh;
+  }
+  .marca-mobile{ display:none; align-items:center; gap:10px; background:var(--chumbo); padding:20px 24px; color:#F2F0EA; }
+  .marca-mobile .t{ font-family:'Source Serif 4',serif; font-size:22px; font-weight:700; }
+  .marca-mobile .t span{ color:var(--teal-claro); }
+
+  .lado-esq{
+    display:flex; flex-direction:column; justify-content:center;
+    padding: 60px 72px; color:#F2F0EA; position:relative; overflow:hidden;
+  }
+  .lado-esq::before{
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(46,125,107,.14), transparent 40%),
+      radial-gradient(circle at 85% 85%, rgba(63,164,140,.10), transparent 45%);
+    pointer-events:none;
+  }
+  .marca{ display:flex; align-items:center; gap:14px; margin-bottom:28px; position:relative; }
+  .marca .t{ font-family:'Source Serif 4',serif; font-size:32px; font-weight:700; }
+  .marca .t span{ color:var(--teal-claro); }
+  .lado-esq p.lead{ font-size:16px; line-height:1.7; color:#B9C0C4; max-width:440px; margin:0 0 40px; position:relative; }
+
+  .provas{ display:flex; flex-direction:column; gap:18px; position:relative; }
+  .prova{ display:flex; gap:14px; align-items:flex-start; }
+  .prova .ic{
+    width:30px; height:30px; border-radius:8px; background:rgba(63,164,140,.14);
+    border:1px solid rgba(63,164,140,.35); flex:none;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .prova .ic svg{ width:15px; height:15px; }
+  .prova strong{ display:block; font-size:14px; color:#F2F0EA; margin-bottom:2px; }
+  .prova span{ font-size:13px; color:#9BA3A6; line-height:1.5; }
+
+  .rodape-esq{ margin-top:52px; font-size:12px; color:#6B7378; position:relative; }
+
+  .lado-dir{ background:var(--paper); display:flex; align-items:center; justify-content:center; padding:40px; }
+  .caixa{ width:100%; max-width:340px; }
+  .caixa h2{ font-family:'Source Serif 4',serif; font-size:22px; font-weight:600; margin:0 0 6px; color:var(--chumbo); }
+  .caixa .sub{ font-size:13.5px; color:var(--muted); margin:0 0 32px; }
+
+  label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
+  .campo{ margin-bottom:18px; }
+  input[type=text], input[type=password]{
+    width:100%; font:inherit; font-size:14px; padding:12px 14px;
+    border:1px solid var(--line); border-radius:6px; background:#fff; color:var(--ink);
+  }
+  input:focus{ outline:2px solid var(--teal); outline-offset:1px; border-color:var(--teal); }
+
+  button:focus-visible, a:focus-visible, input[type=checkbox]:focus-visible{
+    outline:2px solid var(--teal); outline-offset:2px;
+  }
+  input[type=checkbox]{ width:16px; height:16px; accent-color:var(--teal); }
+
+  @media (max-width:420px){
+    .lado-dir{ padding:24px 16px; }
+    .marca-mobile{ padding:16px 20px; }
+  }
+
+  .linha-opcoes{ display:flex; justify-content:space-between; align-items:center; margin:2px 0 24px; font-size:12.5px; }
+  .linha-opcoes label{ display:flex; align-items:center; gap:7px; margin:0; color:var(--ink); cursor:pointer; }
+  .linha-opcoes a{ color:var(--teal); text-decoration:none; }
+  .linha-opcoes a:hover{ text-decoration:underline; }
+
+  .btn-entrar{
+    width:100%; background:var(--teal); color:#fff; border:none; border-radius:6px;
+    padding:13px; font:inherit; font-size:14.5px; font-weight:600; cursor:pointer;
+  }
+  .btn-entrar:hover{ background:var(--teal-claro); }
+
+  .btn-google{
+    width:100%; background:#fff; color:var(--ink); border:1px solid var(--line); border-radius:6px;
+    padding:12px; font:inherit; font-size:14px; font-weight:500; cursor:pointer;
+    display:flex; align-items:center; justify-content:center; gap:10px;
+  }
+  .btn-google:hover{ background:#FAFAFA; border-color:#CFC9B4; }
+  .btn-google:disabled{ opacity:.6; cursor:default; }
+
+  .erro{
+    display:none; background:var(--red-soft); border:1px solid #DCB6B0; color:var(--red);
+    font-size:12.5px; padding:10px 13px; border-radius:6px; margin-bottom:16px; line-height:1.5;
+  }
+  .erro.show{ display:block; }
+
+  .divisor{ display:flex; align-items:center; gap:12px; margin:26px 0; color:var(--muted); font-size:11.5px; }
+  .divisor::before, .divisor::after{ content:''; flex:1; height:1px; background:var(--line); }
+
+  .rodape-dir{ text-align:center; font-size:11.5px; color:var(--muted); margin-top:22px; }
+
+  /* Responsivo: esta regra fica de propósito no final da folha de estilo, para vencer o
+     empate de especificidade contra as regras base acima (mesmo peso, quem vem depois vence). */
+  @media (max-width:880px){
+    body{ grid-template-columns:1fr; }
+    .lado-esq{ display:none; }
+    .marca-mobile{ display:flex; }
+  }
+</style>
+</head>
+<body>
+
+  <div class="marca-mobile" aria-hidden="false">
+    <svg width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="t">Apura<span>PASEP</span></div>
+  </div>
+
+  <div class="lado-esq">
+    <div class="marca">
+      <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+        <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+        <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="t">Apura<span>PASEP</span></div>
+    </div>
+    <p class="lead">Apuração automática do PASEP municipal a partir do XML AUDESP, com conferência centavo a centavo contra a API do TCESP e o balancete da receita.</p>
+
+    <div class="provas">
+      <div class="prova">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#3FA48C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><strong>Apuração direto do XML AUDESP</strong><span>Sem digitação manual — o sistema lê o layout padronizado pelo TCESP.</span></div>
+      </div>
+      <div class="prova">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#3FA48C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><strong>Conferência cruzada</strong><span>XML, API de transparência do TCESP e balancete do sistema de gestão, lado a lado.</span></div>
+      </div>
+      <div class="prova">
+        <div class="ic" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l4 4L19 6" stroke="#3FA48C" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div><strong>Fundamentação legal explícita</strong><span>Cada exclusão da base referenciada à Lei nº 9.715/98 e às Soluções de Consulta Cosit aplicáveis.</span></div>
+      </div>
+    </div>
+
+    <div class="rodape-esq">© 2026 ApuraPASEP — apoio técnico à apuração, não substitui manifestação formal do órgão de contabilidade.</div>
+  </div>
+
+  <main class="lado-dir">
+    <div class="caixa">
+      <h1 style="font-family:'Source Serif 4',serif; font-size:22px; font-weight:600; margin:0 0 6px; color:var(--chumbo);">Acesse sua conta</h1>
+      <p class="sub">Entre com as credenciais do seu município.</p>
+
+      <div class="erro" id="caixaErro" role="alert">Usuário ou senha incorretos. Confira os dados e tente novamente.</div>
+
+      <form id="formLogin">
+        <div class="campo">
+          <label for="usuario">Usuário</label>
+          <input type="text" id="usuario" name="usuario" placeholder="usuario@municipio.sp.gov.br" autocomplete="username">
+        </div>
+        <div class="campo">
+          <label for="senha">Senha</label>
+          <input type="password" id="senha" name="senha" placeholder="••••••••" autocomplete="current-password">
+        </div>
+        <div class="linha-opcoes">
+          <label><input type="checkbox" checked> Manter conectado</label>
+          <a href="#">Esqueceu a senha?</a>
+        </div>
+        <button type="submit" class="btn-entrar">Entrar</button>
+      </form>
+
+      <div class="divisor">OU</div>
+      <button type="button" class="btn-google" id="btn-google">
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <path fill="#4285F4" d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84c-.21 1.13-.84 2.09-1.8 2.73v2.27h2.91c1.7-1.57 2.69-3.88 2.69-6.64z"/>
+          <path fill="#34A853" d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.91-2.27c-.81.54-1.84.86-3.05.86-2.34 0-4.33-1.58-5.04-3.71H.96v2.33C2.44 15.98 5.48 18 9 18z"/>
+          <path fill="#FBBC05" d="M3.96 10.7A5.4 5.4 0 0 1 3.68 9c0-.59.1-1.17.28-1.7V4.97H.96A9 9 0 0 0 0 9c0 1.45.35 2.83.96 4.03l3-2.33z"/>
+          <path fill="#EA4335" d="M9 3.58c1.32 0 2.51.45 3.44 1.35l2.58-2.58C13.46.89 11.43 0 9 0 5.48 0 2.44 2.02.96 4.97l3 2.33C4.67 5.16 6.66 3.58 9 3.58z"/>
+        </svg>
+        Entrar com Google
+      </button>
+
+      <button type="button" class="btn-google" id="btn-microsoft" style="margin-top:10px">
+        <svg width="18" height="18" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect x="0" y="0" width="8.5" height="8.5" fill="#F25022"/>
+          <rect x="9.5" y="0" width="8.5" height="8.5" fill="#7FBA00"/>
+          <rect x="0" y="9.5" width="8.5" height="8.5" fill="#00A4EF"/>
+          <rect x="9.5" y="9.5" width="8.5" height="8.5" fill="#FFB900"/>
+        </svg>
+        Entrar com Microsoft
+      </button>
+
+      <p style="text-align:center; font-size:12.5px; color:var(--muted); margin:16px 0 0;">Ainda não tem acesso? <a href="cadastro.html" style="color:var(--teal); text-decoration:none">Solicitar cadastro</a></p>
+    </div>
+  </main>
+
+<script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script>
+  var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
+  var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
+
+  var client = new Appwrite.Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+  var account = new Appwrite.Account(client);
+
+  // NOTA: a rotina de concluir cadastro pendente (quando o e-mail exige confirmação) foi
+  // retirada nesta migração — ela dependia das tabelas do Supabase. Será reconstruída em
+  // cima de Teams quando cadastro.html for reescrito para o Appwrite.
+
+  // Se já existe uma sessão válida (usuário voltou com o navegador ainda conectado), pula
+  // direto pro painel, sem mostrar o formulário de novo.
+  (async function(){
+    try {
+      await account.get();
+      window.location.href = 'painel.html';
+    } catch (e) {
+      // Sem sessão ativa — fica na tela de login normalmente.
+    }
+  })();
+
+  document.getElementById('btn-google').addEventListener('click', async function(){
+    var btn = this;
+    var textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    try {
+      // O redirecionamento em si já leva pro Google — se der erro antes disso (ex.: provedor
+      // não configurado), a exceção é lançada aqui mesmo, sem sair da página.
+      account.createOAuth2Session({
+        provider: 'google',
+        success: window.location.origin + '/painel.html',
+        failure: window.location.origin + '/login.html'
+      });
+    } catch (error) {
+      document.getElementById('caixaErro').textContent = 'Não foi possível iniciar o login com Google: ' + error.message;
+      document.getElementById('caixaErro').classList.add('show');
+      btn.disabled = false;
+      btn.innerHTML = textoOriginal;
+    }
+  });
+
+  document.getElementById('btn-microsoft').addEventListener('click', async function(){
+    var btn = this;
+    var textoOriginal = btn.innerHTML;
+    btn.disabled = true;
+    try {
+      account.createOAuth2Session({
+        provider: 'microsoft',
+        success: window.location.origin + '/painel.html',
+        failure: window.location.origin + '/login.html',
+        scopes: ['email']
+      });
+    } catch (error) {
+      document.getElementById('caixaErro').textContent = 'Não foi possível iniciar o login com Microsoft: ' + error.message;
+      document.getElementById('caixaErro').classList.add('show');
+      btn.disabled = false;
+      btn.innerHTML = textoOriginal;
+    }
+  });
+
+  document.getElementById('formLogin').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var u = document.getElementById('usuario').value.trim();
+    var s = document.getElementById('senha').value.trim();
+    var caixaErro = document.getElementById('caixaErro');
+    var btn = this.querySelector('.btn-entrar');
+
+    if (!u || !s){
+      caixaErro.textContent = 'Preencha usuário e senha para continuar.';
+      caixaErro.classList.add('show');
+      return;
+    }
+
+    caixaErro.classList.remove('show');
+    var textoOriginal = btn.textContent;
+    btn.textContent = 'Entrando...';
+    btn.disabled = true;
+
+    try {
+      await account.createEmailPasswordSession({ email: u, password: s });
+      window.location.href = 'painel.html';
+    } catch (error) {
+      // Mensagem genérica de propósito — não revela se o problema foi o usuário ou a senha,
+      // para não ajudar tentativa de adivinhação de conta.
+      caixaErro.textContent = 'Usuário ou senha incorretos. Confira os dados e tente novamente.';
+      caixaErro.classList.add('show');
+      btn.textContent = textoOriginal;
+      btn.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>

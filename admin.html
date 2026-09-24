@@ -1,0 +1,404 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ApuraPASEP — Administração</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,500;8..60,600;8..60,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --navy:#23262B; --navy-2:#2E323A;
+    --gold:#2E7D6B; --gold-soft:#E3EFEC; --gold-claro:#3FA48C;
+    --paper:#F6F4EE; --panel:#FFFFFF;
+    --ink:#1D1D1B; --muted:#6B6656; --line:#E1DCC9;
+    --red:#8E3B33; --red-soft:#F3E3E1; --green:#2E5C3E; --green-soft:#E4EEE6;
+    --amber:#8A6A1F; --amber-soft:#F5EAD2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{font-family:'Inter',sans-serif; color:var(--ink); background:var(--paper);}
+  .shell{ display:grid; grid-template-columns: 244px 1fr; min-height:100vh; }
+
+  .side{ background:var(--navy); color:#EFE9D8; padding: 26px 20px; display:flex; flex-direction:column; }
+  .side .brand{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .side .brand .t{ font-family:'Source Serif 4',serif; font-size:16px; font-weight:700; }
+  .side .brand .t span{ color:var(--gold-claro); }
+  .side .voltar{ display:flex; align-items:center; gap:6px; color:#B9C0C4; text-decoration:none; font-size:12.5px; margin:0 0 28px; }
+  .side .voltar:hover{ color:#fff; }
+  .side .tag-admin{ display:inline-block; background:rgba(63,164,140,.16); border:1px solid rgba(63,164,140,.4); color:var(--gold-claro); font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:20px; margin-bottom:26px; align-self:flex-start; }
+  nav.main{ display:flex; flex-direction:column; gap:2px; }
+  nav.main a{ display:flex; align-items:center; gap:10px; color:#B9C0C4; text-decoration:none; font-size:14px; padding:10px 12px; border-radius:6px; }
+  nav.main a .dot{ width:5px; height:5px; border-radius:50%; background:transparent; }
+  nav.main a.active{ background:rgba(255,255,255,.06); color:#F2F0EA; }
+  nav.main a.active .dot{ background:var(--gold-claro); }
+  nav.main a:hover{ color:#F2F0EA; }
+  .side .spacer{ flex:1; }
+  .side .who{ border-top:1px solid rgba(233,225,197,.14); padding-top:16px; font-size:12.5px; color:#9BA3A6; line-height:1.6; }
+  .side .who strong{ color:#EFE9D8; display:block; font-size:13.5px; }
+  .side .sair{ color:#8b9498; font-size:12px; text-decoration:none; margin-top:10px; display:inline-block; }
+  .side .sair:hover{ color:#EFE9D8; }
+
+  main{ padding: 30px 44px 60px; max-width:1240px; }
+  .topbar{ margin-bottom:26px; }
+  .topbar h1{ font-family:'Source Serif 4',serif; font-weight:600; font-size:26px; margin:0 0 4px; }
+  .topbar p{ font-size:13.5px; color:var(--muted); margin:0; }
+
+  .cards{ display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:32px; }
+  @media (max-width:900px){ .cards{grid-template-columns:repeat(2,1fr)} }
+  .card{ background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:18px 20px; }
+  .card .lab{ font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .card .val{ font-family:'Source Serif 4',serif; font-size:26px; font-weight:600; color:var(--navy); }
+
+  .section-title{ font-size:13px; color:var(--muted); margin: 0 0 12px; }
+
+  table.clientes{ width:100%; border-collapse:collapse; background:var(--panel); border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  table.clientes th{ text-align:left; font-size:11.5px; color:var(--muted); font-weight:500; padding:11px 14px; border-bottom:1px solid var(--line); background:#FBFAF6; text-transform:uppercase; letter-spacing:.03em; }
+  table.clientes td{ padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.clientes tr:last-child td{ border-bottom:none; }
+
+  .badge{ font-size:11px; padding:3px 10px; border-radius:20px; display:inline-block; white-space:nowrap; font-weight:600; }
+  .badge.ativo{ background:var(--green-soft); color:var(--green); }
+  .badge.pendente{ background:var(--amber-soft); color:var(--amber); }
+  .badge.suspenso{ background:var(--red-soft); color:var(--red); }
+  .badge.trial{ background:#EFEAF5; color:#5B4B8A; }
+  .badge.expirada{ background:var(--red-soft); color:var(--red); }
+
+  .btn-acao{ font:inherit; font-size:12px; padding:6px 12px; border-radius:6px; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink); margin:2px 4px 2px 0; }
+  .btn-acao:hover{ border-color:var(--navy); }
+  .btn-acao.primario{ background:var(--gold); color:#fff; border-color:var(--gold); }
+  .btn-acao.primario:hover{ background:var(--gold-claro); }
+  .btn-acao.perigo{ color:var(--red); border-color:#DCB6B0; }
+  .btn-acao.perigo:hover{ background:var(--red-soft); }
+
+  .painel-licenca{ display:none; margin-top:10px; padding:12px; background:#FBFAF6; border:1px solid var(--line); border-radius:8px; }
+  .painel-licenca.aberto{ display:block; }
+  .painel-licenca label{ display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
+  .painel-licenca select, .painel-licenca input{ font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid var(--line); border-radius:5px; margin-right:8px; margin-bottom:8px; }
+
+  .estado-carregando, .estado-vazio{ text-align:center; color:var(--muted); padding:30px; font-size:13px; }
+
+  .barra-sistema{ margin-bottom:16px; }
+  .barra-sistema:last-child{ margin-bottom:0; }
+  .barra-sistema .rotulo{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .barra-sistema .trilho{ background:var(--paper); border-radius:6px; height:10px; overflow:hidden; }
+  .barra-sistema .preenchido{ background:var(--gold); height:100%; border-radius:6px; }
+
+  .item-lista{ padding:12px 18px; border-bottom:1px solid var(--line); font-size:13px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .item-lista:last-child{ border-bottom:none; }
+  .item-lista .principal{ font-weight:600; }
+  .item-lista .secundario{ font-size:11.5px; color:var(--muted); }
+  .item-lista .direita{ text-align:right; white-space:nowrap; }
+
+  @media (max-width:900px){ .painel-dashboard{ grid-template-columns:1fr !important; } #cardsResumoGestao{ grid-template-columns:1fr !important; } }
+  .acesso-negado{ max-width:440px; margin:80px auto; text-align:center; }
+  .acesso-negado h1{ font-family:'Source Serif 4',serif; font-size:20px; }
+  .acesso-negado a{ color:var(--gold); }
+</style>
+</head>
+<body>
+<div class="shell" id="shellPrincipal" style="display:none">
+  <aside class="side">
+    <div class="brand">
+      <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+        <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+        <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="t">Apura<span>PASEP</span></div>
+    </div>
+    <a href="painel.html" class="voltar">&larr; Voltar ao painel</a>
+    <div class="tag-admin">ADMINISTRAÇÃO</div>
+    <nav class="main" aria-label="Navegação da administração">
+      <a class="active" href="admin.html"><span class="dot" aria-hidden="true"></span> Clientes e licenças</a>
+      <a href="repositorio_pasep_cosit.html"><span class="dot" aria-hidden="true"></span> Repositório de normas</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="who" id="infoUsuarioAdmin"></div>
+    <a class="sair" href="#" id="linkSairAdmin">Sair</a>
+  </aside>
+
+  <main>
+    <div class="topbar">
+      <h1>Clientes e licenças</h1>
+      <p>Gerenciamento de todos os municípios cadastrados na plataforma.</p>
+    </div>
+
+    <div class="cards" id="cardsResumoAdmin">
+      <div class="card"><div class="lab">Total de municípios</div><div class="val">—</div></div>
+      <div class="card"><div class="lab">Ativos</div><div class="val">—</div></div>
+      <div class="card"><div class="lab">Pendentes de aprovação</div><div class="val">—</div></div>
+      <div class="card"><div class="lab">Suspensos</div><div class="val">—</div></div>
+    </div>
+
+    <div class="cards" id="cardsResumoGestao" style="grid-template-columns:repeat(3,1fr)">
+      <div class="card"><div class="lab">Apurações registradas (todos os clientes)</div><div class="val">—</div></div>
+      <div class="card" id="cardLicVencendo"><div class="lab">Licenças a vencer em 30 dias</div><div class="val">—</div></div>
+      <div class="card"><div class="lab">Cadastros nos últimos 30 dias</div><div class="val">—</div></div>
+    </div>
+
+    <div class="painel-dashboard" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:32px">
+      <div>
+        <div class="section-title">Municípios por sistema de gestão</div>
+        <div class="card" id="graficoSistemas" style="padding:20px 22px"><div class="estado-carregando" style="padding:10px">Carregando…</div></div>
+      </div>
+      <div>
+        <div class="section-title">Licenças a vencer em breve</div>
+        <div class="card" id="listaLicencasVencendo" style="padding:0"><div class="estado-carregando">Carregando…</div></div>
+      </div>
+    </div>
+
+    <div class="section-title">Cadastros recentes</div>
+    <div class="card" id="listaCadastrosRecentes" style="padding:0; margin-bottom:32px"><div class="estado-carregando">Carregando…</div></div>
+
+    <div class="section-title">Municípios cadastrados</div>
+    <table class="clientes">
+      <thead>
+        <tr><th>Município</th><th>Sistema de gestão</th><th>Status</th><th>Licença</th><th>Ações</th></tr>
+      </thead>
+      <tbody id="corpoTabelaClientes">
+        <tr><td colspan="5" class="estado-carregando">Carregando…</td></tr>
+      </tbody>
+    </table>
+  </main>
+</div>
+
+<div id="blocoAcessoNegado" style="display:none">
+  <div class="acesso-negado">
+    <h1>Acesso restrito</h1>
+    <p>Esta área é exclusiva para administradores da plataforma.</p>
+    <p><a href="painel.html">Voltar ao painel</a></p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script>
+  var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
+  var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
+  var DATABASE_ID = 'apurapasep';
+  var TEAM_ADMINS_ID = '6ab476f0000e158fa770';
+
+  var client = new Appwrite.Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+  var account = new Appwrite.Account(client);
+  var tablesDB = new Appwrite.TablesDB(client);
+  var teams = new Appwrite.Teams(client);
+  var Query = Appwrite.Query;
+  var ID = Appwrite.ID;
+
+  function brl(v){ return (v==null) ? '—' : Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function dataBr(iso){
+    if (!iso) return '—';
+    var p = iso.slice(0,10).split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+
+  document.getElementById('linkSairAdmin').addEventListener('click', async function(e){
+    e.preventDefault();
+    try { await account.deleteSession({ sessionId: 'current' }); } catch(err){}
+    window.location.href = 'login.html';
+  });
+
+  async function carregarAdmin(){
+    var usuario;
+    try {
+      usuario = await account.get();
+    } catch (e) {
+      window.location.href = 'login.html';
+      return;
+    }
+
+    var minhasEquipes;
+    try { minhasEquipes = await teams.list(); } catch (e) { minhasEquipes = { teams: [] }; }
+    var souAdmin = minhasEquipes.teams.some(function(t){ return t.$id === TEAM_ADMINS_ID; });
+
+    if (!souAdmin){
+      document.getElementById('blocoAcessoNegado').style.display = 'block';
+      return;
+    }
+
+    document.getElementById('shellPrincipal').style.display = 'grid';
+    document.getElementById('infoUsuarioAdmin').innerHTML = '<strong>Administrador</strong>' + usuario.email;
+
+    await recarregarClientes();
+  }
+
+  async function recarregarClientes(){
+    var municipios, licencas;
+    try {
+      var resM = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'municipios',
+        queries: [Query.orderAsc('status'), Query.orderAsc('nome'), Query.limit(200)]
+      });
+      municipios = resM.rows;
+    } catch (e) { municipios = []; }
+
+    try {
+      var resL = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'licencas',
+        queries: [Query.orderDesc('$createdAt'), Query.limit(200)]
+      });
+      licencas = resL.rows;
+    } catch (e) { licencas = []; }
+
+    var licencaPorMunicipio = {};
+    licencas.forEach(function(l){
+      if (!licencaPorMunicipio[l.municipio_id]) licencaPorMunicipio[l.municipio_id] = l; // a mais recente, já que veio ordenado desc
+    });
+
+    if (!municipios || municipios.length === 0){
+      document.getElementById('corpoTabelaClientes').innerHTML = '<tr><td colspan="5" class="estado-vazio">Nenhum município cadastrado ainda.</td></tr>';
+      return;
+    }
+
+    var total = municipios.length;
+    var ativos = municipios.filter(function(m){ return m.status === 'ativo'; }).length;
+    var pendentes = municipios.filter(function(m){ return m.status === 'pendente'; }).length;
+    var suspensos = municipios.filter(function(m){ return m.status === 'suspenso'; }).length;
+    var cards = document.querySelectorAll('#cardsResumoAdmin .val');
+    cards[0].textContent = total; cards[1].textContent = ativos; cards[2].textContent = pendentes; cards[3].textContent = suspensos;
+
+    // --- Total de apurações de todos os clientes (o campo "total" já vem no resultado da busca,
+    // mesmo pedindo só 1 linha — não precisa trazer todas as apurações só para contar) ---
+    var totalApuracoes = '—';
+    try {
+      var resA = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'apuracoes', queries: [Query.limit(1)]
+      });
+      totalApuracoes = resA.total;
+    } catch (e) {}
+    document.querySelectorAll('#cardsResumoGestao .val')[0].textContent = totalApuracoes;
+
+    // --- Cadastros nos últimos 30 dias ---
+    var limite30 = new Date(); limite30.setDate(limite30.getDate() - 30);
+    var cadastrosRecentes30 = municipios.filter(function(m){ return m.$createdAt && new Date(m.$createdAt) >= limite30; }).length;
+    document.querySelectorAll('#cardsResumoGestao .val')[2].textContent = cadastrosRecentes30;
+
+    // --- Municípios por sistema de gestão (barra simples, sem biblioteca externa) ---
+    var porSistema = {};
+    municipios.forEach(function(m){ porSistema[m.sistema_gestao] = (porSistema[m.sistema_gestao]||0) + 1; });
+    var maiorSistema = Math.max.apply(null, Object.keys(porSistema).map(function(k){ return porSistema[k]; }).concat([1]));
+    document.getElementById('graficoSistemas').innerHTML = Object.keys(porSistema).sort().map(function(sis){
+      var qtd = porSistema[sis];
+      var pct = Math.round((qtd / maiorSistema) * 100);
+      return '<div class="barra-sistema"><div class="rotulo"><span style="text-transform:capitalize">' + sis + '</span><span>' + qtd + '</span></div>' +
+        '<div class="trilho"><div class="preenchido" style="width:' + pct + '%"></div></div></div>';
+    }).join('') || '<div class="estado-vazio">Sem dados</div>';
+
+    // --- Licenças a vencer nos próximos 30 dias (inclui já vencidas, para não passarem despercebidas) ---
+    var em30dias = new Date(); em30dias.setDate(em30dias.getDate() + 30);
+    var vencendo = [];
+    Object.keys(licencaPorMunicipio).forEach(function(mid){
+      var lic = licencaPorMunicipio[mid];
+      if (!lic.data_validade) return;
+      var validade = new Date(lic.data_validade);
+      if (validade <= em30dias){
+        var m = municipios.find(function(x){ return x.$id === mid; });
+        vencendo.push({ nome: m ? m.nome : '—', validade: lic.data_validade, dataObj: validade, vencida: validade < new Date() });
+      }
+    });
+    vencendo.sort(function(a,b){ return a.dataObj - b.dataObj; });
+    document.getElementById('cardLicVencendo').querySelector('.val').textContent = vencendo.length;
+    document.getElementById('listaLicencasVencendo').innerHTML = vencendo.length
+      ? vencendo.map(function(v){
+          return '<div class="item-lista"><span class="principal">' + v.nome + '</span>' +
+            '<span class="direita" style="color:' + (v.vencida ? 'var(--red)' : 'var(--amber)') + '">' +
+            (v.vencida ? 'Vencida em ' : 'Vence em ') + dataBr(v.validade) + '</span></div>';
+        }).join('')
+      : '<div class="estado-vazio">Nenhuma licença vencendo nos próximos 30 dias.</div>';
+
+    // --- Cadastros recentes (últimos 5, mais novo primeiro) ---
+    var recentes = municipios.slice().sort(function(a,b){ return new Date(b.$createdAt) - new Date(a.$createdAt); }).slice(0,5);
+    document.getElementById('listaCadastrosRecentes').innerHTML = recentes.map(function(m){
+      return '<div class="item-lista"><span><span class="principal">' + m.nome + '</span> — ' + m.uf +
+        '<br><span class="secundario">' + m.sistema_gestao + '</span></span>' +
+        '<span class="direita"><span class="badge ' + m.status + '">' + m.status + '</span><br><span class="secundario">' + dataBr(m.$createdAt) + '</span></span></div>';
+    }).join('') || '<div class="estado-vazio">Nenhum cadastro ainda.</div>';
+
+    document.getElementById('corpoTabelaClientes').innerHTML = municipios.map(function(m){
+      var lic = licencaPorMunicipio[m.$id];
+      var licTexto = lic
+        ? '<span class="badge ' + lic.status + '">' + lic.plano + '</span><br><span style="font-size:11.5px;color:var(--muted)">até ' + dataBr(lic.data_validade) + '</span>'
+        : '<span style="color:var(--muted);font-size:12px">sem licença</span>';
+
+      var acoes = '';
+      if (m.status === 'pendente'){
+        acoes += '<button class="btn-acao primario" onclick="aprovarMunicipio(\''+m.$id+'\')">Aprovar</button>';
+      }
+      if (m.status === 'ativo'){
+        acoes += '<button class="btn-acao perigo" onclick="alterarStatus(\''+m.$id+'\',\'suspenso\')">Suspender</button>';
+      }
+      if (m.status === 'suspenso'){
+        acoes += '<button class="btn-acao primario" onclick="alterarStatus(\''+m.$id+'\',\'ativo\')">Reativar</button>';
+      }
+      acoes += '<button class="btn-acao" onclick="toggleLicenca(\''+m.$id+'\')">Licença</button>';
+      acoes += '<div class="painel-licenca" id="lic-'+m.$id+'">' +
+        '<label>Plano</label>' +
+        '<select id="plano-'+m.$id+'"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select>' +
+        '<label>Válida até</label>' +
+        '<input type="date" id="validade-'+m.$id+'">' +
+        '<br><button class="btn-acao primario" onclick="salvarLicenca(\''+m.$id+'\')">Salvar licença</button>' +
+        '</div>';
+
+      return '<tr><td><strong>' + m.nome + '</strong> — ' + m.uf + '</td>' +
+        '<td>' + m.sistema_gestao + '</td>' +
+        '<td><span class="badge ' + m.status + '">' + m.status + '</span></td>' +
+        '<td>' + licTexto + '</td>' +
+        '<td>' + acoes + '</td></tr>';
+    }).join('');
+  }
+
+  async function aprovarMunicipio(municipioId){
+    try {
+      await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: 'ativo' } });
+      // Aprovação cria automaticamente uma licença trial de 30 dias — o administrador pode
+      // trocar o plano depois pelo botão "Licença".
+      var validade = new Date(); validade.setDate(validade.getDate() + 30);
+      await tablesDB.createRow({
+        databaseId: DATABASE_ID, tableId: 'licencas', rowId: ID.unique(),
+        data: {
+          municipio_id: municipioId, plano: 'trial', status: 'trial',
+          data_inicio: new Date().toISOString(), data_validade: validade.toISOString()
+        }
+      });
+      await recarregarClientes();
+    } catch (err) {
+      alert('Não foi possível aprovar: ' + err.message);
+    }
+  }
+
+  async function alterarStatus(municipioId, novoStatus){
+    try {
+      await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: novoStatus } });
+      await recarregarClientes();
+    } catch (err) {
+      alert('Não foi possível alterar o status: ' + err.message);
+    }
+  }
+
+  function toggleLicenca(municipioId){
+    document.getElementById('lic-' + municipioId).classList.toggle('aberto');
+  }
+
+  async function salvarLicenca(municipioId){
+    var plano = document.getElementById('plano-' + municipioId).value;
+    var validade = document.getElementById('validade-' + municipioId).value;
+    if (!validade){ alert('Escolha a data de validade da licença.'); return; }
+    try {
+      await tablesDB.createRow({
+        databaseId: DATABASE_ID, tableId: 'licencas', rowId: ID.unique(),
+        data: {
+          municipio_id: municipioId, plano: plano, status: 'ativa',
+          data_inicio: new Date().toISOString(), data_validade: new Date(validade).toISOString()
+        }
+      });
+      await recarregarClientes();
+    } catch (err) {
+      alert('Não foi possível salvar a licença: ' + err.message);
+    }
+  }
+
+  carregarAdmin();
+</script>
+</body>
+</html>
