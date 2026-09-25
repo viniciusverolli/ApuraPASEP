@@ -8,45 +8,49 @@
 <link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:wght@400;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --navy:#23262B; --navy2:#2E323A; --gold:#2E7D6B; --gold-soft:#E3EFEC;
-  --paper:#FFFDF9; --panel:#F6F2E9; --line:#E1DCC9; --ink:#26221A; --muted:#6B6656;
-  --red:#8C3B3B; --green:#3A6B4A;
+  --navy:#151b2a; --navy2:#1c2333; --gold:#218b78; --gold-soft:rgba(33,139,120,.12); --accent:#5d62d9;
+  --paper:#eef7f5; --panel:rgba(255,255,255,.6); --line:#e2e8f0; --ink:#172033; --muted:#475569;
+  --red:#b91c1c; --green:#166534;
   box-sizing: border-box;
   padding-top: env(safe-area-inset-top, 0px);
   padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --navy:#17191C; --navy2:#23262B; --gold:#3FA48C; --gold-soft:#16302A;
-    --paper:#15130E; --panel:#1C1912; --line:#332E22; --ink:#EDE7D8; --muted:#A69F8B;
-    --red:#D98080; --green:#7FC79A;
+    --navy:#0b0f1a; --navy2:#151b2a; --gold:#5eead4; --gold-soft:rgba(94,234,212,.12); --accent:#8b8ff5;
+    --paper:#0f1420; --panel:rgba(255,255,255,.05); --line:#263041; --ink:#e2e8f0; --muted:#94a3b8;
+    --red:#f87171; --green:#4ade80;
   }
 }
 :root[data-theme="dark"] {
-  --navy:#17191C; --navy2:#23262B; --gold:#3FA48C; --gold-soft:#16302A;
-  --paper:#15130E; --panel:#1C1912; --line:#332E22; --ink:#EDE7D8; --muted:#A69F8B;
-  --red:#D98080; --green:#7FC79A;
+  --navy:#0b0f1a; --navy2:#151b2a; --gold:#5eead4; --gold-soft:rgba(94,234,212,.12); --accent:#8b8ff5;
+  --paper:#0f1420; --panel:rgba(255,255,255,.05); --line:#263041; --ink:#e2e8f0; --muted:#94a3b8;
+  --red:#f87171; --green:#4ade80;
 }
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 body {
   font-family: 'Inter', system-ui, sans-serif;
-  background: var(--paper); color: var(--ink);
+  background: linear-gradient(135deg,var(--paper),var(--paper)); color: var(--ink);
   display: flex; flex-direction: column;
   scroll-padding-top: env(safe-area-inset-top, 0px);
 }
+:root:not([data-theme]):not([data-theme="dark"]) body{ background: linear-gradient(135deg,#eef7f5,#f4f2fb); }
 header {
-  background: var(--navy); color: #fff; padding: 18px 20px calc(14px + env(safe-area-inset-top,0px));
+  background: rgba(21,27,42,.92); backdrop-filter:blur(20px); color: #fff; padding: 18px 20px calc(14px + env(safe-area-inset-top,0px));
   padding-top: calc(18px + env(safe-area-inset-top,0px));
-  border-bottom: 3px solid var(--gold);
+  border-bottom: 1px solid rgba(94,234,212,.25);
 }
-header h1 { font-family:'Source Serif 4', serif; font-size: 19px; margin: 0 0 4px; font-weight:700; }
+header h1 { font-size: 19px; margin: 0 0 4px; font-weight:800; }
 header p { margin: 0; font-size: 12.5px; color: #C9CEDB; line-height:1.5; }
+header .marca-repo{ display:flex; align-items:center; gap:9px; margin-bottom:14px; }
+header .marca-repo .t{ font-size:16px; font-weight:800; letter-spacing:-.01em; color:#fff; }
+header .marca-repo .t span{ color:#5eead4; }
 header a.voltar-painel{ display:inline-flex; align-items:center; gap:6px; color:#C9CEDB; text-decoration:none; font-size:12.5px; margin-bottom:10px; }
 header a.voltar-painel:hover{ color:#fff; text-decoration:underline; }
 .wrap { display:flex; flex:1; min-height:0; }
 .sidebar {
-  width: 300px; min-width: 300px; background: var(--panel); border-right:1px solid var(--line);
+  width: 300px; min-width: 300px; background: var(--panel); backdrop-filter:blur(14px); border-right:1px solid var(--line);
   display:flex; flex-direction:column; overflow:hidden;
 }
 .search-box { padding: 12px; border-bottom:1px solid var(--line); }
@@ -61,7 +65,7 @@ header a.voltar-painel:hover{ color:#fff; text-decoration:underline; }
   border:1px solid transparent; transition: background .12s;
 }
 .item:hover { background: var(--gold-soft); }
-.item.active { background: var(--navy); border-color: var(--navy); }
+.item.active { background: linear-gradient(135deg,var(--gold),var(--accent)); border-color: transparent; }
 .item.active .num, .item.active .assunto { color:#fff; }
 .item .num { font-weight:600; font-size:13px; color:var(--navy2); }
 .item.active .num { color:#fff; }
@@ -78,7 +82,7 @@ header a.voltar-painel:hover{ color:#fff; text-decoration:underline; }
 .welcome { color:var(--muted); font-size:14px; line-height:1.7; padding-top: 60px; text-align:center; }
 .welcome b { color: var(--ink); }
 .doc-header { border-bottom: 2px solid var(--gold); padding-bottom:14px; margin-bottom:18px; }
-.doc-header .numero { font-family:'Source Serif 4', serif; font-size:24px; font-weight:700; color:var(--navy2); margin:0 0 6px; }
+.doc-header .numero { font-size:22px; font-weight:800; color:var(--navy2); margin:0 0 6px; }
 :root[data-theme="dark"] .doc-header .numero, :root:not([data-theme="light"]) .doc-header .numero { color: var(--gold); }
 .meta-row { display:flex; flex-wrap:wrap; gap:14px; font-size:12px; color:var(--muted); margin-top:6px; }
 .meta-row span b { color:var(--ink); font-weight:600; }
@@ -93,7 +97,7 @@ header a.voltar-painel:hover{ color:#fff; text-decoration:underline; }
   color: var(--gold); margin: 22px 0 8px;
 }
 .ementa-box {
-  background: var(--panel); border:1px solid var(--line); border-radius:10px;
+  background: var(--panel); backdrop-filter:blur(10px); border:1px solid var(--line); border-radius:14px;
   padding:16px 18px; font-size:14px; line-height:1.7;
 }
 .dispositivos { font-size:12.5px; line-height:1.7; color: var(--muted); }
@@ -102,16 +106,15 @@ header a.voltar-painel:hover{ color:#fff; text-decoration:underline; }
 }
 :root[data-theme="dark"] .relevancia-box, :root:not([data-theme="light"]) .relevancia-box { border-left-color: var(--gold); }
 .toggle-texto {
-  margin-top:22px; background:none; border:1px solid var(--gold); color:var(--navy2);
-  padding:9px 16px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer;
+  margin-top:22px; background:linear-gradient(135deg,var(--gold),var(--accent)); border:none; color:#fff;
+  padding:9px 16px; border-radius:10px; font-size:13px; font-weight:600; cursor:pointer;
   font-family:inherit;
 }
-:root[data-theme="dark"] .toggle-texto, :root:not([data-theme="light"]) .toggle-texto { color: var(--gold); }
-.toggle-texto:hover { background: var(--gold-soft); }
+.toggle-texto:hover { filter:brightness(1.08); }
 .texto-integral {
-  display:none; margin-top:16px; font-family:'Source Serif 4', serif; font-size:14.5px;
-  line-height:1.85; white-space:pre-wrap; background: var(--panel); border:1px solid var(--line);
-  border-radius:10px; padding:20px 22px;
+  display:none; margin-top:16px; font-size:14.5px;
+  line-height:1.85; white-space:pre-wrap; background: var(--panel); backdrop-filter:blur(10px); border:1px solid var(--line);
+  border-radius:14px; padding:20px 22px;
 }
 .texto-integral.open { display:block; }
 .link-fonte { display:inline-flex; align-items:center; gap:5px; font-size:12px; color:var(--navy2); text-decoration:none; margin-top:18px; }
@@ -132,6 +135,14 @@ header a.voltar-painel:hover{ color:#fff; text-decoration:underline; }
 </head>
 <body>
 <header>
+  <div class="marca-repo">
+    <svg width="22" height="22" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="t">Apura<span>PASEP</span></div>
+  </div>
   <a href="painel.html" class="voltar-painel">&larr; Voltar ao painel</a>
   <h1>Repositório PASEP Municipal — Soluções de Consulta COSIT</h1>
   <p>Base normativa de referência rápida sobre a Contribuição para o PIS/Pasep incidente sobre Receitas Governamentais (Lei nº 9.715/1998), organizada para consulta durante as apurações do PASEP municipal.</p>
