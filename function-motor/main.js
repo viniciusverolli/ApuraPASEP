@@ -357,7 +357,20 @@ export default async ({ req, res, log, error }) => {
     var d = parseAudesp(corpo.xmlText);
     var r = calcular(d);
     log('Apuração calculada: competência ' + d.mes + '/' + d.ano + ', valor a pagar R$ ' + r.valorPagar.toFixed(2));
-    return res.json({ ok: true, d: d, r: r });
+    // As constantes de classificação (que rubrica cai em qual bloco) voltam junto da resposta,
+    // em vez de ficarem fixas no código-fonte estático do HTML — só existem na memória do
+    // navegador depois de uma chamada autenticada de verdade a esta função.
+    return res.json({
+      ok: true, d: d, r: r,
+      constantes: {
+        RUBRICAS_RETENCAO: RUBRICAS_RETENCAO,
+        CFEM_UNIAO_PREFIX: CFEM_UNIAO_PREFIX,
+        CFEM_ESTADO_PREFIX: CFEM_ESTADO_PREFIX,
+        RUBRICAS_FUNDEB: RUBRICAS_FUNDEB,
+        ALERTAS_FINALIDADE: ALERTAS_FINALIDADE,
+        EXERCICIOS_RECEITA_DISPONIVEIS: EXERCICIOS_RECEITA_DISPONIVEIS
+      }
+    });
   } catch (e) {
     error('Erro ao processar XML: ' + e.message);
     return res.json({ ok: false, erro: e.message }, 422);
