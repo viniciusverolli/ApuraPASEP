@@ -361,6 +361,30 @@
       return;
     }
 
+    // Licença vencida: mesmo com o município marcado como "ativo", uma licença expirada
+    // bloqueia o uso — sem isso, o status do município sozinho nunca refletia o vencimento.
+    // Se não houver nenhuma licença cadastrada para este município, não bloqueia por esse
+    // motivo (mantém o comportamento anterior para dados já existentes sem licença registrada).
+    var licencaAtual;
+    try {
+      var resultadoLicencas = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'licencas',
+        queries: [Query.equal('municipio_id', municipio.$id), Query.orderDesc('$createdAt'), Query.limit(1)]
+      });
+      licencaAtual = resultadoLicencas.rows[0];
+    } catch (e) { licencaAtual = null; }
+
+    if (licencaAtual && licencaAtual.data_validade && new Date(licencaAtual.data_validade) < new Date()){
+      document.getElementById('infoExercicio').textContent = '';
+      document.getElementById('cardsResumo').innerHTML =
+        '<div class="card" style="border-color:#DCB6B0"><div class="lab" style="color:var(--red)">Licença vencida</div><div class="sub">A licença de ' + municipio.nome + ' venceu em ' + new Date(licencaAtual.data_validade).toLocaleDateString('pt-BR') + '. Fale com o administrador da plataforma para renovar o acesso.</div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+      document.getElementById('navNovaApuracao').style.display = 'none';
+      document.getElementById('navImportar').style.display = 'none';
+      document.getElementById('blocoAcoes').style.display = 'none';
+      return;
+    }
+
     // Apurações deste município, mais recente primeiro
     var apuracoes;
     try {

@@ -1337,15 +1337,30 @@
         return;
       }
       if (municipio.status !== 'ativo'){
-        // Verificação client-side, só para dar uma mensagem clara — a proteção de verdade
-        // está nas permissões do time do município, que já impedem a gravação enquanto o
-        // município não estiver ativo, mesmo que este código seja contornado.
+        // Verificação client-side, para dar uma mensagem clara ao usuário. Nota de honestidade:
+        // hoje isso NÃO é reforçado por permissão no servidor — suspender ou marcar pendente
+        // um município não revoga as permissões já concedidas ao time dele nesta tabela. Essa é
+        // uma lacuna arquitetural conhecida, registrada na lista de robustez do projeto.
         var msgStatus = municipio.status === 'pendente'
           ? 'O cadastro de ' + municipio.nome + ' ainda está aguardando aprovação do administrador da plataforma. Você poderá salvar apurações assim que o acesso for liberado.'
           : 'O acesso de ' + municipio.nome + ' está suspenso. Fale com o administrador da plataforma para regularizar.';
         mostrarMsg(msgStatus, 'var(--red)');
         return;
       }
+
+      // Licença vencida também bloqueia salvar, mesmo com o município "ativo" — mesma checagem
+      // e mesma ressalva de honestidade do bloco acima (só client-side, não reforçada no servidor).
+      try {
+        var resultadoLicencaSalvar = await appwriteTablesDB.listRows({
+          databaseId: DATABASE_ID, tableId: 'licencas',
+          queries: [AppwriteQuery.equal('municipio_id', municipio.$id), AppwriteQuery.orderDesc('$createdAt'), AppwriteQuery.limit(1)]
+        });
+        var licencaSalvar = resultadoLicencaSalvar.rows[0];
+        if (licencaSalvar && licencaSalvar.data_validade && new Date(licencaSalvar.data_validade) < new Date()){
+          mostrarMsg('A licença de ' + municipio.nome + ' venceu em ' + new Date(licencaSalvar.data_validade).toLocaleDateString('pt-BR') + '. Fale com o administrador da plataforma para renovar o acesso.', 'var(--red)');
+          return;
+        }
+      } catch (e) { /* se a consulta falhar, não bloqueia por esse motivo — mesma postura do painel */ }
 
       // "Pendente" significa que ha lançamentos de finalidade definida aguardando confirmação
       // explícita do responsável técnico nesta competência — mesmo critério usado na tela de apuração.
