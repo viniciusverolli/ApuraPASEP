@@ -1630,10 +1630,17 @@
       wsP.getCell('A2').value = 'Lei nº 9.715/1998, arts. 2º e 8º; CF/1988, art. 212-A';
       wsP.getCell('A2').font = { name:FONTE, size:10, italic:true, color:{argb:'FF6B6656'} };
 
-      function linhaItem(ws, row, rotulo, formula, negrito, obs){
+      function linhaItem(ws, row, rotulo, formula, negrito, obs, resultadoCache){
         var c1 = ws.getCell(row,1); c1.value = rotulo; c1.font = { name:FONTE, size:10, bold: !!negrito };
         var c2 = ws.getCell(row,2);
-        c2.value = (typeof formula === 'string' && formula.indexOf('=')===0) ? {formula: formula.substring(1)} : formula;
+        if (typeof formula === 'string' && formula.indexOf('=')===0){
+          // Grava o resultado já calculado junto da fórmula (cache), para que aplicativos que
+          // não recalculam fórmulas automaticamente ao abrir (comum em visualizadores de
+          // celular) ainda mostrem o número correto, sem depender do recálculo.
+          c2.value = (resultadoCache !== undefined) ? {formula: formula.substring(1), result: resultadoCache} : {formula: formula.substring(1)};
+        } else {
+          c2.value = formula;
+        }
         c2.font = { name:FONTE, size:10, bold: !!negrito }; c2.numFmt = NUMFMT;
         if (obs){ var c3 = ws.getCell(row,3); c3.value = obs; c3.font = { name:FONTE, size:8.5, italic:true, color:{argb:'FF6B6656'} }; }
       }
@@ -1641,15 +1648,20 @@
         var c = ws.getCell(row,1); c.value = texto; c.font = CAB_FONT; c.fill = CAB_FILL;
       }
 
+      // Recalculado aqui porque esta função recebe só "d" — o resultado (base, retido, valor a
+      // pagar) precisa ser obtido de novo. Nome "resultado", não "r", porque "r" já é usado
+      // logo abaixo como contador de linha ao montar a aba Apuração.
+      var resultado = calcular(d);
+
       var r = 4;
       tituloBloco(wsP, r, 'BLOCO 1 — Total de Receitas'); r++;
       linhaItem(wsP, r, 'Receita Corrente Arrecadada',
         '=SUMPRODUCT((LEFT('+LANC_COD+',1)="1")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="1")*'+AJ_VAL+')',
-        false, 'Todos os códigos iniciados em "1", líquidos de devolução/ajuste FUNDEB/reestimativa');
+        false, 'Todos os códigos iniciados em "1", líquidos de devolução/ajuste FUNDEB/reestimativa', d.receitaCorrente);
       var L_CORRENTE = r; r++;
       linhaItem(wsP, r, 'Receita de Capital Arrecadada',
         '=SUMPRODUCT((LEFT('+LANC_COD+',1)="2")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="2")*'+AJ_VAL+')',
-        false, 'Referência informativa — não integra a base diretamente');
+        false, 'Referência informativa — não integra a base diretamente', d.receitaCapital);
       r += 2;
 
       tituloBloco(wsP, r, 'BLOCO 2 — Retenção na fonte (art. 2º, §6º)'); r++;
@@ -1661,11 +1673,11 @@
         souAdmin
           ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+AJ_VAL+')'
           : d.totalBloco2,
-        false, 'FPM, ITR, IOF-Ouro, CFEM (União e Estado), FEP, Bônus, LC 176/2020, CIDE, Royalties');
+        false, 'FPM, ITR, IOF-Ouro, CFEM (União e Estado), FEP, Bônus, LC 176/2020, CIDE, Royalties', d.totalBloco2);
       var L_BLOCO2 = r; r++;
       linhaItem(wsP, r, 'Cota-Parte ITR (para o ajuste da retenção)',
         '=SUMPRODUCT((LEFT('+LANC_COD+',7)="1711520")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',7)="1711520")*'+AJ_VAL+')',
-        false, 'A STN já remete o ITR líquido dos 20% do FUNDEB');
+        false, 'A STN já remete o ITR líquido dos 20% do FUNDEB', d.itr);
       var L_ITR = r; r += 2;
 
       tituloBloco(wsP, r, 'BASE DO FUNDEB (CF, art. 212-A)'); r++;
@@ -1673,9 +1685,9 @@
         souAdmin
           ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+AJ_VAL+')'
           : d.totalFundeb,
-        false, 'FPM-Cota Mensal + ITR + ICMS + IPVA + IPI-Municípios');
+        false, 'FPM-Cota Mensal + ITR + ICMS + IPVA + IPI-Municípios', d.totalFundeb);
       var L_TOTALFUNDEB = r; r++;
-      linhaItem(wsP, r, '(=) Dedução do FUNDEB (20%)', '=B'+L_TOTALFUNDEB+'*0.2', true);
+      linhaItem(wsP, r, '(=) Dedução do FUNDEB (20%)', '=B'+L_TOTALFUNDEB+'*0.2', true, null, d.dedFundebFlat);
       var L_DEDFUNDEB = r; r += 2;
 
       tituloBloco(wsP, r, 'BLOCO 3/4 — Finalidade definida (art. 2º, §7º), excluída por padrão'); r++;
@@ -1685,23 +1697,23 @@
       }
       linhaItem(wsP, r, 'Total finalidade definida — receitas correntes (bloco 3)',
         '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD3)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD3),
-        false, 'Convênios da União, Estados/DF, Municípios e Instituições Privadas (corrente)');
+        false, 'Convênios da União, Estados/DF, Municípios e Instituições Privadas (corrente)', resultado.totalFinalidadeCorrente);
       var L_FD3 = r; r++;
       linhaItem(wsP, r, 'Total finalidade definida — capital (bloco 5, referência)',
         '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD5)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD5),
-        false, 'Excluída por padrão; incluída na base apenas mediante decisão expressa do responsável técnico');
+        false, 'Excluída por padrão; incluída na base apenas mediante decisão expressa do responsável técnico', resultado.totalCapitalIncluido);
       r += 2;
 
       tituloBloco(wsP, r, 'RESULTADO'); r++;
-      linhaItem(wsP, r, '(=) Base de Cálculo', '=MAX(0,B'+L_CORRENTE+'-B'+L_DEDFUNDEB+'-B'+L_FD3+')', true);
+      linhaItem(wsP, r, '(=) Base de Cálculo', '=MAX(0,B'+L_CORRENTE+'-B'+L_DEDFUNDEB+'-B'+L_FD3+')', true, null, resultado.base);
       var L_BASE = r; r++;
       linhaItem(wsP, r, '(x) Alíquota', 0.01, false, 'Lei 9.715/98, art. 8º, III');
       var L_ALIQ = r; r++;
       linhaItem(wsP, r, '(-) PASEP Retido na Fonte', '=MAX(0,B'+L_BLOCO2+'*B'+L_ALIQ+'-B'+L_ITR+'*0.2*B'+L_ALIQ+')', false,
-        'Art. 2º, §6º — ajustado pelo ITR já líquido dos 20% do FUNDEB no repasse da STN');
+        'Art. 2º, §6º — ajustado pelo ITR já líquido dos 20% do FUNDEB no repasse da STN', resultado.retido);
       var L_RETIDO = r; r++;
       var c1f = wsP.getCell(r,1); c1f.value = '(=) VALOR A PAGAR'; c1f.font = { name:FONTE, size:11, bold:true };
-      var c2f = wsP.getCell(r,2); c2f.value = {formula:'B'+L_BASE+'*B'+L_ALIQ+'-B'+L_RETIDO};
+      var c2f = wsP.getCell(r,2); c2f.value = {formula:'B'+L_BASE+'*B'+L_ALIQ+'-B'+L_RETIDO, result: resultado.valorPagar};
       c2f.font = { name:FONTE, size:11, bold:true }; c2f.numFmt = NUMFMT;
       c2f.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFF00'} };
 
