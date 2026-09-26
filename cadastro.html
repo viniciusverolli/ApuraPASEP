@@ -29,7 +29,7 @@
   .voltar{ display:inline-flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none; font-size:12.5px; margin-bottom:22px; }
   .voltar:hover{ color:var(--primary); }
   .marca{ display:flex; align-items:center; gap:10px; margin-bottom:24px; }
-  .marca .t{ font-size:20px; font-weight:800; color:var(--ink); letter-spacing:-.01em; }
+  .marca .t{ font-size:20px; font-weight:800; color:var(--ink); letter-spacing:-.02em; }
   .marca .t span{ color:var(--primary); }
   h1{ font-size:21px; font-weight:800; margin:0 0 6px; color:var(--ink); }
   .sub{ font-size:13.5px; color:var(--muted); margin:0 0 28px; line-height:1.5; }
@@ -94,14 +94,14 @@
 <body>
 <div class="caixa">
   <a href="login.html" class="voltar">&larr; Voltar ao login</a>
-  <div class="marca">
+  <a href="painel.html" class="marca" style="text-decoration:none; color:inherit">
     <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
       <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
       <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     </svg>
     <div class="t">Apura<span>PASEP</span></div>
-  </div>
+  </a>
 
   <div id="blocoFormulario">
     <h1>Solicitar cadastro</h1>

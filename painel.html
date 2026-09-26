@@ -23,7 +23,7 @@
     padding: 26px 20px; display:flex; flex-direction:column;
   }
   .side .brand{ display:flex; align-items:center; gap:10px; margin-bottom:34px; }
-  .side .brand .t{ font-size:16px; font-weight:800; letter-spacing:-.01em; }
+  .side .brand .t{ font-size:16px; font-weight:800; letter-spacing:-.02em; }
   .side .brand .t span{ color:var(--accent-claro); }
   nav.main{ display:flex; flex-direction:column; gap:2px; }
   nav.main a{ display:flex; align-items:center; gap:10px; color:#94a3b8; text-decoration:none; font-size:14px; padding:10px 12px; border-radius:10px; }
@@ -130,14 +130,14 @@
 <div class="shell">
   <aside class="side" id="menuLateral">
     <button class="fechar-menu" id="btnFecharMenu" aria-label="Fechar menu">✕</button>
-    <div class="brand">
+    <a href="painel.html" class="brand" style="text-decoration:none; color:inherit">
       <svg width="28" height="28" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
         <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
         <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
       <div class="t">Apura<span>PASEP</span></div>
-    </div>
+    </a>
     <nav class="main" aria-label="Navegação principal">
       <a class="active" href="painel.html"><span class="dot" aria-hidden="true"></span> Painel</a>
       <a href="PASEP_teste_jspdf.html" id="navNovaApuracao"><span class="dot" aria-hidden="true"></span> Nova apuração</a>
@@ -213,7 +213,7 @@
       background:rgba(21,27,42,.95); backdrop-filter:blur(20px); color:#F2F0EA; padding:14px 18px; position:sticky; top:0; z-index:20;
       width:100%; box-sizing:border-box;
     }
-    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.01em; }
+    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.02em; }
     .topbar-mobile .marca-mini span{ color:var(--accent-claro); }
     .btn-menu{
       background:none; border:1px solid rgba(242,240,234,.3); border-radius:8px; color:#F2F0EA;

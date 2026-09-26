@@ -36,7 +36,7 @@
     pointer-events:none;
   }
   .marca{ display:flex; align-items:center; gap:14px; margin-bottom:28px; position:relative; }
-  .marca .t{ font-size:26px; font-weight:800; letter-spacing:-.01em; }
+  .marca .t{ font-size:26px; font-weight:800; letter-spacing:-.02em; }
   .marca .t span{ color:#5eead4; }
   .lado-esq p.lead{ font-size:16px; line-height:1.7; color:#B9C0C4; max-width:440px; margin:0 0 40px; position:relative; }
 
@@ -123,14 +123,14 @@
   </div>
 
   <div class="lado-esq">
-    <div class="marca">
+    <a href="painel.html" class="marca" style="text-decoration:none; color:inherit">
       <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
         <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
         <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
       <div class="t">Apura<span>PASEP</span></div>
-    </div>
+    </a>
     <p class="lead">Apuração automática do PASEP municipal a partir do XML AUDESP, com conferência centavo a centavo contra a API do TCESP e o balancete da receita.</p>
 
     <div class="provas">

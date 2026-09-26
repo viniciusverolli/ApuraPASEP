@@ -32,7 +32,7 @@
     cursor:pointer; margin:-6px -4px 14px 0; padding:6px; display:none;
   }
   .seal{ width:32px; height:32px; border:1.5px solid var(--accent-claro); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--accent-claro); font-size:12px; }
-  .side .brand .t{ font-size:15px; font-weight:800; letter-spacing:-.01em; }
+  .side .brand .t{ font-size:15px; font-weight:800; letter-spacing:-.02em; }
   .side .who{ margin-top:auto; border-top:1px solid rgba(233,225,197,.18); padding-top:16px; font-size:12.5px; color:#B9B29B; line-height:1.6; }
   .side .who input{ background:transparent; border:none; border-bottom:1px dashed rgba(233,225,197,.4); color:#EFE9D8; font:inherit; font-size:13.5px; font-weight:600; width:100%; padding:2px 0 4px; }
   .side .who input::placeholder{ color:#8b856d; font-weight:400; }
@@ -159,7 +159,7 @@
       background:rgba(21,27,42,.95); backdrop-filter:blur(20px); color:#F2F0EA; padding:14px 18px; position:sticky; top:0; z-index:20;
       width:100%; box-sizing:border-box;
     }
-    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.01em; }
+    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.02em; }
     .topbar-mobile .marca-mini span{ color:var(--accent-claro); }
     .btn-menu{
       background:none; border:1px solid rgba(242,240,234,.3); border-radius:8px; color:#F2F0EA;
@@ -203,14 +203,14 @@
 <div class="shell">
   <aside class="side" id="menuLateralSide">
     <button class="fechar-menu" id="btnFecharMenuSide" aria-label="Fechar">✕</button>
-    <div class="brand">
+    <a href="painel.html" class="brand" style="text-decoration:none; color:inherit">
       <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none">
         <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
         <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
         <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
       </svg>
       <div class="t">Apura<span style="color:#3FA48C">PASEP</span></div>
-    </div>
+    </a>
     <a href="painel.html" style="display:flex; align-items:center; gap:6px; color:#B9C0C4; text-decoration:none; font-size:12.5px; margin:-16px 0 20px;">&larr; Voltar ao painel</a>
     <div class="who">
       <input id="nome-ente" type="text" placeholder="Nome do município (para o relatório)" readonly aria-label="Nome do município, preenchido automaticamente pelo XML importado">
