@@ -46,7 +46,7 @@
   @keyframes pulso{ 0%,100%{opacity:1} 50%{opacity:.35} }
   .side .rule{ font-size:11.5px; color:#8b856d; line-height:1.6; margin-top:16px; }
 
-  main{ padding: 30px 40px 80px; }
+  main{ padding: 30px 40px 80px; min-width:0; }
   .topbar{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px; }
   .topbar h1{ font-weight:800; font-size:22px; margin:0; }
 
@@ -131,7 +131,7 @@
   }
   .btn-pdf-lateral-secundario:hover{ border-color:var(--accent-claro); color:var(--accent-claro); }
 
-  .summary{ background:rgba(21,27,42,.92); backdrop-filter:blur(20px); color:#EFE9D8; padding:30px 26px; }
+  .summary{ background:rgba(21,27,42,.92); backdrop-filter:blur(20px); color:#EFE9D8; padding:30px 26px; min-width:0; }
   .summary h4{ font-size:15px; font-weight:700; margin:0 0 20px; color:#FBF8ED; }
   .sline{ display:flex; justify-content:space-between; font-size:13px; padding:8px 0; border-bottom:1px solid rgba(233,225,197,.14); color:#CFC9B4; }
   .sline b{ color:#EFE9D8; font-variant-numeric:tabular-nums; font-weight:600; }
@@ -1487,79 +1487,6 @@
 
 
       var wsP = wb.addWorksheet('Apuração');
-      wsP.getColumn(1).width = 46; wsP.getColumn(2).width = 18; wsP.getColumn(3).width = 60;
-      wsP.getCell('A1').value = 'Memória de cálculo do PASEP — ' + ente + ' — Competência ' + MESES[d.mes] + '/' + d.ano;
-      wsP.getCell('A1').font = { name:FONTE, size:14, bold:true, color:{argb:'FF23262B'} };
-      wsP.getCell('A2').value = 'Lei nº 9.715/1998, arts. 2º e 8º; CF/1988, art. 212-A';
-      wsP.getCell('A2').font = { name:FONTE, size:10, italic:true, color:{argb:'FF6B6656'} };
-
-      function linhaItem(ws, row, rotulo, formula, negrito, obs){
-        var c1 = ws.getCell(row,1); c1.value = rotulo; c1.font = { name:FONTE, size:10, bold: !!negrito };
-        var c2 = ws.getCell(row,2);
-        c2.value = (typeof formula === 'string' && formula.indexOf('=')===0) ? {formula: formula.substring(1)} : formula;
-        c2.font = { name:FONTE, size:10, bold: !!negrito }; c2.numFmt = NUMFMT;
-        if (obs){ var c3 = ws.getCell(row,3); c3.value = obs; c3.font = { name:FONTE, size:8.5, italic:true, color:{argb:'FF6B6656'} }; }
-      }
-      function tituloBloco(ws,row,texto){
-        var c = ws.getCell(row,1); c.value = texto; c.font = CAB_FONT; c.fill = CAB_FILL;
-      }
-
-      var r = 4;
-      tituloBloco(wsP, r, 'BLOCO 1 — Total de Receitas'); r++;
-      linhaItem(wsP, r, 'Receita Corrente Arrecadada',
-        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="1")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="1")*'+AJ_VAL+')',
-        false, 'Todos os códigos iniciados em "1", líquidos de devolução/ajuste FUNDEB/reestimativa');
-      var L_CORRENTE = r; r++;
-      linhaItem(wsP, r, 'Receita de Capital Arrecadada',
-        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="2")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="2")*'+AJ_VAL+')',
-        false, 'Referência informativa — não integra a base diretamente');
-      r += 2;
-
-      tituloBloco(wsP, r, 'BLOCO 2 — Retenção na fonte (art. 2º, §6º)'); r++;
-      linhaItem(wsP, r, 'Total Bloco 2 (retenção na fonte)',
-        '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+AJ_VAL+')',
-        false, 'FPM, ITR, IOF-Ouro, CFEM (União e Estado), FEP, Bônus, LC 176/2020, CIDE, Royalties');
-      var L_BLOCO2 = r; r++;
-      linhaItem(wsP, r, 'Cota-Parte ITR (para o ajuste da retenção)',
-        '=SUMPRODUCT((LEFT('+LANC_COD+',7)="1711520")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',7)="1711520")*'+AJ_VAL+')',
-        false, 'A STN já remete o ITR líquido dos 20% do FUNDEB');
-      var L_ITR = r; r += 2;
-
-      tituloBloco(wsP, r, 'BASE DO FUNDEB (CF, art. 212-A)'); r++;
-      linhaItem(wsP, r, 'Total das receitas que compõem o FUNDEB',
-        '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+AJ_VAL+')',
-        false, 'FPM-Cota Mensal + ITR + ICMS + IPVA + IPI-Municípios');
-      var L_TOTALFUNDEB = r; r++;
-      linhaItem(wsP, r, '(=) Dedução do FUNDEB (20%)', '=B'+L_TOTALFUNDEB+'*0.2', true);
-      var L_DEDFUNDEB = r; r += 2;
-
-      tituloBloco(wsP, r, 'BLOCO 3/4 — Finalidade definida (art. 2º, §7º), excluída por padrão'); r++;
-      function somaPrefixos(rangeCod, rangeVal, prefixos){
-        var termos = prefixos.map(function(p){ return '(LEFT('+rangeCod+',4)="'+p+'")'; }).join('+');
-        return 'SUMPRODUCT(('+termos+')*'+rangeVal+')';
-      }
-      linhaItem(wsP, r, 'Total finalidade definida — receitas correntes (bloco 3)',
-        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD3)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD3),
-        false, 'Convênios da União, Estados/DF, Municípios e Instituições Privadas (corrente)');
-      var L_FD3 = r; r++;
-      linhaItem(wsP, r, 'Total finalidade definida — capital (bloco 5, referência)',
-        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD5)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD5),
-        false, 'Excluída por padrão; incluída na base apenas mediante decisão expressa do responsável técnico');
-      r += 2;
-
-      tituloBloco(wsP, r, 'RESULTADO'); r++;
-      linhaItem(wsP, r, '(=) Base de Cálculo', '=MAX(0,B'+L_CORRENTE+'-B'+L_DEDFUNDEB+'-B'+L_FD3+')', true);
-      var L_BASE = r; r++;
-      linhaItem(wsP, r, '(x) Alíquota', 0.01, false, 'Lei 9.715/98, art. 8º, III');
-      var L_ALIQ = r; r++;
-      linhaItem(wsP, r, '(-) PASEP Retido na Fonte', '=MAX(0,B'+L_BLOCO2+'*B'+L_ALIQ+'-B'+L_ITR+'*0.2*B'+L_ALIQ+')', false,
-        'Art. 2º, §6º — ajustado pelo ITR já líquido dos 20% do FUNDEB no repasse da STN');
-      var L_RETIDO = r; r++;
-      var c1f = wsP.getCell(r,1); c1f.value = '(=) VALOR A PAGAR'; c1f.font = { name:FONTE, size:11, bold:true };
-      var c2f = wsP.getCell(r,2); c2f.value = {formula:'B'+L_BASE+'*B'+L_ALIQ+'-B'+L_RETIDO};
-      c2f.font = { name:FONTE, size:11, bold:true }; c2f.numFmt = NUMFMT;
-      c2f.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFF00'} };
-
       // ============ ABA 2 — LANÇAMENTOS XML ============
       var wsR = wb.addWorksheet('Lançamentos XML');
       wsR.getCell('A1').value = 'Lançamentos de arrecadação — conta contábil 621100000 (ReceitaArrecadar), competência ' + MESES[d.mes] + '/' + d.ano;
@@ -1648,11 +1575,11 @@
       wsA.autoFilter = { from:{row:4,column:1}, to:{row:ultimaLinhaAj,column:8} };
       wsA.views = [{state:'frozen', ySplit:4}];
 
-
-      // As duas abas abaixo (Classificação e Auditoria) revelam as regras de classificação
-      // usadas na apuração — ficam restritas a administradores da plataforma, igual à seção
-      // de auditoria na tela. Usuário comum recebe a planilha só com as quatro abas acima.
       if (souAdmin){
+      // A aba Classificação (visualmente a 5ª aba, mas preenchida aqui, antes da
+      // Apuração) precisa existir e estar pronta antes da Apuração ser preenchida, porque
+      // as fórmulas de retenção/FUNDEB da Apuração (para administrador) consultam esta
+      // aba. Só é gerada para administrador — ver a mesma condicional mais abaixo.
       // ============ ABA 4 — CLASSIFICAÇÃO ============
       var wsC = wb.addWorksheet('Classificação');
       wsC.getCell('A1').value = 'A qual grupo cada código pertence, para a apuração';
@@ -1687,6 +1614,100 @@
       var LANC_VAL = "'Lançamentos XML'!$L$4:$L$"+ultimaLinhaLanc;
       var AJ_COD = "'Ajustes XML'!$A$5:$A$"+ultimaLinhaAj;
       var AJ_VAL = "'Ajustes XML'!$H$5:$H$"+ultimaLinhaAj;
+      }
+
+      // O preenchimento da aba Apuração (criada logo acima, para ficar em segundo lugar
+      // visualmente) foi movido pra cá de propósito: as fórmulas abaixo referenciam
+      // 'Lançamentos XML' e 'Ajustes XML' por nome de célula (ultimaLinhaLanc/ultimaLinhaAj),
+      // que só existem depois que essas duas abas são escritas — mesmo a aba Apuração
+      // aparecendo antes na ordem visual do arquivo.
+      wsP.getColumn(1).width = 46; wsP.getColumn(2).width = 18; wsP.getColumn(3).width = 60;
+      wsP.getCell('A1').value = 'Memória de cálculo do PASEP — ' + ente + ' — Competência ' + MESES[d.mes] + '/' + d.ano;
+      wsP.getCell('A1').font = { name:FONTE, size:14, bold:true, color:{argb:'FF23262B'} };
+      wsP.getCell('A2').value = 'Lei nº 9.715/1998, arts. 2º e 8º; CF/1988, art. 212-A';
+      wsP.getCell('A2').font = { name:FONTE, size:10, italic:true, color:{argb:'FF6B6656'} };
+
+      function linhaItem(ws, row, rotulo, formula, negrito, obs){
+        var c1 = ws.getCell(row,1); c1.value = rotulo; c1.font = { name:FONTE, size:10, bold: !!negrito };
+        var c2 = ws.getCell(row,2);
+        c2.value = (typeof formula === 'string' && formula.indexOf('=')===0) ? {formula: formula.substring(1)} : formula;
+        c2.font = { name:FONTE, size:10, bold: !!negrito }; c2.numFmt = NUMFMT;
+        if (obs){ var c3 = ws.getCell(row,3); c3.value = obs; c3.font = { name:FONTE, size:8.5, italic:true, color:{argb:'FF6B6656'} }; }
+      }
+      function tituloBloco(ws,row,texto){
+        var c = ws.getCell(row,1); c.value = texto; c.font = CAB_FONT; c.fill = CAB_FILL;
+      }
+
+      var r = 4;
+      tituloBloco(wsP, r, 'BLOCO 1 — Total de Receitas'); r++;
+      linhaItem(wsP, r, 'Receita Corrente Arrecadada',
+        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="1")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="1")*'+AJ_VAL+')',
+        false, 'Todos os códigos iniciados em "1", líquidos de devolução/ajuste FUNDEB/reestimativa');
+      var L_CORRENTE = r; r++;
+      linhaItem(wsP, r, 'Receita de Capital Arrecadada',
+        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="2")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="2")*'+AJ_VAL+')',
+        false, 'Referência informativa — não integra a base diretamente');
+      r += 2;
+
+      tituloBloco(wsP, r, 'BLOCO 2 — Retenção na fonte (art. 2º, §6º)'); r++;
+      // Para administrador, a fórmula fica viva (referencia a aba Classificação, permitindo
+      // conferir/auditar). Para usuário comum, que não tem acesso à aba Classificação, usa-se
+      // o valor já calculado pelo servidor — o número final é idêntico, só deixa de ser uma
+      // fórmula que dependeria de uma aba que este usuário não recebe.
+      linhaItem(wsP, r, 'Total Bloco 2 (retenção na fonte)',
+        souAdmin
+          ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+AJ_VAL+')'
+          : d.totalBloco2,
+        false, 'FPM, ITR, IOF-Ouro, CFEM (União e Estado), FEP, Bônus, LC 176/2020, CIDE, Royalties');
+      var L_BLOCO2 = r; r++;
+      linhaItem(wsP, r, 'Cota-Parte ITR (para o ajuste da retenção)',
+        '=SUMPRODUCT((LEFT('+LANC_COD+',7)="1711520")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',7)="1711520")*'+AJ_VAL+')',
+        false, 'A STN já remete o ITR líquido dos 20% do FUNDEB');
+      var L_ITR = r; r += 2;
+
+      tituloBloco(wsP, r, 'BASE DO FUNDEB (CF, art. 212-A)'); r++;
+      linhaItem(wsP, r, 'Total das receitas que compõem o FUNDEB',
+        souAdmin
+          ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+AJ_VAL+')'
+          : d.totalFundeb,
+        false, 'FPM-Cota Mensal + ITR + ICMS + IPVA + IPI-Municípios');
+      var L_TOTALFUNDEB = r; r++;
+      linhaItem(wsP, r, '(=) Dedução do FUNDEB (20%)', '=B'+L_TOTALFUNDEB+'*0.2', true);
+      var L_DEDFUNDEB = r; r += 2;
+
+      tituloBloco(wsP, r, 'BLOCO 3/4 — Finalidade definida (art. 2º, §7º), excluída por padrão'); r++;
+      function somaPrefixos(rangeCod, rangeVal, prefixos){
+        var termos = prefixos.map(function(p){ return '(LEFT('+rangeCod+',4)="'+p+'")'; }).join('+');
+        return 'SUMPRODUCT(('+termos+')*'+rangeVal+')';
+      }
+      linhaItem(wsP, r, 'Total finalidade definida — receitas correntes (bloco 3)',
+        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD3)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD3),
+        false, 'Convênios da União, Estados/DF, Municípios e Instituições Privadas (corrente)');
+      var L_FD3 = r; r++;
+      linhaItem(wsP, r, 'Total finalidade definida — capital (bloco 5, referência)',
+        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD5)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD5),
+        false, 'Excluída por padrão; incluída na base apenas mediante decisão expressa do responsável técnico');
+      r += 2;
+
+      tituloBloco(wsP, r, 'RESULTADO'); r++;
+      linhaItem(wsP, r, '(=) Base de Cálculo', '=MAX(0,B'+L_CORRENTE+'-B'+L_DEDFUNDEB+'-B'+L_FD3+')', true);
+      var L_BASE = r; r++;
+      linhaItem(wsP, r, '(x) Alíquota', 0.01, false, 'Lei 9.715/98, art. 8º, III');
+      var L_ALIQ = r; r++;
+      linhaItem(wsP, r, '(-) PASEP Retido na Fonte', '=MAX(0,B'+L_BLOCO2+'*B'+L_ALIQ+'-B'+L_ITR+'*0.2*B'+L_ALIQ+')', false,
+        'Art. 2º, §6º — ajustado pelo ITR já líquido dos 20% do FUNDEB no repasse da STN');
+      var L_RETIDO = r; r++;
+      var c1f = wsP.getCell(r,1); c1f.value = '(=) VALOR A PAGAR'; c1f.font = { name:FONTE, size:11, bold:true };
+      var c2f = wsP.getCell(r,2); c2f.value = {formula:'B'+L_BASE+'*B'+L_ALIQ+'-B'+L_RETIDO};
+      c2f.font = { name:FONTE, size:11, bold:true }; c2f.numFmt = NUMFMT;
+      c2f.fill = { type:'pattern', pattern:'solid', fgColor:{argb:'FFFFFF00'} };
+
+
+
+      // As duas abas abaixo (Classificação e Auditoria) revelam as regras de classificação
+      // usadas na apuração — ficam restritas a administradores da plataforma, igual à seção
+      // de auditoria na tela. Usuário comum recebe a planilha só com as quatro abas acima.
+      if (souAdmin){
       // ============ ABA 6 — AUDITORIA ============
       var wsAu = wb.addWorksheet('Auditoria');
       wsAu.getColumn(1).width = 42; wsAu.getColumn(2).width = 18; wsAu.getColumn(3).width = 18; wsAu.getColumn(4).width = 14; wsAu.getColumn(5).width = 12;
