@@ -1433,6 +1433,9 @@
       }
 
       var wb = new ExcelJS.Workbook();
+      // Sem isso, alguns programas (Excel, Google Sheets, LibreOffice) abrem o arquivo
+      // mostrando as células de fórmula em branco, em vez de calculá-las na hora de abrir.
+      wb.calcProperties.fullCalcOnLoad = true;
       var FONTE = 'Arial';
       var AZUL = { name:FONTE, size:10, color:{argb:'FF0000FF'} };
       var PRETO = { name:FONTE, size:10, color:{argb:'FF000000'} };
