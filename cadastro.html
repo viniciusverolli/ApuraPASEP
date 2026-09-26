@@ -855,6 +855,7 @@
   var tablesDB = new Appwrite.TablesDB(client);
   var teams = new Appwrite.Teams(client);
   var ID = Appwrite.ID;
+  var Query = Appwrite.Query;
   var Permission = Appwrite.Permission;
   var Role = Appwrite.Role;
 
@@ -930,6 +931,27 @@
     }
 
     btn.disabled = true;
+    btn.textContent = 'Verificando...';
+
+    // Impede cadastro duplicado do mesmo município (nome + UF) antes de criar qualquer coisa —
+    // sem isso, qualquer pessoa podia se cadastrar alegando representar um município que já
+    // tem conta no sistema.
+    try {
+      var jaExiste = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'municipios',
+        queries: [Query.equal('nome', nomeMunicipio), Query.equal('uf', uf), Query.limit(1)]
+      });
+      if (jaExiste.rows.length > 0){
+        caixaErro.textContent = nomeMunicipio + '/' + uf + ' já possui cadastro no sistema. Se você acredita que isso é um engano, entre em contato com o administrador da plataforma.';
+        caixaErro.classList.add('show');
+        btn.disabled = false; btn.textContent = 'Enviar cadastro';
+        return;
+      }
+    } catch (e) {
+      // Se a checagem falhar (ex.: rede instável), segue o cadastro normalmente — o pior
+      // cenário é um duplicado que o administrador identifica na aprovação manual.
+    }
+
     btn.textContent = 'Enviando...';
 
     try {
@@ -937,6 +959,11 @@
       // Diferente do Supabase, o Appwrite não bloqueia a sessão esperando confirmação de
       // e-mail por padrão — a conta já pode logar na hora, então concluímos tudo em seguida.
       await account.createEmailPasswordSession({ email: email, password: senha });
+      // Envia o e-mail de verificação — o acesso ao painel fica condicionado a essa confirmação
+      // (ver painel.html), além da aprovação do administrador.
+      try {
+        await account.createVerification({ url: window.location.origin + '/verificar-email.html' });
+      } catch (e) { /* se o envio falhar, o usuário ainda pode pedir reenvio depois, no painel */ }
       await concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao);
     } catch(err){
       caixaErro.textContent = 'Não foi possível criar sua conta: ' + err.message;

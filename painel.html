@@ -294,6 +294,32 @@
       return;
     }
 
+    // E-mail ainda não confirmado: bloqueia o painel até a verificação, com opção de reenviar
+    // o e-mail (caso o original tenha expirado, ido para spam, ou nunca chegado).
+    if (!usuario.emailVerification){
+      document.getElementById('infoUsuario').innerHTML = '<strong>Confirme seu e-mail</strong>' + usuario.email;
+      document.getElementById('infoExercicio').textContent = '';
+      document.getElementById('cardsResumo').innerHTML =
+        '<div class="card destaque"><div class="lab">E-mail ainda não confirmado</div>' +
+        '<div class="sub">Enviamos um link de confirmação para ' + usuario.email + ' ao concluir seu cadastro. Confira também a caixa de spam. ' +
+        '<a href="#" id="link-reenviar-verificacao" style="color:var(--ink); font-weight:600">Reenviar e-mail de confirmação</a></div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+      document.getElementById('navNovaApuracao').style.display = 'none';
+      document.getElementById('navImportar').style.display = 'none';
+      document.getElementById('blocoAcoes').style.display = 'none';
+      document.getElementById('link-reenviar-verificacao').addEventListener('click', async function(e){
+        e.preventDefault();
+        this.textContent = 'Enviando...';
+        try {
+          await account.createVerification({ url: window.location.origin + '/verificar-email.html' });
+          this.textContent = 'Enviado! Confira seu e-mail.';
+        } catch (err) {
+          this.textContent = 'Não foi possível reenviar agora. Tente de novo em alguns minutos.';
+        }
+      });
+      return;
+    }
+
     // Times aos quais este usuário pertence. plataforma-admins é global; qualquer outro
     // time corresponde a um município específico (equivalente ao que era usuarios_municipio).
     var minhasEquipes;
