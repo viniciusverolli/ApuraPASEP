@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ApuraPASEP — Definir nova senha</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#172033; --muted:#475569; --line:#e2e8f0;
+    --primary:#218b78; --accent:#5d62d9;
+    --red:#b91c1c; --red-soft:#fef2f2;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0; height:100%}
+  body{
+    font-family:'Inter',sans-serif; color:var(--ink);
+    background:linear-gradient(135deg,#eef7f5,#f4f2fb);
+    display:flex; align-items:center; justify-content:center; min-height:100vh;
+    padding: 24px;
+  }
+  .caixa{
+    width:100%; max-width:400px; background:rgba(255,255,255,.65); backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.9); border-radius:18px; padding:36px 32px;
+    box-shadow:0 20px 50px rgba(62,75,110,.1);
+  }
+  .marca{ display:flex; align-items:center; gap:10px; margin-bottom:24px; }
+  .marca .t{ font-size:18px; font-weight:800; letter-spacing:-.01em; color:var(--ink); }
+  .marca .t span{ color:var(--primary); }
+  h1{ font-size:20px; font-weight:800; margin:0 0 6px; }
+  .sub{ font-size:13.5px; color:var(--muted); margin:0 0 24px; line-height:1.5; }
+
+  label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
+  .campo{ margin-bottom:18px; }
+  input[type=password]{
+    width:100%; font:inherit; font-size:14px; padding:11px 13px;
+    border:1px solid var(--line); border-radius:10px; background:rgba(255,255,255,.8); color:var(--ink);
+  }
+  input:focus{ outline:2px solid var(--primary); outline-offset:1px; border-color:var(--primary); }
+
+  .medidor-forca{ margin-top:8px; display:none; }
+  .trilho-forca{ background:var(--line); border-radius:4px; height:6px; overflow:hidden; }
+  .preenchido-forca{ height:100%; border-radius:4px; width:0%; transition:width .15s ease, background .15s ease; }
+  .medidor-forca span{ display:block; font-size:11.5px; margin-top:4px; font-weight:600; }
+  .medidor-forca.fraca .preenchido-forca{ background:var(--red); width:33%; }
+  .medidor-forca.fraca span{ color:var(--red); }
+  .medidor-forca.moderada .preenchido-forca{ background:#b45309; width:66%; }
+  .medidor-forca.moderada span{ color:#92400e; }
+  .medidor-forca.forte .preenchido-forca{ background:linear-gradient(90deg,var(--primary),var(--accent)); width:100%; }
+  .medidor-forca.forte span{ color:var(--primary); }
+
+  .btn-confirmar{
+    width:100%; background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; border:none; border-radius:12px;
+    padding:13px; font:inherit; font-size:14.5px; font-weight:700; cursor:pointer; margin-top:4px;
+    box-shadow:0 10px 26px rgba(48,120,145,.22);
+  }
+  .btn-confirmar:hover{ filter:brightness(1.06); }
+  .btn-confirmar:disabled{ opacity:.6; cursor:default; }
+
+  .erro{
+    background:var(--red-soft); border:1px solid #fca5a5; color:var(--red);
+    font-size:12.5px; padding:10px 13px; border-radius:10px; margin-bottom:16px; line-height:1.5;
+  }
+  .sucesso{ text-align:center; }
+  .sucesso .ic{ width:52px; height:52px; border-radius:50%; background:rgba(94,234,212,.18); color:var(--primary); display:flex; align-items:center; justify-content:center; margin:0 auto 16px; font-size:26px; }
+  .sucesso h2{ font-size:18px; font-weight:800; margin:0 0 10px; }
+  .sucesso p{ font-size:13.5px; color:var(--muted); line-height:1.6; margin:0 0 20px; }
+  .sucesso a{ display:inline-block; background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; text-decoration:none; padding:11px 22px; border-radius:10px; font-size:14px; font-weight:600; }
+
+  button:focus-visible, a:focus-visible, input:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+</style>
+</head>
+<body>
+  <div class="caixa">
+    <div class="marca">
+      <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+        <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+        <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="t">Apura<span>PASEP</span></div>
+    </div>
+
+    <div id="blocoFormulario">
+      <h1>Definir nova senha</h1>
+      <p class="sub">Escolha uma senha nova para sua conta.</p>
+      <div class="erro" id="caixaErro" style="display:none"></div>
+      <form id="formNovaSenha">
+        <div class="campo">
+          <label for="senha">Senha nova</label>
+          <input type="password" id="senha" placeholder="Mínimo 6 caracteres, 1 maiúscula e 1 símbolo" autocomplete="new-password">
+          <div class="medidor-forca" id="medidorForca">
+            <div class="trilho-forca"><div class="preenchido-forca" id="preenchidoForca"></div></div>
+            <span id="textoForca"></span>
+          </div>
+        </div>
+        <div class="campo">
+          <label for="confirmarSenha">Confirmar senha nova</label>
+          <input type="password" id="confirmarSenha" placeholder="Repita a senha" autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn-confirmar">Definir nova senha</button>
+      </form>
+    </div>
+
+    <div id="blocoSucesso" class="sucesso" style="display:none">
+      <div class="ic">✓</div>
+      <h2>Senha alterada</h2>
+      <p>Sua senha foi redefinida com sucesso. Já pode entrar no sistema com a senha nova.</p>
+      <a href="login.html">Ir para o login</a>
+    </div>
+
+    <div id="blocoLinkInvalido" class="sucesso" style="display:none">
+      <div class="ic" style="background:var(--red-soft); color:var(--red)">!</div>
+      <h2>Link inválido ou expirado</h2>
+      <p>Este link de recuperação não é mais válido — ele expira 1 hora após o envio, ou já pode ter sido usado. Solicite um novo link na tela de login.</p>
+      <a href="login.html">Voltar ao login</a>
+    </div>
+  </div>
+
+<script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script>
+  var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
+  var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
+
+  var client = new Appwrite.Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+  var account = new Appwrite.Account(client);
+
+  var params = new URLSearchParams(window.location.search);
+  var userId = params.get('userId');
+  var secret = params.get('secret');
+
+  if (!userId || !secret){
+    document.getElementById('blocoFormulario').style.display = 'none';
+    document.getElementById('blocoLinkInvalido').style.display = 'block';
+  }
+
+  document.getElementById('senha').addEventListener('input', function(){
+    var v = this.value;
+    var medidor = document.getElementById('medidorForca');
+    var textoForca = document.getElementById('textoForca');
+    if (!v){ medidor.style.display = 'none'; return; }
+    medidor.style.display = 'block';
+
+    var temMaiuscula = /[A-Z]/.test(v);
+    var temSimbolo = /[^A-Za-z0-9]/.test(v);
+    var temTamanho = v.length >= 6;
+
+    medidor.className = 'medidor-forca';
+    if (temTamanho && temMaiuscula && temSimbolo){
+      medidor.classList.add('forte'); textoForca.textContent = 'Forte';
+    } else if (temTamanho && (temMaiuscula || temSimbolo)){
+      medidor.classList.add('moderada'); textoForca.textContent = 'Moderada';
+    } else {
+      medidor.classList.add('fraca'); textoForca.textContent = 'Fraca';
+    }
+  });
+
+  document.getElementById('formNovaSenha').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var senha = document.getElementById('senha').value;
+    var confirmar = document.getElementById('confirmarSenha').value;
+    var caixaErro = document.getElementById('caixaErro');
+    caixaErro.style.display = 'none';
+
+    var temMaiuscula = /[A-Z]/.test(senha);
+    var temSimbolo = /[^A-Za-z0-9]/.test(senha);
+    if (senha.length < 6 || !temMaiuscula || !temSimbolo){
+      caixaErro.textContent = 'A senha precisa ter pelo menos 6 caracteres, 1 letra maiúscula e 1 símbolo.';
+      caixaErro.style.display = 'block';
+      return;
+    }
+    if (senha !== confirmar){
+      caixaErro.textContent = 'As senhas não coincidem. Confira e tente de novo.';
+      caixaErro.style.display = 'block';
+      return;
+    }
+
+    var btn = this.querySelector('.btn-confirmar');
+    var textoOriginal = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Salvando...';
+
+    try {
+      await account.updateRecovery({ userId: userId, secret: secret, password: senha });
+      document.getElementById('blocoFormulario').style.display = 'none';
+      document.getElementById('blocoSucesso').style.display = 'block';
+    } catch (error) {
+      caixaErro.textContent = 'Não foi possível redefinir a senha: ' + error.message + '. O link pode ter expirado — solicite um novo na tela de login.';
+      caixaErro.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  });
+</script>
+</body>
+</html>

@@ -169,10 +169,22 @@
         </div>
         <div class="linha-opcoes">
           <label><input type="checkbox" checked> Manter conectado</label>
-          <a href="#">Esqueceu a senha?</a>
+          <a href="#" id="link-esqueci-senha">Esqueceu a senha?</a>
         </div>
         <button type="submit" class="btn-entrar">Entrar</button>
       </form>
+
+      <form id="formRecuperar" style="display:none">
+        <p class="sub" style="margin-top:0">Informe o e-mail da sua conta. Enviaremos um link para você definir uma senha nova.</p>
+        <div class="campo">
+          <label for="emailRecuperar">E-mail</label>
+          <input type="text" id="emailRecuperar" placeholder="usuario@municipio.sp.gov.br" autocomplete="email">
+        </div>
+        <button type="submit" class="btn-entrar">Enviar link de recuperação</button>
+        <p style="text-align:center; margin:14px 0 0;"><a href="#" id="link-voltar-login" style="color:var(--muted); font-size:12.5px; text-decoration:none">&larr; Voltar ao login</a></p>
+      </form>
+
+      <div class="erro" id="caixaSucessoRecuperar" style="display:none; background:rgba(94,234,212,.16); border-color:var(--accent-claro); color:#0f766e">Link de recuperação enviado. Confira seu e-mail (inclusive a caixa de spam) — o link é válido por 1 hora.</div>
 
       <div class="divisor">OU</div>
       <button type="button" class="btn-google" id="btn-google">
@@ -273,6 +285,55 @@
       document.getElementById('caixaErro').classList.add('show');
       btn.disabled = false;
       btn.innerHTML = textoOriginal;
+    }
+  });
+
+  document.getElementById('link-esqueci-senha').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('formLogin').style.display = 'none';
+    document.getElementById('caixaErro').classList.remove('show');
+    document.getElementById('caixaSucessoRecuperar').style.display = 'none';
+    document.getElementById('formRecuperar').style.display = 'block';
+    var emailAtual = document.getElementById('usuario').value.trim();
+    if (emailAtual) document.getElementById('emailRecuperar').value = emailAtual;
+  });
+
+  document.getElementById('link-voltar-login').addEventListener('click', function(e){
+    e.preventDefault();
+    document.getElementById('formRecuperar').style.display = 'none';
+    document.getElementById('caixaSucessoRecuperar').style.display = 'none';
+    document.getElementById('formLogin').style.display = 'block';
+  });
+
+  document.getElementById('formRecuperar').addEventListener('submit', async function(e){
+    e.preventDefault();
+    var email = document.getElementById('emailRecuperar').value.trim();
+    var btn = this.querySelector('.btn-entrar');
+    var textoOriginal = btn.textContent;
+
+    if (!email){
+      alert('Informe o e-mail da sua conta.');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Enviando...';
+
+    try {
+      await account.createRecovery({
+        email: email,
+        url: window.location.origin + '/recuperar-senha.html'
+      });
+      // Mensagem igual em caso de sucesso ou de e-mail não cadastrado — evita confirmar pra
+      // quem está tentando pra fora se um e-mail específico tem conta no sistema ou não.
+      document.getElementById('formRecuperar').style.display = 'none';
+      document.getElementById('caixaSucessoRecuperar').style.display = 'block';
+    } catch (error) {
+      document.getElementById('formRecuperar').style.display = 'none';
+      document.getElementById('caixaSucessoRecuperar').style.display = 'block';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
     }
   });
 
