@@ -5,9 +5,20 @@
 // não contém mais nenhuma regra de classificação — só envia o XML bruto e
 // recebe de volta o resultado já calculado.
 //
+// Nesta versão, as regras de classificação (RUBRICAS_RETENCAO, RUBRICAS_FUNDEB,
+// ALERTAS_FINALIDADE, os dois prefixos de CFEM) deixaram de ser constantes fixas
+// no código-fonte e passaram a ser lidas da tabela "regras_motor" a cada execução —
+// isso é o que permite o administrador editar/criar regras pela interface, sem
+// precisar mexer em código nem reimplantar esta função.
+//
+// Para isso, a função autentica com uma API Key própria (não a do usuário que
+// chamou), configurada como variável de ambiente no Appwrite (Settings da função
+// → Environment variables → APPWRITE_API_KEY). Sem isso, usuários comuns (que não
+// têm permissão de leitura na tabela regras_motor) não conseguiriam calcular nada.
+//
 // A lógica de negócio abaixo (construirEtapasParse, parseAudesp, calcular) é
-// uma cópia fiel do motor original, linha por linha — nenhuma regra foi
-// alterada nesta migração. Só a fonte do XML DOM mudou: em vez do DOMParser
+// uma cópia fiel do motor original, linha por linha — nenhuma regra de cálculo
+// foi alterada nesta migração. Só a fonte do XML DOM mudou: em vez do DOMParser
 // do navegador, usa-se @xmldom/xmldom (equivalente para Node.js), com um
 // pequeno ajuste na função auxiliar childByLocal, que precisa iterar por
 // childNodes (não .children, que o xmldom não implementa) e filtrar por
@@ -15,43 +26,50 @@
 // ============================================================
 
 import { DOMParser } from '@xmldom/xmldom';
+import { Client, TablesDB, Query } from 'node-appwrite';
 
-  var EXERCICIOS_RECEITA_DISPONIVEIS = ['2026','2027'];
+var DATABASE_ID = 'apurapasep';
+var EXERCICIOS_RECEITA_DISPONIVEIS = ['2026','2027'];
 
-  // Códigos de município do TCE (conforme tag <gen:Municipio> do XML) -> [slug da API de transparência, nome extenso]
+// Regras de classificação — começam vazias e são preenchidas a cada execução pela
+// função carregarRegras(), lendo a tabela regras_motor. construirEtapasParse (abaixo)
+// referencia essas mesmas variáveis pelo nome, sem saber se o valor veio de uma
+// constante fixa ou do banco — por isso a lógica de negócio não precisou mudar.
+var RUBRICAS_RETENCAO = [];
+var CFEM_UNIAO_PREFIX = null;
+var CFEM_ESTADO_PREFIX = null;
+var RUBRICAS_FUNDEB = [];
+var ALERTAS_FINALIDADE = [];
 
-  var RUBRICAS_RETENCAO = [
-    {label:'FPM — Cota Mensal', prefix:'1711511'},
-    {label:'FPM — Cotas Extraordinárias', prefix:'1711512'},
-    {label:'Cota-Parte ITR', prefix:'1711520'},
-    {label:'IOF-Ouro', prefix:'1711550'},
-    {label:'CFEM — Recursos Hídricos (União)', prefix:'1712500'},
-    {label:'FEP — Compensação Financeira Petróleo', prefix:'1712524'},
-    {label:'Bônus de Assinatura', prefix:'1712530'},
-    {label:'Transferência LC 176/2020', prefix:'1719580'},
-    {label:'CIDE', prefix:'1721530'},
-    {label:'Royalties Petróleo — Principal', prefix:'1722520'}
-  ];
-  var CFEM_UNIAO_PREFIX = '1712510';
-  var CFEM_ESTADO_PREFIX = '1722510';
-  var RUBRICAS_FUNDEB = [
-    {label:'FPM — Cota Mensal', prefix:'1711511'},
-    {label:'Cota-Parte ITR', prefix:'1711520'},
-    {label:'Cota-Parte ICMS', prefix:'1721500'},
-    {label:'Cota-Parte IPVA', prefix:'1721510'},
-    {label:'Cota-Parte IPI-Municípios', prefix:'1721520'}
-  ];
-  var ALERTAS_FINALIDADE = [
-    {label:'Convênios da União', prefix:'1717', bloco:3},
-    {label:'Convênios dos Estados e DF', prefix:'1724', bloco:3},
-    {label:'Convênios dos Municípios', prefix:'1732', bloco:3},
-    {label:'Transferências de Instituições Privadas', prefix:'1741', bloco:3},
-    {label:'Convênios da União (Capital)', prefix:'2414', bloco:5},
-    {label:'Convênios dos Estados e DF (Capital)', prefix:'2422', bloco:5},
-    {label:'Convênios dos Municípios (Capital)', prefix:'2432', bloco:5},
-    {label:'Transferências de Instituições Privadas (Capital)', prefix:'2441', bloco:5},
-    {label:'Outras Transferências de Capital', prefix:'2499', bloco:5}
-  ];
+async function carregarRegras(){
+  var clienteAdmin = new Client()
+    .setEndpoint(process.env.APPWRITE_FUNCTION_API_ENDPOINT || 'https://nyc.cloud.appwrite.io/v1')
+    .setProject(process.env.APPWRITE_FUNCTION_PROJECT_ID)
+    .setKey(process.env.APPWRITE_API_KEY);
+  var tablesDBAdmin = new TablesDB(clienteAdmin);
+
+  var resultado = await tablesDBAdmin.listRows({
+    databaseId: DATABASE_ID, tableId: 'regras_motor',
+    queries: [Query.equal('ativo', true), Query.limit(200)]
+  });
+
+  var novasRetencao = [], novasFundeb = [], novasFinalidade = [];
+  var novoCfemUniao = null, novoCfemEstado = null;
+
+  resultado.rows.forEach(function(r){
+    if (r.categoria === 'retencao') novasRetencao.push({ label: r.label, prefix: r.prefixo });
+    else if (r.categoria === 'fundeb') novasFundeb.push({ label: r.label, prefix: r.prefixo });
+    else if (r.categoria === 'finalidade') novasFinalidade.push({ label: r.label, prefix: r.prefixo, bloco: r.bloco });
+    else if (r.categoria === 'cfem_uniao') novoCfemUniao = r.prefixo;
+    else if (r.categoria === 'cfem_estado') novoCfemEstado = r.prefixo;
+  });
+
+  RUBRICAS_RETENCAO = novasRetencao;
+  RUBRICAS_FUNDEB = novasFundeb;
+  ALERTAS_FINALIDADE = novasFinalidade;
+  CFEM_UNIAO_PREFIX = novoCfemUniao;
+  CFEM_ESTADO_PREFIX = novoCfemEstado;
+}
 
 function localName(el){ return el.localName || el.nodeName.split(':').pop(); }
 function findAllByLocal(root, name){
@@ -337,6 +355,7 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
 
   // ---------- Estado ----------
 
+
 // ------------------------------------------------------------
 // Handler da Appwrite Function
 // Recebe { xmlText: "<...>" } e devolve { d: <detalhamento>, r: <resultado> }.
@@ -351,6 +370,13 @@ export default async ({ req, res, log, error }) => {
 
   if (!corpo.xmlText || typeof corpo.xmlText !== 'string'){
     return res.json({ ok: false, erro: 'Campo xmlText ausente ou inválido.' }, 400);
+  }
+
+  try {
+    await carregarRegras();
+  } catch (e) {
+    error('Erro ao carregar regras de classificação: ' + e.message);
+    return res.json({ ok: false, erro: 'Não foi possível carregar as regras de classificação no momento. Tente novamente em instantes.' }, 500);
   }
 
   try {
