@@ -190,6 +190,9 @@
         <tr><td colspan="5" class="estado-carregando">Carregando…</td></tr>
       </tbody>
     </table>
+
+    <div class="section-title" style="margin-top:32px">Log de auditoria — últimas 20 ações</div>
+    <div class="card" id="listaAuditoria" style="padding:0"><div class="estado-carregando">Carregando…</div></div>
   </main>
 </div>
 
@@ -291,6 +294,7 @@
     document.getElementById('infoUsuarioAdmin').innerHTML = '<strong>Administrador</strong>' + usuario.email;
 
     await recarregarClientes();
+    await recarregarAuditoria();
   }
 
   async function recarregarClientes(){
@@ -393,13 +397,13 @@
 
       var acoes = '';
       if (m.status === 'pendente'){
-        acoes += '<button class="btn-acao primario" onclick="aprovarMunicipio(\''+m.$id+'\')">Aprovar</button>';
+        acoes += '<button class="btn-acao primario" onclick="aprovarMunicipio(\''+m.$id+'\',\''+m.nome.replace(/'/g,"\\'")+'\')">Aprovar</button>';
       }
       if (m.status === 'ativo'){
-        acoes += '<button class="btn-acao perigo" onclick="alterarStatus(\''+m.$id+'\',\'suspenso\')">Suspender</button>';
+        acoes += '<button class="btn-acao perigo" onclick="alterarStatus(\''+m.$id+'\',\'suspenso\',\''+m.nome.replace(/'/g,"\\'")+'\')">Suspender</button>';
       }
       if (m.status === 'suspenso'){
-        acoes += '<button class="btn-acao primario" onclick="alterarStatus(\''+m.$id+'\',\'ativo\')">Reativar</button>';
+        acoes += '<button class="btn-acao primario" onclick="alterarStatus(\''+m.$id+'\',\'ativo\',\''+m.nome.replace(/'/g,"\\'")+'\')">Reativar</button>';
       }
       acoes += '<button class="btn-acao" onclick="toggleLicenca(\''+m.$id+'\')">Licença</button>';
       acoes += '<div class="painel-licenca" id="lic-'+m.$id+'">' +
@@ -407,7 +411,7 @@
         '<select id="plano-'+m.$id+'"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select>' +
         '<label>Válida até</label>' +
         '<input type="date" id="validade-'+m.$id+'">' +
-        '<br><button class="btn-acao primario" onclick="salvarLicenca(\''+m.$id+'\')">Salvar licença</button>' +
+        '<br><button class="btn-acao primario" onclick="salvarLicenca(\''+m.$id+'\',\''+m.nome.replace(/'/g,"\\'")+'\')">Salvar licença</button>' +
         '</div>';
 
       return '<tr><td><strong>' + m.nome + '</strong> — ' + m.uf + '</td>' +
@@ -418,7 +422,23 @@
     }).join('');
   }
 
-  async function aprovarMunicipio(municipioId){
+  async function registrarAuditoria(acao, alvoId, alvoNome, detalhes){
+    try {
+      var admin = await account.get();
+      await tablesDB.createRow({
+        databaseId: DATABASE_ID, tableId: 'auditoria_admin', rowId: ID.unique(),
+        data: {
+          admin_id: admin.$id, admin_email: admin.email, acao: acao,
+          alvo_tipo: 'municipio', alvo_id: alvoId || '', alvo_nome: alvoNome || '', detalhes: detalhes || ''
+        }
+      });
+    } catch (e) {
+      // Falha ao registrar auditoria não deve travar a ação em si (ex.: tabela ainda não
+      // criada) — só fica sem o registro dessa vez.
+    }
+  }
+
+  async function aprovarMunicipio(municipioId, nomeMunicipio){
     try {
       await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: 'ativo' } });
       // Aprovação cria automaticamente uma licença trial de 30 dias — o administrador pode
@@ -431,16 +451,20 @@
           data_inicio: new Date().toISOString(), data_validade: validade.toISOString()
         }
       });
+      await registrarAuditoria('aprovar', municipioId, nomeMunicipio, 'Licença trial de 30 dias criada automaticamente');
       await recarregarClientes();
+      await recarregarAuditoria();
     } catch (err) {
       alert('Não foi possível aprovar: ' + err.message);
     }
   }
 
-  async function alterarStatus(municipioId, novoStatus){
+  async function alterarStatus(municipioId, novoStatus, nomeMunicipio){
     try {
       await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: novoStatus } });
+      await registrarAuditoria(novoStatus === 'suspenso' ? 'suspender' : 'reativar', municipioId, nomeMunicipio, 'Status alterado para ' + novoStatus);
       await recarregarClientes();
+      await recarregarAuditoria();
     } catch (err) {
       alert('Não foi possível alterar o status: ' + err.message);
     }
@@ -450,7 +474,7 @@
     document.getElementById('lic-' + municipioId).classList.toggle('aberto');
   }
 
-  async function salvarLicenca(municipioId){
+  async function salvarLicenca(municipioId, nomeMunicipio){
     var plano = document.getElementById('plano-' + municipioId).value;
     var validade = document.getElementById('validade-' + municipioId).value;
     if (!validade){ alert('Escolha a data de validade da licença.'); return; }
@@ -462,9 +486,36 @@
           data_inicio: new Date().toISOString(), data_validade: new Date(validade).toISOString()
         }
       });
+      await registrarAuditoria('licenca', municipioId, nomeMunicipio, 'Plano ' + plano + ', válida até ' + validade);
       await recarregarClientes();
+      await recarregarAuditoria();
     } catch (err) {
       alert('Não foi possível salvar a licença: ' + err.message);
+    }
+  }
+
+  async function recarregarAuditoria(){
+    var container = document.getElementById('listaAuditoria');
+    if (!container) return;
+    try {
+      var resultado = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'auditoria_admin',
+        queries: [Query.orderDesc('$createdAt'), Query.limit(20)]
+      });
+      var ROTULOS_ACAO = { aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de' };
+      if (!resultado.rows.length){
+        container.innerHTML = '<div class="estado-vazio">Nenhuma ação registrada ainda.</div>';
+        return;
+      }
+      container.innerHTML = resultado.rows.map(function(item){
+        var quando = new Date(item.$createdAt);
+        var quandoTexto = quando.toLocaleDateString('pt-BR') + ' às ' + quando.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+        return '<div class="item-lista"><span><span class="principal">' + (ROTULOS_ACAO[item.acao] || item.acao) + ' ' + (item.alvo_nome || item.alvo_id) + '</span>' +
+          '<br><span class="secundario">' + (item.detalhes || '') + '</span></span>' +
+          '<span class="direita"><span class="secundario">' + item.admin_email + '</span><br><span class="secundario">' + quandoTexto + '</span></span></div>';
+      }).join('');
+    } catch (e) {
+      container.innerHTML = '<div class="estado-vazio">Não foi possível carregar o log de auditoria.</div>';
     }
   }
 
