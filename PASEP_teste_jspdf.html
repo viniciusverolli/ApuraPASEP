@@ -230,7 +230,7 @@
       <div class="fileicon">XML</div>
       <div class="info">
         <div class="name">Arraste um ou mais arquivos XML AUDESP (leiaute Contas Correntes)</div>
-        <div class="meta">A competência é lida do descritor do arquivo. O arquivo é enviado ao servidor de apuração apenas para o cálculo, por conexão segura (HTTPS).</div>
+        <div class="meta">A competência é lida do descritor do arquivo. Seu navegador separa apenas os registros de receita e envia só essa parte ao servidor de apuração, por conexão segura (HTTPS).</div>
       </div>
     </div>
     <input type="file" id="file-input" multiple accept=".xml,.XML" style="display:none">
@@ -1004,21 +1004,68 @@
     };
   }
 
+  // O arquivo AUDESP de Contas Correntes tem dezenas de milhares de registros (empenhos, pagamentos,
+  // disponibilidades...) e passa de 40 MB, mas o cálculo do PASEP só usa três tipos de bloco do
+  // leiaute público do AUDESP: o Descritor e os registros de receita. O navegador separa esses blocos
+  // e envia só eles ao servidor: o corpo de uma chamada de função aceita no máximo ~10 MB, e o resto
+  // do arquivo (que pode conter dados de credores e servidores) nem chega a sair do computador.
+  // Esta função NÃO contém regra de classificação; apenas localiza blocos pelo nome.
+  var LIMITE_CORPO_ENVIO = 10000000;
+
+  function reduzirXml(texto){
+    var cabeca = texto.slice(0, 20000)
+      .replace(/<\?[\s\S]*?\?>/g, function(s){ return ' '.repeat(s.length); })
+      .replace(/<!--[\s\S]*?-->/g, function(s){ return ' '.repeat(s.length); });
+    var mRaiz = /<([A-Za-z_][\w.:-]*)(\s[^>]*)?>/.exec(cabeca);
+    if (!mRaiz) return { erro: 'Não foi possível identificar o elemento raiz do XML. Confira se o arquivo é um XML AUDESP.' };
+    // A abertura da raiz é copiada com as declarações de namespace: as tags dos blocos usam esses prefixos.
+    var abertura = texto.substr(mRaiz.index, mRaiz[0].length);
+    var nomeRaiz = mRaiz[1];
+
+    var NOMES = ['Descritor', 'ReceitaArrecadar', 'PrevisaoReceitaOrcamentaria'];
+    var partes = [], contagem = {};
+    NOMES.forEach(function(nome){
+      var re = new RegExp('<((?:[A-Za-z_][\\w.-]*:)?' + nome + ')(?=[\\s>])[^>]*>[\\s\\S]*?</\\1\\s*>', 'g');
+      var m, n = 0;
+      while ((m = re.exec(texto)) !== null){ partes.push({ pos: m.index, txt: m[0] }); n++; }
+      contagem[nome] = n;
+    });
+    partes.sort(function(a, b){ return a.pos - b.pos; });
+
+    var corpo = partes.map(function(p){ return p.txt.replace(/>\s+</g, '><'); }).join('\n');
+    return { xml: '<?xml version="1.0"?>\n' + abertura + '\n' + corpo + '\n</' + nomeRaiz + '>', contagem: contagem };
+  }
+
+  function tamanhoLegivel(n){
+    return n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB';
+  }
+
   function processarArquivos(fileList){
     Array.prototype.forEach.call(fileList, function(file){
       var reader = new FileReader();
       reader.onload = async function(e){
         var container = document.getElementById('area-progresso');
         var prog = criarProgresso(container, 'Apurando ' + file.name);
-        prog.atualizar(0, 1, 'Enviando o arquivo para o motor de apuração…');
+        prog.atualizar(0, 1, 'Lendo o arquivo e separando os registros de receita…');
+        // Deixa a barra de progresso aparecer antes do trabalho pesado (arquivos de 40 MB).
+        await new Promise(function(ok){ setTimeout(ok, 40); });
 
         var dados, resultadoCalculo;
         try {
           if (!appwriteFunctions) throw new Error('Não foi possível carregar a conexão com o sistema. Confira sua internet e tente de novo.');
 
+          var reduzido = reduzirXml(e.target.result);
+          if (reduzido.erro) throw new Error(reduzido.erro);
+          if (!reduzido.contagem.Descritor) throw new Error('Este arquivo não parece um XML AUDESP de Contas Correntes: o Descritor não foi encontrado.');
+          if (!reduzido.contagem.ReceitaArrecadar && !reduzido.contagem.PrevisaoReceitaOrcamentaria) throw new Error('Não foram encontrados registros de receita neste arquivo. Confira se é o XML de Contas Correntes do mês.');
+
+          var corpoEnvio = JSON.stringify({ xmlText: reduzido.xml });
+          if (corpoEnvio.length > LIMITE_CORPO_ENVIO) throw new Error('Mesmo separando apenas as receitas, o conteúdo (' + tamanhoLegivel(corpoEnvio.length) + ') excede o limite de envio. Avise o suporte informando o município e a competência.');
+
+          prog.atualizar(0, 1, 'Enviando ' + tamanhoLegivel(corpoEnvio.length) + ' de registros de receita ao motor de apuração…');
           var execucao = await appwriteFunctions.createExecution({
             functionId: APPWRITE_FUNCTION_MOTOR_ID,
-            body: JSON.stringify({ xmlText: e.target.result }),
+            body: corpoEnvio,
             async: false
           });
 
