@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ApuraPASEP — Apurações por município</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#172033; --muted:#475569; --line:#e2e8f0;
+    --primary:#218b78; --accent:#5d62d9; --accent-claro:#5eead4;
+    --red:#b91c1c; --red-soft:#fef2f2; --green:#166534; --green-soft:#dcfce7;
+    --amber:#92400e; --amber-soft:#fef3c7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{ font-family:'Inter',sans-serif; color:var(--ink); background:linear-gradient(135deg,#eef7f5,#f4f2fb); }
+  .shell{ display:grid; grid-template-columns: 250px 1fr; min-height:100vh; }
+
+  .side{ background:rgba(21,27,42,.92); backdrop-filter:blur(20px); color:#EFE9D8; padding: 26px 20px; display:flex; flex-direction:column; }
+  .side .brand{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .side .brand .t{ font-size:16px; font-weight:800; letter-spacing:-.02em; }
+  .side .brand .t span{ color:var(--accent-claro); }
+  .side .voltar{ display:flex; align-items:center; gap:6px; color:#94a3b8; text-decoration:none; font-size:12.5px; margin:0 0 28px; }
+  .side .voltar:hover{ color:#fff; }
+  .side .tag-admin{ display:inline-block; background:rgba(94,234,212,.14); border:1px solid rgba(94,234,212,.35); color:var(--accent-claro); font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:20px; margin-bottom:26px; align-self:flex-start; }
+  nav.main{ display:flex; flex-direction:column; gap:2px; }
+  nav.main a{ display:flex; align-items:center; gap:10px; color:#94a3b8; text-decoration:none; font-size:14px; padding:10px 12px; border-radius:10px; }
+  nav.main a .dot{ width:5px; height:5px; border-radius:50%; background:transparent; }
+  nav.main a.active{ background:rgba(255,255,255,.08); color:#F2F0EA; }
+  nav.main a.active .dot{ background:var(--accent-claro); }
+  nav.main a:hover{ color:#F2F0EA; }
+  .side .spacer{ flex:1; }
+  .side .who{ border-top:1px solid rgba(233,225,197,.14); padding-top:16px; font-size:12.5px; color:#9BA3A6; line-height:1.6; }
+  .side .who strong{ color:#EFE9D8; display:block; font-size:13.5px; }
+  .side .sair{ color:#8b9498; font-size:12px; text-decoration:none; margin-top:10px; display:inline-block; }
+  .side .sair:hover{ color:#EFE9D8; }
+
+  main{ padding: 30px 44px 60px; max-width:1260px; min-width:0; }
+  .topbar{ margin-bottom:26px; }
+  .topbar h1{ font-weight:800; font-size:24px; margin:0 0 4px; }
+  .topbar p{ font-size:13.5px; color:var(--muted); margin:0; }
+
+  .cards{ display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px; }
+  @media (max-width:900px){ .cards{grid-template-columns:repeat(2,1fr)} }
+  .card{
+    background:rgba(255,255,255,.6); backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.85);
+    border-radius:14px; padding:18px 20px; box-shadow:0 10px 26px rgba(62,75,110,.06);
+  }
+  .card .lab{ font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .card .val{ font-size:26px; font-weight:800; color:var(--ink); }
+
+  .section-title{ font-size:13px; color:var(--muted); margin: 0 0 12px; }
+
+  table.clientes{
+    width:100%; border-collapse:collapse; background:rgba(255,255,255,.6); backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.85); border-radius:14px; overflow:hidden;
+    box-shadow:0 10px 26px rgba(62,75,110,.06);
+  }
+  table.clientes th{ text-align:left; font-size:11.5px; color:var(--muted); font-weight:600; padding:11px 14px; border-bottom:1px solid var(--line); background:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.03em; }
+  table.clientes td{ padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.clientes tr:last-child td{ border-bottom:none; }
+
+  .badge{ font-size:11px; padding:3px 10px; border-radius:20px; display:inline-block; white-space:nowrap; font-weight:600; }
+  .badge.ativo{ background:var(--green-soft); color:var(--green); }
+  .badge.pendente{ background:var(--amber-soft); color:var(--amber); }
+  .badge.suspenso{ background:var(--red-soft); color:var(--red); }
+  .badge.trial{ background:#EFEAF5; color:#5B4B8A; }
+  .badge.expirada{ background:var(--red-soft); color:var(--red); }
+
+  .btn-acao{ font:inherit; font-size:12px; padding:6px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--line); background:rgba(255,255,255,.8); color:var(--ink); margin:2px 4px 2px 0; }
+  .btn-acao:hover{ border-color:var(--primary); }
+  .btn-acao.primario{ background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; border-color:transparent; }
+  .btn-acao.primario:hover{ filter:brightness(1.06); }
+  .btn-acao.perigo{ color:var(--red); border-color:#fca5a5; }
+  .btn-acao.perigo:hover{ background:var(--red-soft); }
+
+  .painel-licenca{ display:none; margin-top:10px; padding:12px; background:rgba(255,255,255,.5); border:1px solid var(--line); border-radius:10px; }
+  .painel-licenca.aberto{ display:block; }
+  .painel-licenca label{ display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
+  .painel-licenca select, .painel-licenca input{ font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid var(--line); border-radius:7px; margin-right:8px; margin-bottom:8px; background:#fff; }
+
+  .estado-carregando, .estado-vazio{ text-align:center; color:var(--muted); padding:30px; font-size:13px; }
+
+  .barra-sistema{ margin-bottom:16px; }
+  .barra-sistema:last-child{ margin-bottom:0; }
+  .barra-sistema .rotulo{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .barra-sistema .trilho{ background:rgba(255,255,255,.6); border-radius:6px; height:10px; overflow:hidden; }
+  .barra-sistema .preenchido{ background:linear-gradient(135deg,var(--primary),var(--accent)); height:100%; border-radius:6px; }
+
+  .item-lista{ padding:12px 18px; border-bottom:1px solid var(--line); font-size:13px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .item-lista:last-child{ border-bottom:none; }
+  .item-lista .principal{ font-weight:600; }
+  .item-lista .secundario{ font-size:11.5px; color:var(--muted); }
+  .item-lista .direita{ text-align:right; white-space:nowrap; }
+
+  .acesso-negado{ max-width:440px; margin:80px auto; text-align:center; }
+  .acesso-negado h1{ font-size:20px; font-weight:800; }
+  .acesso-negado a{ color:var(--primary); }
+
+  .topbar-mobile{ display:none; }
+  .backdrop-menu{ display:none; }
+  .side .fechar-menu{
+    background:none; border:none; color:#F2F0EA; font-size:22px; align-self:flex-end;
+    cursor:pointer; margin:-6px -4px 14px 0; padding:6px; display:none;
+  }
+
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+
+  /* ===== Cadastro de município (modal) ===== */
+  .cab-tabela-clientes{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .modal-fundo{ display:none; position:fixed; inset:0; background:rgba(15,20,32,.55); backdrop-filter:blur(4px); z-index:100; align-items:center; justify-content:center; padding:16px; }
+  .modal-fundo.aberto{ display:flex; }
+  .modal{ background:rgba(255,255,255,.96); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.9); border-radius:18px; box-shadow:0 30px 70px rgba(15,20,32,.35); width:100%; max-width:540px; max-height:92vh; overflow-y:auto; padding:26px 26px 22px; }
+  .modal h2{ font-size:18px; font-weight:800; margin:0 0 4px; }
+  .modal .modal-sub{ font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.5; }
+  .campo-form{ margin-bottom:14px; }
+  .campo-form label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; }
+  .campo-form input, .campo-form select{ width:100%; font:inherit; font-size:14px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
+  .campo-form .ajuda{ font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.4; }
+  .campo-form input:focus, .campo-form select:focus{ outline:2px solid var(--primary); outline-offset:1px; border-color:var(--primary); }
+  .linha-dupla{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .aviso-modal{ background:rgba(254,243,199,.8); border:1px solid #f5d98b; color:#78350f; border-radius:10px; padding:10px 13px; font-size:12.5px; line-height:1.5; margin-bottom:14px; }
+  .erro-form{ background:var(--red-soft); border:1px solid #fca5a5; color:var(--red); font-size:12.5px; padding:10px 13px; border-radius:10px; margin-bottom:14px; line-height:1.5; }
+  .erro-form ul{ margin:0; padding-left:18px; }
+  .modal-acoes{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap; }
+  .modal-acoes .btn-acao{ padding:9px 16px; font-size:13px; margin:0; }
+  .modal-acoes .btn-acao:disabled{ opacity:.6; cursor:default; }
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#151b2a; color:#fff; padding:11px 18px; border-radius:12px; font-size:13px; z-index:120; box-shadow:0 12px 30px rgba(0,0,0,.3); display:none; max-width:90vw; line-height:1.45; }
+  .toast.aberto{ display:block; }
+  .toast.alerta{ background:#92400e; }
+
+  /* ===== Apurações por município ===== */
+  .barra-filtro{ display:grid; grid-template-columns:2fr 1fr; gap:14px; margin-bottom:18px; }
+  .barra-filtro .campo-form{ margin-bottom:0; }
+  .cards.tres{ grid-template-columns:repeat(3, 1fr); }
+  .aviso-lgpd{ background:rgba(227,247,242,.75); border:1px solid rgba(33,139,120,.3); color:#115e59; border-radius:12px; padding:12px 16px; font-size:13px; line-height:1.55; margin-bottom:18px; }
+  .aviso-lgpd.alerta{ background:rgba(254,243,199,.8); border-color:#f5d98b; color:#78350f; }
+  .tabela-scroll{ overflow-x:auto; border-radius:14px; }
+  table.clientes td.num, table.clientes th.num{ text-align:right; white-space:nowrap; }
+  .negativo{ color:var(--red); }
+</style>
+</head>
+<body>
+<div class="topbar-mobile">
+  <div class="marca-mini">
+    <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    Apura<span>PASEP</span>
+  </div>
+  <button class="btn-menu" id="btnAbrirMenuAdmin" aria-label="Abrir menu" aria-expanded="false" aria-controls="menuLateralAdmin">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+</div>
+<div class="backdrop-menu" id="backdropMenuAdmin"></div>
+
+<div class="shell" id="shellPrincipal" style="display:none">
+  <aside class="side" id="menuLateralAdmin">
+    <button class="fechar-menu" id="btnFecharMenuAdmin" aria-label="Fechar menu">✕</button>
+    <a href="painel.html" class="brand" style="text-decoration:none; color:inherit">
+      <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+        <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+        <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="t">Apura<span>PASEP</span></div>
+    </a>
+    <a href="painel.html" class="voltar">&larr; Voltar ao painel</a>
+    <div class="tag-admin">ADMINISTRAÇÃO</div>
+    <nav class="main" aria-label="Navegação da administração">
+      <a href="admin.html"><span class="dot" aria-hidden="true"></span> Clientes e licenças</a>
+      <a class="active" href="admin-apuracoes.html"><span class="dot" aria-hidden="true"></span> Apurações por município</a>
+      <a href="admin-regras.html"><span class="dot" aria-hidden="true"></span> Regras de cálculo</a>
+      <a href="repositorio_pasep_cosit.html"><span class="dot" aria-hidden="true"></span> Repositório de normas</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="who" id="infoUsuarioAdmin"></div>
+    <a class="sair" href="#" id="linkSairAdmin">Sair</a>
+  </aside>
+  <main>
+    <div class="topbar">
+      <h1>Apurações por município</h1>
+      <p>Histórico das apurações salvas por cada município. Somente leitura.</p>
+    </div>
+
+    <div class="aviso-lgpd" role="note">
+      Estes são dados de outros municípios. O acesso é permitido apenas a administradores da plataforma e <b>cada consulta fica registrada no log de auditoria</b>, com seu e-mail e a data.
+    </div>
+    <div class="aviso-lgpd alerta" id="avisoLog" role="alert" style="display:none"></div>
+
+    <div class="barra-filtro">
+      <div class="campo-form">
+        <label for="selMunicipio">Município</label>
+        <select id="selMunicipio"><option value="">Carregando…</option></select>
+      </div>
+      <div class="campo-form">
+        <label for="selAno">Ano da competência</label>
+        <select id="selAno" disabled><option value="">Todos</option></select>
+      </div>
+    </div>
+
+    <div class="cards tres" id="cardsResumoApur" style="display:none">
+      <div class="card"><div class="lab">Apurações no filtro</div><div class="val">—</div></div>
+      <div class="card"><div class="lab">Competência mais recente</div><div class="val">—</div></div>
+      <div class="card"><div class="lab">Valor a pagar somado (no filtro)</div><div class="val">—</div></div>
+    </div>
+
+    <div id="areaApuracoes"><div class="estado-vazio">Selecione um município para ver as apurações.</div></div>
+  </main>
+</div>
+
+<div id="blocoAcessoNegado" style="display:none">
+  <div class="acesso-negado">
+    <h1>Acesso restrito</h1>
+    <p>Esta área é exclusiva para administradores da plataforma.</p>
+    <p><a href="painel.html">Voltar ao painel</a></p>
+  </div>
+</div>
+
+<!-- Responsivo: fica no final do documento de propósito, para vencer o empate de
+     especificidade contra as regras base acima (mesmo peso, quem vem depois vence). -->
+<style>
+  @media (max-width:900px){
+    .painel-dashboard{ grid-template-columns:1fr !important; }
+    #cardsResumoGestao{ grid-template-columns:1fr !important; }
+    .shell{ grid-template-columns:1fr; }
+
+    .topbar-mobile{
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(21,27,42,.95); backdrop-filter:blur(20px); color:#F2F0EA; padding:14px 18px; position:sticky; top:0; z-index:20;
+      width:100%; box-sizing:border-box;
+    }
+    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.02em; }
+    .topbar-mobile .marca-mini span{ color:var(--accent-claro); }
+    .btn-menu{
+      background:none; border:1px solid rgba(242,240,234,.3); border-radius:8px; color:#F2F0EA;
+      width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    }
+
+    .side{
+      position:fixed; top:0; left:0; height:100%; width:82%; max-width:300px; z-index:40;
+      transform:translateX(-100%); transition:transform .2s ease; box-shadow:2px 0 18px rgba(0,0,0,.25);
+      overflow-y:auto;
+    }
+    .side.aberto{ transform:translateX(0); }
+    .side .fechar-menu{ display:block; }
+
+    .backdrop-menu{
+      display:block; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30;
+      opacity:0; pointer-events:none; transition:opacity .2s ease;
+    }
+    .backdrop-menu.aberto{ opacity:1; pointer-events:auto; }
+
+    main{ padding:20px 16px 40px; }
+  }
+  @media (max-width:640px){
+    table.clientes{ font-size:12px; }
+  }
+</style>
+<style>
+  @media (max-width:760px){
+    .barra-filtro{ grid-template-columns:1fr; }
+    .cards.tres{ grid-template-columns:1fr; }
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script>
+  var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
+  var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
+  var DATABASE_ID = 'apurapasep';
+  var TEAM_ADMINS_ID = '6ab476f0000e158fa770';
+
+  var client = new Appwrite.Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+  var account = new Appwrite.Account(client);
+  var tablesDB = new Appwrite.TablesDB(client);
+  var teams = new Appwrite.Teams(client);
+  var Query = Appwrite.Query;
+  var ID = Appwrite.ID;
+
+  var MESES = ['', 'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+  var usuarioAtual = null;
+  var municipios = {};
+  var apuracoes = [];
+  var municipioSelecionado = null;
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch];
+    });
+  }
+  function brl(v){
+    if (v == null || isNaN(Number(v))) return '—';
+    v = Number(v);
+    return (v < 0 ? '-' : '') + 'R$ ' + Math.abs(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+  function classeValor(v){ return Number(v) < 0 ? ' negativo' : ''; }
+
+  document.getElementById('linkSairAdmin').addEventListener('click', async function(e){
+    e.preventDefault();
+    try { await account.deleteSession({ sessionId: 'current' }); } catch(err){}
+    window.location.href = 'login.html';
+  });
+
+  async function carregarPagina(){
+    try { usuarioAtual = await account.get(); }
+    catch (e) { window.location.href = 'login.html'; return; }
+
+    var minhasEquipes;
+    try { minhasEquipes = await teams.list(); } catch (e) { minhasEquipes = { teams: [] }; }
+    if (!minhasEquipes.teams.some(function(t){ return t.$id === TEAM_ADMINS_ID; })){
+      document.getElementById('blocoAcessoNegado').style.display = 'block';
+      return;
+    }
+    document.getElementById('shellPrincipal').style.display = 'grid';
+    document.getElementById('infoUsuarioAdmin').innerHTML = '<strong>Administrador</strong>' + esc(usuarioAtual.email);
+
+    var sel = document.getElementById('selMunicipio');
+    try {
+      var res = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'municipios', queries: [Query.limit(200)] });
+      var lista = res.rows.slice().sort(function(a, b){ return String(a.nome).localeCompare(String(b.nome), 'pt-BR'); });
+      lista.forEach(function(m){ municipios[m.$id] = m; });
+      sel.innerHTML = '<option value="">Selecione um município…</option>' + lista.map(function(m){
+        return '<option value="' + esc(m.$id) + '">' + esc(m.nome) + ' / ' + esc(m.uf) + ' (' + esc(m.status) + ')</option>';
+      }).join('');
+      if (!lista.length) sel.innerHTML = '<option value="">Nenhum município cadastrado</option>';
+    } catch (e) {
+      sel.innerHTML = '<option value="">Não foi possível carregar os municípios</option>';
+    }
+  }
+
+  function mostrarAvisoLog(texto){
+    var el = document.getElementById('avisoLog');
+    el.textContent = texto || '';
+    el.style.display = texto ? 'block' : 'none';
+  }
+
+  // Cada consulta a um município fica registrada: é acesso a dados de terceiros.
+  async function registrarConsulta(m){
+    try {
+      await tablesDB.createRow({
+        databaseId: DATABASE_ID, tableId: 'auditoria_admin', rowId: ID.unique(),
+        data: {
+          admin_id: usuarioAtual.$id, admin_email: usuarioAtual.email, acao: 'consulta_apuracoes',
+          alvo_tipo: 'municipio', alvo_id: m.$id, alvo_nome: String(m.nome || '').slice(0, 150),
+          detalhes: 'Consulta ao histórico de apurações salvas'
+        }
+      });
+      mostrarAvisoLog('');
+    } catch (e) {
+      mostrarAvisoLog('Atenção: não foi possível registrar esta consulta no log de auditoria. Os dados abaixo foram exibidos, mas a consulta ficou sem registro.');
+    }
+  }
+
+  async function selecionarMunicipio(id){
+    var areaEl = document.getElementById('areaApuracoes');
+    var selAno = document.getElementById('selAno');
+    document.getElementById('cardsResumoApur').style.display = 'none';
+    mostrarAvisoLog('');
+    if (!id){
+      municipioSelecionado = null; apuracoes = [];
+      selAno.innerHTML = '<option value="">Todos</option>'; selAno.disabled = true;
+      areaEl.innerHTML = '<div class="estado-vazio">Selecione um município para ver as apurações.</div>';
+      return;
+    }
+    var m = municipios[id];
+    municipioSelecionado = m;
+    areaEl.innerHTML = '<div class="estado-carregando">Carregando…</div>';
+
+    try {
+      var res = await tablesDB.listRows({
+        databaseId: DATABASE_ID, tableId: 'apuracoes',
+        queries: [Query.equal('municipio_id', id), Query.limit(200)]
+      });
+      apuracoes = res.rows.slice().sort(function(a, b){
+        return (b.competencia_ano - a.competencia_ano) || (b.competencia_mes - a.competencia_mes);
+      });
+    } catch (e) {
+      apuracoes = [];
+      areaEl.innerHTML = '<div class="estado-vazio">Não foi possível carregar as apurações: ' + esc(e.message) + '</div>';
+      return;
+    }
+
+    await registrarConsulta(m);
+
+    var anos = [];
+    apuracoes.forEach(function(a){ if (anos.indexOf(a.competencia_ano) === -1) anos.push(a.competencia_ano); });
+    selAno.innerHTML = '<option value="">Todos</option>' + anos.map(function(y){ return '<option value="' + esc(y) + '">' + esc(y) + '</option>'; }).join('');
+    selAno.disabled = anos.length === 0;
+    renderizar();
+  }
+
+  function renderizar(){
+    var areaEl = document.getElementById('areaApuracoes');
+    var ano = document.getElementById('selAno').value;
+    var filtradas = apuracoes.filter(function(a){ return !ano || String(a.competencia_ano) === ano; });
+
+    if (!apuracoes.length){
+      document.getElementById('cardsResumoApur').style.display = 'none';
+      areaEl.innerHTML = '<div class="estado-vazio">' + esc(municipioSelecionado.nome) + ' ainda não tem apurações salvas.</div>';
+      return;
+    }
+
+    var soma = filtradas.reduce(function(t, a){ return t + (Number(a.valor_pagar) || 0); }, 0);
+    var maisRecente = filtradas[0];
+    var vals = document.querySelectorAll('#cardsResumoApur .val');
+    vals[0].textContent = filtradas.length;
+    vals[1].textContent = maisRecente ? (MESES[maisRecente.competencia_mes] + '/' + maisRecente.competencia_ano) : '—';
+    vals[2].textContent = brl(soma);
+    vals[2].className = 'val' + classeValor(soma);
+    document.getElementById('cardsResumoApur').style.display = 'grid';
+
+    areaEl.innerHTML = '<div class="tabela-scroll"><table class="clientes"><thead><tr>' +
+      '<th>Competência</th><th class="num">Base de cálculo</th><th class="num">Retido na fonte</th><th class="num">Valor a pagar</th><th>Status</th><th>Sistema</th><th>Atualizada em</th>' +
+      '</tr></thead><tbody>' + filtradas.map(function(a){
+        var quando = a.$updatedAt ? new Date(a.$updatedAt).toLocaleDateString('pt-BR') : '—';
+        return '<tr><td><strong>' + esc(MESES[a.competencia_mes] || a.competencia_mes) + '/' + esc(a.competencia_ano) + '</strong></td>' +
+          '<td class="num">' + esc(brl(a.base_calculo)) + '</td>' +
+          '<td class="num">' + esc(brl(a.pasep_retido)) + '</td>' +
+          '<td class="num' + classeValor(a.valor_pagar) + '"><strong>' + esc(brl(a.valor_pagar)) + '</strong></td>' +
+          '<td><span class="badge ' + (a.status === 'concluida' ? 'ativo' : 'pendente') + '">' + esc(a.status) + '</span></td>' +
+          '<td>' + esc(a.sistema_gestao_usado || '—') + '</td>' +
+          '<td>' + esc(quando) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+
+  document.getElementById('selMunicipio').addEventListener('change', function(){ selecionarMunicipio(this.value); });
+  document.getElementById('selAno').addEventListener('change', renderizar);
+
+  // Menu móvel (gaveta), mesmo padrão das outras páginas de administração
+  var menuLateralAdmin = document.getElementById('menuLateralAdmin');
+  var backdropMenuAdmin = document.getElementById('backdropMenuAdmin');
+  var btnAbrirMenuAdmin = document.getElementById('btnAbrirMenuAdmin');
+  if (menuLateralAdmin && backdropMenuAdmin && btnAbrirMenuAdmin){
+    var abrirMenuAdmin = function(){
+      menuLateralAdmin.classList.add('aberto'); backdropMenuAdmin.classList.add('aberto');
+      btnAbrirMenuAdmin.setAttribute('aria-expanded', 'true');
+    };
+    var fecharMenuAdmin = function(){
+      menuLateralAdmin.classList.remove('aberto'); backdropMenuAdmin.classList.remove('aberto');
+      btnAbrirMenuAdmin.setAttribute('aria-expanded', 'false');
+    };
+    btnAbrirMenuAdmin.addEventListener('click', abrirMenuAdmin);
+    document.getElementById('btnFecharMenuAdmin').addEventListener('click', fecharMenuAdmin);
+    backdropMenuAdmin.addEventListener('click', fecharMenuAdmin);
+    menuLateralAdmin.querySelectorAll('nav.main a').forEach(function(a){ a.addEventListener('click', fecharMenuAdmin); });
+  }
+
+  carregarPagina();
+</script>
+</body>
+</html>

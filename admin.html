@@ -108,6 +108,30 @@
   }
 
   a:focus-visible, button:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+
+  /* ===== Cadastro de município (modal) ===== */
+  .tabela-scroll{ overflow-x:auto; border-radius:14px; }
+  .cab-tabela-clientes{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .modal-fundo{ display:none; position:fixed; inset:0; background:rgba(15,20,32,.55); backdrop-filter:blur(4px); z-index:100; align-items:center; justify-content:center; padding:16px; }
+  .modal-fundo.aberto{ display:flex; }
+  .modal{ background:rgba(255,255,255,.96); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.9); border-radius:18px; box-shadow:0 30px 70px rgba(15,20,32,.35); width:100%; max-width:540px; max-height:92vh; overflow-y:auto; padding:26px 26px 22px; }
+  .modal h2{ font-size:18px; font-weight:800; margin:0 0 4px; }
+  .modal .modal-sub{ font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.5; }
+  .campo-form{ margin-bottom:14px; }
+  .campo-form label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; }
+  .campo-form input, .campo-form select{ width:100%; font:inherit; font-size:14px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
+  .campo-form .ajuda{ font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.4; }
+  .campo-form input:focus, .campo-form select:focus{ outline:2px solid var(--primary); outline-offset:1px; border-color:var(--primary); }
+  .linha-dupla{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .aviso-modal{ background:rgba(254,243,199,.8); border:1px solid #f5d98b; color:#78350f; border-radius:10px; padding:10px 13px; font-size:12.5px; line-height:1.5; margin-bottom:14px; }
+  .erro-form{ background:var(--red-soft); border:1px solid #fca5a5; color:var(--red); font-size:12.5px; padding:10px 13px; border-radius:10px; margin-bottom:14px; line-height:1.5; }
+  .erro-form ul{ margin:0; padding-left:18px; }
+  .modal-acoes{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap; }
+  .modal-acoes .btn-acao{ padding:9px 16px; font-size:13px; margin:0; }
+  .modal-acoes .btn-acao:disabled{ opacity:.6; cursor:default; }
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#151b2a; color:#fff; padding:11px 18px; border-radius:12px; font-size:13px; z-index:120; box-shadow:0 12px 30px rgba(0,0,0,.3); display:none; max-width:90vw; line-height:1.45; }
+  .toast.aberto{ display:block; }
+  .toast.alerta{ background:#92400e; }
 </style>
 </head>
 <body>
@@ -141,6 +165,7 @@
     <div class="tag-admin">ADMINISTRAÇÃO</div>
     <nav class="main" aria-label="Navegação da administração">
       <a class="active" href="admin.html"><span class="dot" aria-hidden="true"></span> Clientes e licenças</a>
+      <a href="admin-apuracoes.html"><span class="dot" aria-hidden="true"></span> Apurações por município</a>
       <a href="admin-regras.html"><span class="dot" aria-hidden="true"></span> Regras de cálculo</a>
       <a href="repositorio_pasep_cosit.html"><span class="dot" aria-hidden="true"></span> Repositório de normas</a>
     </nav>
@@ -182,20 +207,58 @@
     <div class="section-title">Cadastros recentes</div>
     <div class="card" id="listaCadastrosRecentes" style="padding:0; margin-bottom:32px"><div class="estado-carregando">Carregando…</div></div>
 
-    <div class="section-title">Municípios cadastrados</div>
-    <table class="clientes">
+    <div class="cab-tabela-clientes"><div class="section-title" style="margin:0">Municípios cadastrados</div><button type="button" class="btn-acao primario" id="btnNovoMunicipio">+ Cadastrar município</button></div>
+    <div class="tabela-scroll"><table class="clientes">
       <thead>
         <tr><th>Município</th><th>Sistema de gestão</th><th>Status</th><th>Licença</th><th>Ações</th></tr>
       </thead>
       <tbody id="corpoTabelaClientes">
         <tr><td colspan="5" class="estado-carregando">Carregando…</td></tr>
       </tbody>
-    </table>
+    </table></div>
 
     <div class="section-title" style="margin-top:32px">Log de auditoria — últimas 20 ações</div>
     <div class="card" id="listaAuditoria" style="padding:0"><div class="estado-carregando">Carregando…</div></div>
   </main>
 </div>
+
+<div class="modal-fundo" id="modalMunicipio">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mmTitulo">
+    <h2 id="mmTitulo"></h2>
+    <p class="modal-sub" id="mmSub"></p>
+    <div class="aviso-modal" id="mmAviso" style="display:none"></div>
+
+    <div class="campo-form" id="mmCampoNome">
+      <label for="mmNome">Município (SP)</label>
+      <input type="text" id="mmNome" list="listaMunicipiosSP" autocomplete="off" placeholder="Digite para buscar">
+      <datalist id="listaMunicipiosSP"></datalist>
+      <div class="ajuda">Apenas municípios de São Paulo, pois a apuração automática depende da API do TCESP.</div>
+    </div>
+    <div class="campo-form">
+      <label for="mmCodigo">Código TCE</label>
+      <input type="text" id="mmCodigo" inputmode="numeric" maxlength="4" autocomplete="off">
+      <div class="ajuda" id="mmAjudaCodigo">4 dígitos. É o valor da tag Municipio dos XML AUDESP deste município.</div>
+    </div>
+    <div class="campo-form">
+      <label for="mmSistema">Sistema de gestão</label>
+      <select id="mmSistema"><option value="fiorilli">Fiorilli</option><option value="gemmap">GEMMAP</option></select>
+    </div>
+    <div id="mmBlocoLicenca">
+      <div class="linha-dupla">
+        <div class="campo-form"><label for="mmPlano">Plano da licença</label>
+          <select id="mmPlano"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select></div>
+        <div class="campo-form"><label for="mmValidade">Válida até</label><input type="date" id="mmValidade"></div>
+      </div>
+    </div>
+
+    <div class="erro-form" id="mmErro" role="alert" style="display:none"></div>
+    <div class="modal-acoes">
+      <button type="button" class="btn-acao" id="mmCancelar">Cancelar</button>
+      <button type="button" class="btn-acao primario" id="mmSalvar">Salvar</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div id="blocoAcessoNegado" style="display:none">
   <div class="acesso-negado">
@@ -259,6 +322,31 @@
   var teams = new Appwrite.Teams(client);
   var Query = Appwrite.Query;
   var ID = Appwrite.ID;
+  var Permission = Appwrite.Permission;
+  var Role = Appwrite.Role;
+
+  // Município (SP) -> código TCE (valor da tag Municipio dos XML AUDESP). Tabela pública do TCE-SP,
+  // usada só para sugerir o código ao cadastrar e para conferir o que for digitado.
+  var MUNICIPIOS_SP = {"Adamantina":"6101","Adolfo":"6103","Aguaí":"6105","Agudos":"6113","Alambari":"2995","Alfredo Marcondes":"6115","Altair":"6117","Altinópolis":"6119","Alto Alegre":"6121","Alumínio":"3065","Alvinlândia":"6129","Americana":"6131","Amparo":"6137","Américo Brasiliense":"6133","Américo de Campos":"6135","Analândia":"6139","Andradina":"6141","Angatuba":"6143","Anhembi":"6145","Anhumas":"6147","Aparecida":"6149","Aparecida d Oeste":"6151","Apiaí":"6153","Aramina":"6159","Arandu":"6161","Arapeí":"2991","Araraquara":"6163","Araras":"6165","Araçariguama":"3067","Araçatuba":"6155","Araçoiaba da Serra":"6157","Arco-Íris":"0790","Arealva":"6167","Areias":"6169","Areiópolis":"6171","Ariranha":"6173","Artur Nogueira":"6175","Arujá":"6177","Aspásia":"2981","Assis":"6179","Atibaia":"6181","Auriflama":"6183","Avanhandava":"6187","Avaré":"6189","Avaí":"6185","Bady Bassitt":"6191","Balbinos":"6193","Bananal":"6197","Barbosa":"6199","Bariri":"6203","Barra Bonita":"6205","Barra do Chapéu":"2997","Barra do Turvo":"6207","Barretos":"6209","Barrinha":"6211","Barueri":"6213","Barão de Antonina":"6201","Bastos":"6215","Batatais":"6217","Bauru":"6219","Bebedouro":"6221","Bento de Abreu":"6223","Bernardino de Campos":"6225","Bertioga":"2965","Bilac":"6227","Birigui":"6229","Biritiba Mirim":"6231","Boa Esperança do Sul":"6233","Bocaina":"6235","Bofete":"6237","Boituva":"6239","Bom Jesus dos Perdões":"6241","Bom Sucesso de Itararé":"3059","Boracéia":"6245","Borborema":"6247","Borebi":"7247","Borá":"6243","Botucatu":"6249","Bragança Paulista":"6251","Braúna":"6255","Brejo Alegre":"0792","Brodowski":"6257","Brotas":"6259","Buri":"6261","Buritama":"6263","Buritizal":"6265","Bálsamo":"6195","Cabreúva":"6269","Cabrália Paulista":"6267","Cachoeira Paulista":"6273","Caconde":"6275","Cafelândia":"6277","Caiabu":"6279","Caieiras":"6281","Caiuá":"6283","Cajamar":"6285","Cajati":"2967","Cajobi":"6287","Cajuru":"6289","Campina do Monte Alegre":"2999","Campinas":"6291","Campo Limpo Paulista":"6293","Campos Novos Paulista":"6297","Campos do Jordão":"6295","Cananéia":"6299","Canas":"0794","Canitar":"2947","Capela do Alto":"6307","Capivari":"6309","Capão Bonito":"6305","Caraguatatuba":"6311","Carapicuíba":"6313","Cardoso":"6315","Casa Branca":"6317","Castilho":"6321","Catanduva":"6323","Catiguá":"6325","Caçapava":"6271","Cedral":"6327","Cerqueira César":"6329","Cerquilho":"6331","Cesário Lange":"6333","Charqueada":"6335","Chavantes":"6337","Clementina":"6339","Colina":"6341","Colômbia":"6343","Conchal":"6345","Conchas":"6347","Cordeirópolis":"6349","Coroados":"6351","Coronel Macedo":"6353","Corumbataí":"6355","Cosmorama":"6359","Cosmópolis":"6357","Cotia":"6361","Cravinhos":"6363","Cristais Paulista":"6365","Cruzeiro":"6369","Cruzália":"6367","Cubatão":"6371","Cunha":"6373","Cássia dos Coqueiros":"6319","Cândido Mota":"6301","Cândido Rodrigues":"6303","Descalvado":"6375","Diadema":"6377","Dirce Reis":"7249","Divinolândia":"6379","Dobrada":"6381","Dois Córregos":"6383","Dolcinópolis":"6385","Dourado":"6387","Dracena":"6389","Duartina":"6391","Dumont":"6393","Echaporã":"6395","Eldorado":"6397","Elias Fausto":"6399","Elisiário":"2975","Embaúba":"7251","Embu das Artes":"6401","Embu-Guaçu":"6403","Emilianópolis":"2961","Engenheiro Coelho":"2949","Espírito Santo do Pinhal":"6865","Espírito Santo do Turvo":"7253","Estiva Gerbi":"2959","Estrela d Oeste":"6405","Estrela do Norte":"6407","Euclides da Cunha Paulista":"7255","Fartura":"6409","Fernando Prestes":"6413","Fernandópolis":"6411","Fernão":"0796","Ferraz de Vasconcelos":"6415","Flora Rica":"6417","Floreal":"6419","Florínea":"6423","Flórida Paulista":"6421","Franca":"6425","Francisco Morato":"6427","Franco da Rocha":"6429","Gabriel Monteiro":"6431","Garça":"6435","Gastão Vidigal":"6437","Gavião Peixoto":"0798","General Salgado":"6439","Getulina":"6441","Glicério":"6443","Guaimbê":"6447","Guaiçara":"6445","Guapiara":"6453","Guapiaçu":"6451","Guaraci":"6459","Guarani d Oeste":"6461","Guarantã":"6463","Guararapes":"6465","Guararema":"6467","Guaratinguetá":"6469","Guaraçaí":"6457","Guareí":"6471","Guariba":"6473","Guarujá":"6475","Guarulhos":"6477","Guará":"6455","Guatapará":"7257","Guaíra":"6449","Guzolândia":"6479","Gália":"6433","Herculândia":"6481","Holambra":"2953","Hortolândia":"2951","Iacanga":"6483","Iacri":"6485","Iaras":"7259","Ibaté":"6487","Ibirarema":"6491","Ibirá":"6489","Ibitinga":"6493","Ibiúna":"6495","Icém":"6497","Iepê":"6499","Igarapava":"6503","Igaratá":"6505","Igaraçu do Tietê":"6501","Iguape":"6507","Ilha Comprida":"2969","Ilha Solteira":"2943","Ilhabela":"6509","Indaiatuba":"6511","Indiana":"6513","Indiaporã":"6515","Inúbia Paulista":"6517","Ipaussu":"6519","Iperó":"6521","Ipeúna":"6523","Ipiguá":"0800","Iporanga":"6525","Ipuã":"6527","Iracemápolis":"6529","Irapuru":"6533","Irapuã":"6531","Itaberá":"6535","Itajobi":"6539","Itaju":"6541","Itanhaém":"6543","Itaoca":"3053","Itapecerica da Serra":"6545","Itapetininga":"6547","Itapeva":"6549","Itapevi":"6551","Itapira":"6553","Itapirapuã Paulista":"3055","Itaporanga":"6557","Itapura":"6561","Itapuí":"6559","Itaquaquecetuba":"6563","Itararé":"6565","Itariri":"6567","Itatiba":"6569","Itatinga":"6571","Itaí":"6537","Itirapina":"6573","Itirapuã":"6575","Itobi":"6577","Itu":"6579","Itupeva":"6581","Ituverava":"6583","Itápolis":"6555","Jaborandi":"6585","Jaboticabal":"6587","Jacareí":"6589","Jaci":"6591","Jacupiranga":"6593","Jaguariúna":"6595","Jales":"6597","Jambeiro":"6599","Jandira":"6601","Jardinópolis":"6603","Jarinu":"6605","Jaú":"6607","Jeriquara":"6609","Joanópolis":"6611","José Bonifácio":"6615","João Ramalho":"6613","Jumirim":"0802","Jundiaí":"6619","Junqueirópolis":"6621","Juquitiba":"6625","Juquiá":"6623","Júlio Mesquita":"6617","Lagoinha":"6627","Laranjal Paulista":"6629","Lavrinhas":"6633","Lavínia":"6631","Leme":"6635","Lençóis Paulista":"6637","Limeira":"6639","Lindóia":"6641","Lins":"6643","Lorena":"6645","Lourdes":"2937","Louveira":"6647","Lucianópolis":"6651","Lucélia":"6649","Luiziânia":"6655","Lupércio":"6657","Lutécia":"6659","Luís Antônio":"6653","Macatuba":"6661","Macaubal":"6663","Macedônia":"6665","Magda":"6667","Mairinque":"6669","Mairiporã":"6671","Manduri":"6673","Marabá Paulista":"6675","Maracaí":"6677","Marapoama":"2977","Marinópolis":"6683","Mariápolis":"6679","Martinópolis":"6685","Marília":"6681","Matão":"6687","Mauá":"6689","Mendonça":"6691","Meridiano":"6693","Mesópolis":"2983","Miguelópolis":"6695","Mineiros do Tietê":"6697","Mira Estrela":"6701","Miracatu":"6699","Mirandópolis":"6703","Mirante do Paranapanema":"6705","Mirassol":"6707","Mirassolândia":"6709","Mococa":"6711","Mogi Guaçu":"6715","Mogi Mirim":"6717","Mogi das Cruzes":"6713","Mombuca":"6719","Mongaguá":"6723","Monte Alegre do Sul":"6725","Monte Alto":"6727","Monte Aprazível":"6729","Monte Azul Paulista":"6731","Monte Castelo":"6733","Monte Mor":"6737","Monteiro Lobato":"6735","Monções":"6721","Morro Agudo":"6739","Morungaba":"6741","Motuca":"7263","Murutinga do Sul":"6743","Nantes":"0804","Narandiba":"6745","Natividade da Serra":"6747","Nazaré Paulista":"6749","Neves Paulista":"6751","Nhandeara":"6753","Nipoã":"6755","Nova Aliança":"6757","Nova Campina":"3061","Nova Canaã Paulista":"2985","Nova Castilho":"0806","Nova Europa":"6759","Nova Granada":"6761","Nova Guataporanga":"6763","Nova Independência":"6765","Nova Luzitânia":"6767","Nova Odessa":"6769","Novais":"2979","Novo Horizonte":"6771","Nuporanga":"6773","Ocauçu":"6775","Olímpia":"6779","Onda Verde":"6781","Oriente":"6783","Orindiúva":"6785","Orlândia":"6787","Osasco":"6789","Oscar Bressane":"6791","Osvaldo Cruz":"6793","Ourinhos":"6795","Ouro Verde":"6797","Ouroeste":"0808","Pacaembu":"6799","Palestina":"6801","Palmares Paulista":"6803","Palmeira d Oeste":"6805","Palmital":"6807","Panorama":"6809","Paraguaçu Paulista":"6811","Paraibuna":"6813","Paranapanema":"6817","Paranapuã":"6819","Parapuã":"6821","Paraíso":"6815","Pardinho":"6823","Pariquera-Açu":"6825","Parisi":"2989","Patrocínio Paulista":"6827","Paulicéia":"6829","Paulistânia":"0810","Paulo de Faria":"6833","Paulínia":"6831","Pederneiras":"6835","Pedra Bela":"6837","Pedranópolis":"6839","Pedregulho":"6841","Pedreira":"6843","Pedrinhas Paulista":"2963","Pedro de Toledo":"6845","Penápolis":"6847","Pereira Barreto":"6849","Pereiras":"6851","Peruíbe":"6853","Piacatu":"6855","Piedade":"6857","Pilar do Sul":"6859","Pindamonhangaba":"6861","Pindorama":"6863","Pinhalzinho":"6867","Piquerobi":"6869","Piquete":"6871","Piracaia":"6873","Piracicaba":"6875","Piraju":"6877","Pirajuí":"6879","Pirangi":"6881","Pirapora do Bom Jesus":"6883","Pirapozinho":"6885","Pirassununga":"6887","Piratininga":"6889","Pitangueiras":"6891","Planalto":"6893","Platina":"6895","Poloni":"6899","Pompéia":"6901","Pongaí":"6903","Pontal":"6905","Pontalinda":"2987","Pontes Gestal":"6907","Populina":"6909","Porangaba":"6911","Porto Feliz":"6913","Porto Ferreira":"6915","Potim":"2993","Potirendaba":"6917","Poá":"6897","Pracinha":"0812","Pradópolis":"6919","Praia Grande":"6921","Pratânia":"0814","Presidente Alves":"6923","Presidente Bernardes":"6925","Presidente Epitácio":"6927","Presidente Prudente":"6929","Presidente Venceslau":"6931","Promissão":"6933","Quadra":"0816","Quatá":"6935","Queiroz":"6937","Queluz":"6939","Quintana":"6941","Rafard":"6943","Rancharia":"6945","Redenção da Serra":"6947","Regente Feijó":"6949","Reginópolis":"6951","Registro":"6953","Restinga":"6955","Ribeira":"6957","Ribeirão Bonito":"6959","Ribeirão Branco":"6961","Ribeirão Corrente":"6963","Ribeirão Grande":"3057","Ribeirão Pires":"6967","Ribeirão Preto":"6969","Ribeirão do Sul":"6965","Ribeirão dos Índios":"0818","Rifaina":"6973","Rincão":"6975","Rinópolis":"6977","Rio Claro":"6979","Rio Grande da Serra":"6983","Rio das Pedras":"6981","Riolândia":"6985","Riversul":"6971","Rosana":"7265","Roseira":"6987","Rubinéia":"6991","Rubiácea":"6989","Sabino":"6993","Sagres":"6995","Sales":"6997","Sales Oliveira":"6999","Salesópolis":"7001","Salmourão":"7003","Saltinho":"5445","Salto":"7005","Salto Grande":"7009","Salto de Pirapora":"7007","Sandovalina":"7011","Santa Adélia":"7013","Santa Albertina":"7015","Santa Branca":"7021","Santa Bárbara d Oeste":"7017","Santa Clara d Oeste":"7023","Santa Cruz da Conceição":"7025","Santa Cruz da Esperança":"0820","Santa Cruz das Palmeiras":"7027","Santa Cruz do Rio Pardo":"7029","Santa Ernestina":"7031","Santa Fé do Sul":"7033","Santa Gertrudes":"7035","Santa Isabel":"7037","Santa Lúcia":"7039","Santa Maria da Serra":"7041","Santa Mercedes":"7043","Santa Rita d Oeste":"7049","Santa Rita do Passa Quatro":"7051","Santa Rosa de Viterbo":"7053","Santa Salete":"0822","Santana da Ponte Pensa":"7045","Santana de Parnaíba":"7047","Santo Anastácio":"7055","Santo André":"7057","Santo Antônio da Alegria":"7059","Santo Antônio de Posse":"7061","Santo Antônio do Aracanguá":"2939","Santo Antônio do Jardim":"7063","Santo Antônio do Pinhal":"7065","Santo Expedito":"7067","Santos":"7071","Santópolis do Aguapeí":"7069","Sarapuí":"7123","Sarutaiá":"7125","Sebastianópolis do Sul":"7127","Serra Azul":"7129","Serra Negra":"7133","Serrana":"7131","Sertãozinho":"7135","Sete Barras":"7137","Severínia":"7139","Silveiras":"7141","Socorro":"7143","Sorocaba":"7145","Sud Mennucci":"7147","Sumaré":"7149","Suzano":"7151","Suzanápolis":"2945","São Bento do Sapucaí":"7073","São Bernardo do Campo":"7075","São Caetano do Sul":"7077","São Carlos":"7079","São Francisco":"7081","São Joaquim da Barra":"7089","São José da Bela Vista":"7091","São José do Barreiro":"7093","São José do Rio Pardo":"7095","São José do Rio Preto":"7097","São José dos Campos":"7099","São João da Boa Vista":"7083","São João das Duas Pontes":"7085","São João de Iracema":"2941","São João do Pau d Alho":"7087","São Lourenço da Serra":"5447","São Luiz do Paraitinga":"7101","São Manuel":"7103","São Miguel Arcanjo":"7105","São Pedro":"7109","São Pedro do Turvo":"7111","São Roque":"7113","São Sebastião":"7115","São Sebastião da Grama":"7117","São Simão":"7119","São Vicente":"7121","Tabapuã":"7153","Tabatinga":"7155","Taboão da Serra":"7157","Taciba":"7159","Taguaí":"7161","Taiaçu":"7163","Taiúva":"7165","Tambaú":"7167","Tanabi":"7169","Tapiratiba":"7173","Tapiraí":"7171","Taquaral":"0824","Taquaritinga":"7175","Taquarituba":"7177","Taquarivaí":"3063","Tarabai":"7179","Tarumã":"7267","Tatuí":"7181","Taubaté":"7183","Tejupá":"7185","Teodoro Sampaio":"7187","Terra Roxa":"7189","Tietê":"7191","Timburi":"7193","Torre de Pedra":"3227","Torrinha":"7195","Trabiju":"0826","Tremembé":"7197","Três Fronteiras":"7199","Tuiuti":"2955","Tupi Paulista":"7203","Tupã":"7201","Turiúba":"7205","Turmalina":"7207","Ubarana":"2971","Ubatuba":"7209","Ubirajara":"7211","Uchoa":"7213","União Paulista":"7215","Uru":"7219","Urupês":"7221","Urânia":"7217","Valentim Gentil":"7223","Valinhos":"7225","Valparaíso":"7227","Vargem":"2957","Vargem Grande Paulista":"7273","Vargem Grande do Sul":"7231","Vera Cruz":"7235","Vinhedo":"7237","Viradouro":"7239","Vista Alegre do Alto":"7241","Vitória Brasil":"0828","Votorantim":"7243","Votuporanga":"7245","Várzea Paulista":"7233","Zacarias":"2973","Águas da Prata":"6107","Águas de Lindóia":"6109","Águas de Santa Bárbara":"7019","Águas de São Pedro":"6111","Álvares Florence":"6123","Álvares Machado":"6125","Álvaro de Carvalho":"6127","Óleo":"6777"};
+
+  var mapaMunicipios = {};
+  var estadoModalMun = { modo:null, id:null, salvando:false };
+  var toastTimer = null;
+
+  // Todo texto que vem do banco é escapado antes de entrar em innerHTML: qualquer usuário logado
+  // consegue gravar linhas na tabela de municípios, então esses campos não são confiáveis.
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(ch){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[ch];
+    });
+  }
+  function mostrarToast(texto, alerta){
+    var t = document.getElementById('toast');
+    t.textContent = texto;
+    t.className = 'toast aberto' + (alerta ? ' alerta' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.className = 'toast'; }, alerta ? 9000 : 5000);
+  }
 
   function brl(v){ return (v==null) ? '—' : Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
   function dataBr(iso){
@@ -292,21 +380,30 @@
     }
 
     document.getElementById('shellPrincipal').style.display = 'grid';
-    document.getElementById('infoUsuarioAdmin').innerHTML = '<strong>Administrador</strong>' + usuario.email;
+    document.getElementById('infoUsuarioAdmin').innerHTML = '<strong>Administrador</strong>' + esc(usuario.email);
 
     await recarregarClientes();
     await recarregarAuditoria();
   }
 
   async function recarregarClientes(){
-    var municipios, licencas;
+    var municipios, licencas, erroListagem = null;
     try {
       var resM = await tablesDB.listRows({
-        databaseId: DATABASE_ID, tableId: 'municipios',
-        queries: [Query.orderAsc('status'), Query.orderAsc('nome'), Query.limit(200)]
+        databaseId: DATABASE_ID, tableId: 'municipios', queries: [Query.limit(200)]
       });
       municipios = resM.rows;
-    } catch (e) { municipios = []; }
+    } catch (e) { municipios = []; erroListagem = e.message; }
+
+    // Ordenação feita aqui (pendentes primeiro, depois por nome), sem depender de índice no banco.
+    var ORDEM_STATUS = { pendente: 0, ativo: 1, suspenso: 2 };
+    municipios.sort(function(a, b){
+      var oa = (a.status in ORDEM_STATUS) ? ORDEM_STATUS[a.status] : 9;
+      var ob = (b.status in ORDEM_STATUS) ? ORDEM_STATUS[b.status] : 9;
+      return (oa - ob) || String(a.nome).localeCompare(String(b.nome), 'pt-BR');
+    });
+    mapaMunicipios = {};
+    municipios.forEach(function(m){ mapaMunicipios[m.$id] = m; });
 
     try {
       var resL = await tablesDB.listRows({
@@ -322,7 +419,8 @@
     });
 
     if (!municipios || municipios.length === 0){
-      document.getElementById('corpoTabelaClientes').innerHTML = '<tr><td colspan="5" class="estado-vazio">Nenhum município cadastrado ainda.</td></tr>';
+      document.getElementById('corpoTabelaClientes').innerHTML = '<tr><td colspan="5" class="estado-vazio">' +
+        (erroListagem ? 'Não foi possível carregar os municípios: ' + esc(erroListagem) : 'Nenhum município cadastrado ainda.') + '</td></tr>';
       return;
     }
 
@@ -356,7 +454,7 @@
     document.getElementById('graficoSistemas').innerHTML = Object.keys(porSistema).sort().map(function(sis){
       var qtd = porSistema[sis];
       var pct = Math.round((qtd / maiorSistema) * 100);
-      return '<div class="barra-sistema"><div class="rotulo"><span style="text-transform:capitalize">' + sis + '</span><span>' + qtd + '</span></div>' +
+      return '<div class="barra-sistema"><div class="rotulo"><span style="text-transform:capitalize">' + esc(sis) + '</span><span>' + qtd + '</span></div>' +
         '<div class="trilho"><div class="preenchido" style="width:' + pct + '%"></div></div></div>';
     }).join('') || '<div class="estado-vazio">Sem dados</div>';
 
@@ -376,7 +474,7 @@
     document.getElementById('cardLicVencendo').querySelector('.val').textContent = vencendo.length;
     document.getElementById('listaLicencasVencendo').innerHTML = vencendo.length
       ? vencendo.map(function(v){
-          return '<div class="item-lista"><span class="principal">' + v.nome + '</span>' +
+          return '<div class="item-lista"><span class="principal">' + esc(v.nome) + '</span>' +
             '<span class="direita" style="color:' + (v.vencida ? 'var(--red)' : 'var(--amber)') + '">' +
             (v.vencida ? 'Vencida em ' : 'Vence em ') + dataBr(v.validade) + '</span></div>';
         }).join('')
@@ -385,39 +483,39 @@
     // --- Cadastros recentes (últimos 5, mais novo primeiro) ---
     var recentes = municipios.slice().sort(function(a,b){ return new Date(b.$createdAt) - new Date(a.$createdAt); }).slice(0,5);
     document.getElementById('listaCadastrosRecentes').innerHTML = recentes.map(function(m){
-      return '<div class="item-lista"><span><span class="principal">' + m.nome + '</span> — ' + m.uf +
-        '<br><span class="secundario">' + m.sistema_gestao + '</span></span>' +
-        '<span class="direita"><span class="badge ' + m.status + '">' + m.status + '</span><br><span class="secundario">' + dataBr(m.$createdAt) + '</span></span></div>';
+      return '<div class="item-lista"><span><span class="principal">' + esc(m.nome) + '</span> — ' + esc(m.uf) +
+        '<br><span class="secundario">' + esc(m.sistema_gestao) + '</span></span>' +
+        '<span class="direita"><span class="badge ' + esc(m.status) + '">' + esc(m.status) + '</span><br><span class="secundario">' + dataBr(m.$createdAt) + '</span></span></div>';
     }).join('') || '<div class="estado-vazio">Nenhum cadastro ainda.</div>';
 
     document.getElementById('corpoTabelaClientes').innerHTML = municipios.map(function(m){
       var lic = licencaPorMunicipio[m.$id];
       var licTexto = lic
-        ? '<span class="badge ' + lic.status + '">' + lic.plano + '</span><br><span style="font-size:11.5px;color:var(--muted)">até ' + dataBr(lic.data_validade) + '</span>'
+        ? '<span class="badge ' + esc(lic.status) + '">' + esc(lic.plano) + '</span><br><span style="font-size:11.5px;color:var(--muted)">até ' + esc(dataBr(lic.data_validade)) + '</span>'
         : '<span style="color:var(--muted);font-size:12px">sem licença</span>';
 
+      var id = esc(m.$id);
       var acoes = '';
-      if (m.status === 'pendente'){
-        acoes += '<button class="btn-acao primario" onclick="aprovarMunicipio(\''+m.$id+'\',\''+m.nome.replace(/'/g,"\\'")+'\')">Aprovar</button>';
-      }
-      if (m.status === 'ativo'){
-        acoes += '<button class="btn-acao perigo" onclick="alterarStatus(\''+m.$id+'\',\'suspenso\',\''+m.nome.replace(/'/g,"\\'")+'\')">Suspender</button>';
-      }
-      if (m.status === 'suspenso'){
-        acoes += '<button class="btn-acao primario" onclick="alterarStatus(\''+m.$id+'\',\'ativo\',\''+m.nome.replace(/'/g,"\\'")+'\')">Reativar</button>';
-      }
-      acoes += '<button class="btn-acao" onclick="toggleLicenca(\''+m.$id+'\')">Licença</button>';
-      acoes += '<div class="painel-licenca" id="lic-'+m.$id+'">' +
+      if (m.status === 'pendente') acoes += '<button type="button" class="btn-acao primario" data-acao="aprovar" data-id="' + id + '">Aprovar</button>';
+      if (m.status === 'ativo') acoes += '<button type="button" class="btn-acao perigo" data-acao="suspender" data-id="' + id + '">Suspender</button>';
+      if (m.status === 'suspenso') acoes += '<button type="button" class="btn-acao primario" data-acao="reativar" data-id="' + id + '">Reativar</button>';
+      acoes += '<button type="button" class="btn-acao" data-acao="dados" data-id="' + id + '">Dados</button>';
+      acoes += '<button type="button" class="btn-acao" data-acao="licenca" data-id="' + id + '">Licença</button>';
+      acoes += '<div class="painel-licenca" id="lic-' + id + '">' +
         '<label>Plano</label>' +
-        '<select id="plano-'+m.$id+'"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select>' +
+        '<select id="plano-' + id + '"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select>' +
         '<label>Válida até</label>' +
-        '<input type="date" id="validade-'+m.$id+'">' +
-        '<br><button class="btn-acao primario" onclick="salvarLicenca(\''+m.$id+'\',\''+m.nome.replace(/'/g,"\\'")+'\')">Salvar licença</button>' +
+        '<input type="date" id="validade-' + id + '">' +
+        '<br><button type="button" class="btn-acao primario" data-acao="salvar-licenca" data-id="' + id + '">Salvar licença</button>' +
         '</div>';
 
-      return '<tr><td><strong>' + m.nome + '</strong> — ' + m.uf + '</td>' +
-        '<td>' + m.sistema_gestao + '</td>' +
-        '<td><span class="badge ' + m.status + '">' + m.status + '</span></td>' +
+      var codigoTexto = m.codigo_tce
+        ? '<span style="font-size:11.5px;color:var(--muted)">Código TCE ' + esc(m.codigo_tce) + '</span>'
+        : '<span style="font-size:11.5px;color:var(--red)">sem código TCE</span>';
+
+      return '<tr><td><strong>' + esc(m.nome) + '</strong> / ' + esc(m.uf) + '<br>' + codigoTexto + '</td>' +
+        '<td>' + esc(m.sistema_gestao) + '</td>' +
+        '<td><span class="badge ' + esc(m.status) + '">' + esc(m.status) + '</span></td>' +
         '<td>' + licTexto + '</td>' +
         '<td>' + acoes + '</td></tr>';
     }).join('');
@@ -430,19 +528,35 @@
         databaseId: DATABASE_ID, tableId: 'auditoria_admin', rowId: ID.unique(),
         data: {
           admin_id: admin.$id, admin_email: admin.email, acao: acao,
-          alvo_tipo: 'municipio', alvo_id: alvoId || '', alvo_nome: alvoNome || '', detalhes: detalhes || ''
+          alvo_tipo: 'municipio', alvo_id: alvoId || '', alvo_nome: String(alvoNome || '').slice(0, 150),
+          detalhes: String(detalhes || '').slice(0, 500)
         }
       });
+      return true;
     } catch (e) {
-      // Falha ao registrar auditoria não deve travar a ação em si (ex.: tabela ainda não
-      // criada) — só fica sem o registro dessa vez.
+      // A ação já foi feita; o administrador precisa saber que ela ficou sem registro.
+      mostrarToast('A ação foi feita, mas NÃO foi possível registrá-la no log de auditoria. Anote a alteração e avise o responsável técnico.', true);
+      return false;
     }
   }
 
-  async function aprovarMunicipio(municipioId, nomeMunicipio){
+  // A licença precisa ser legível pelo time do próprio município (o painel dele consulta o
+  // vencimento). Sem essa permissão por linha, só administradores enxergariam as licenças.
+  function permissoesLicenca(municipioId){
+    var m = mapaMunicipios[municipioId];
+    return (m && m.team_id) ? [Permission.read(Role.team(m.team_id))] : undefined;
+  }
+
+  async function aprovarMunicipio(municipioId){
+    var m = mapaMunicipios[municipioId];
+    if (!m) return;
+    if (!m.codigo_tce){
+      abrirModalMunicipio('editar', municipioId, 'Informe o código TCE antes de aprovar. Sem ele, a ferramenta não consegue associar os XML deste município ao cadastro e as apurações não são salvas. Depois de salvar, clique em Aprovar de novo.');
+      return;
+    }
     try {
       await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: 'ativo' } });
-      // Aprovação cria automaticamente uma licença trial de 30 dias — o administrador pode
+      // Aprovação cria automaticamente uma licença trial de 30 dias; o administrador pode
       // trocar o plano depois pelo botão "Licença".
       var validade = new Date(); validade.setDate(validade.getDate() + 30);
       await tablesDB.createRow({
@@ -450,9 +564,10 @@
         data: {
           municipio_id: municipioId, plano: 'trial', status: 'trial',
           data_inicio: new Date().toISOString(), data_validade: validade.toISOString()
-        }
+        },
+        permissions: permissoesLicenca(municipioId)
       });
-      await registrarAuditoria('aprovar', municipioId, nomeMunicipio, 'Licença trial de 30 dias criada automaticamente');
+      await registrarAuditoria('aprovar', municipioId, m.nome, 'Licença trial de 30 dias criada automaticamente');
       await recarregarClientes();
       await recarregarAuditoria();
     } catch (err) {
@@ -460,10 +575,12 @@
     }
   }
 
-  async function alterarStatus(municipioId, novoStatus, nomeMunicipio){
+  async function alterarStatus(municipioId, novoStatus){
+    var m = mapaMunicipios[municipioId];
+    if (!m) return;
     try {
       await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: novoStatus } });
-      await registrarAuditoria(novoStatus === 'suspenso' ? 'suspender' : 'reativar', municipioId, nomeMunicipio, 'Status alterado para ' + novoStatus);
+      await registrarAuditoria(novoStatus === 'suspenso' ? 'suspender' : 'reativar', municipioId, m.nome, 'Status alterado para ' + novoStatus);
       await recarregarClientes();
       await recarregarAuditoria();
     } catch (err) {
@@ -475,7 +592,9 @@
     document.getElementById('lic-' + municipioId).classList.toggle('aberto');
   }
 
-  async function salvarLicenca(municipioId, nomeMunicipio){
+  async function salvarLicenca(municipioId){
+    var m = mapaMunicipios[municipioId];
+    if (!m) return;
     var plano = document.getElementById('plano-' + municipioId).value;
     var validade = document.getElementById('validade-' + municipioId).value;
     if (!validade){ alert('Escolha a data de validade da licença.'); return; }
@@ -485,15 +604,210 @@
         data: {
           municipio_id: municipioId, plano: plano, status: 'ativa',
           data_inicio: new Date().toISOString(), data_validade: new Date(validade).toISOString()
-        }
+        },
+        permissions: permissoesLicenca(municipioId)
       });
-      await registrarAuditoria('licenca', municipioId, nomeMunicipio, 'Plano ' + plano + ', válida até ' + validade);
+      await registrarAuditoria('licenca', municipioId, m.nome, 'Plano ' + plano + ', válida até ' + validade);
       await recarregarClientes();
       await recarregarAuditoria();
     } catch (err) {
       alert('Não foi possível salvar a licença: ' + err.message);
     }
   }
+
+  // ---------------- Cadastro e edição de município ----------------
+  function dataMaisDias(dias){
+    var d = new Date(); d.setDate(d.getDate() + dias);
+    var mm = String(d.getMonth() + 1).padStart(2, '0'), dd = String(d.getDate()).padStart(2, '0');
+    return d.getFullYear() + '-' + mm + '-' + dd;
+  }
+
+  function abrirModalMunicipio(modo, id, aviso){
+    var m = id ? mapaMunicipios[id] : null;
+    estadoModalMun = { modo: modo, id: id || null, salvando: false };
+    var novo = (modo === 'novo');
+
+    document.getElementById('mmTitulo').textContent = novo ? 'Cadastrar município' : 'Dados do município';
+    document.getElementById('mmSub').textContent = novo
+      ? 'O município é criado já ativo e com licença. Como você cria o time dele, entra como proprietário e passa a ver o histórico dele no painel.'
+      : (m ? m.nome + ' / ' + m.uf : '');
+    var av = document.getElementById('mmAviso');
+    av.textContent = aviso || ''; av.style.display = aviso ? 'block' : 'none';
+
+    document.getElementById('mmCampoNome').style.display = novo ? '' : 'none';
+    document.getElementById('mmBlocoLicenca').style.display = novo ? '' : 'none';
+    document.getElementById('mmNome').value = '';
+    document.getElementById('mmCodigo').value = (m && m.codigo_tce) ? m.codigo_tce : '';
+    document.getElementById('mmSistema').value = (m && m.sistema_gestao) ? m.sistema_gestao : 'fiorilli';
+    document.getElementById('mmPlano').value = 'trial';
+    document.getElementById('mmValidade').value = dataMaisDias(30);
+    document.getElementById('mmAjudaCodigo').textContent = '4 dígitos. É o valor da tag Municipio dos XML AUDESP deste município.';
+    document.getElementById('mmErro').style.display = 'none';
+    document.getElementById('mmSalvar').textContent = novo ? 'Cadastrar município' : 'Salvar dados';
+    document.getElementById('mmSalvar').disabled = false;
+
+    document.getElementById('modalMunicipio').classList.add('aberto');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ document.getElementById(novo ? 'mmNome' : 'mmCodigo').focus(); }, 30);
+  }
+
+  function fecharModalMunicipio(){
+    if (estadoModalMun.salvando) return;
+    document.getElementById('modalMunicipio').classList.remove('aberto');
+    document.body.style.overflow = '';
+  }
+
+  function erroModalMunicipio(lista){
+    var el = document.getElementById('mmErro');
+    el.innerHTML = '<ul>' + lista.map(function(t){ return '<li>' + esc(t) + '</li>'; }).join('') + '</ul>';
+    el.style.display = 'block';
+  }
+
+  function outroMunicipioComCodigo(codigo, idAtual){
+    return Object.keys(mapaMunicipios).filter(function(id){
+      return id !== idAtual && String(mapaMunicipios[id].codigo_tce || '') === codigo;
+    }).map(function(id){ return mapaMunicipios[id]; })[0];
+  }
+
+  async function salvarMunicipioModal(){
+    if (estadoModalMun.salvando) return;
+    var modo = estadoModalMun.modo, id = estadoModalMun.id;
+    var codigo = document.getElementById('mmCodigo').value.trim();
+    var sistema = document.getElementById('mmSistema').value;
+    var erros = [];
+    var nome = null, plano = null, validadeStr = null;
+
+    if (modo === 'novo'){
+      nome = document.getElementById('mmNome').value.trim();
+      plano = document.getElementById('mmPlano').value;
+      validadeStr = document.getElementById('mmValidade').value;
+      if (!Object.prototype.hasOwnProperty.call(MUNICIPIOS_SP, nome)){
+        erros.push('Escolha o município na lista (digite para buscar).');
+      } else {
+        var jaExiste = Object.keys(mapaMunicipios).some(function(k){ return mapaMunicipios[k].nome === nome && mapaMunicipios[k].uf === 'SP'; });
+        if (jaExiste) erros.push(nome + '/SP já está cadastrado.');
+      }
+      if (!validadeStr) erros.push('Informe a data de validade da licença.');
+      else if (new Date(validadeStr + 'T23:59:59') <= new Date()) erros.push('A validade da licença deve ser uma data futura.');
+    } else {
+      nome = mapaMunicipios[id] ? mapaMunicipios[id].nome : null;
+    }
+
+    if (!/^[0-9]{4}$/.test(codigo)){
+      erros.push('O código TCE deve ter 4 dígitos numéricos (exemplo: 6889).');
+    } else {
+      var outro = outroMunicipioComCodigo(codigo, id);
+      if (outro) erros.push('O código TCE ' + codigo + ' já está associado a ' + outro.nome + '.');
+    }
+    if (erros.length){ erroModalMunicipio(erros); return; }
+    document.getElementById('mmErro').style.display = 'none';
+
+    var codigoTabela = Object.prototype.hasOwnProperty.call(MUNICIPIOS_SP, nome) ? MUNICIPIOS_SP[nome] : null;
+    if (codigoTabela && codigoTabela !== codigo){
+      if (!confirm('O código informado (' + codigo + ') difere do que consta na tabela do TCE-SP para ' + nome + ' (' + codigoTabela + '). Manter o código informado mesmo assim?')) return;
+    }
+
+    estadoModalMun.salvando = true;
+    var btn = document.getElementById('mmSalvar');
+    btn.disabled = true; btn.textContent = 'Salvando...';
+
+    if (modo === 'editar'){
+      var antes = mapaMunicipios[id];
+      try {
+        await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: id, data: { codigo_tce: codigo, sistema_gestao: sistema } });
+      } catch (e) {
+        erroModalMunicipio(['Não foi possível salvar: ' + e.message]);
+        estadoModalMun.salvando = false; btn.disabled = false; btn.textContent = 'Salvar dados';
+        return;
+      }
+      await registrarAuditoria('dados', id, nome, 'Código TCE: ' + (antes.codigo_tce || '(vazio)') + ' para ' + codigo + ' | Sistema: ' + antes.sistema_gestao + ' para ' + sistema);
+      estadoModalMun.salvando = false;
+      fecharModalMunicipio();
+      await recarregarClientes();
+      await recarregarAuditoria();
+      mostrarToast('Dados de ' + nome + ' salvos.');
+      return;
+    }
+
+    // Novo município: cria o time (o criador vira proprietário), a linha do município e a licença.
+    var time, linha, licencaFalhou = false;
+    try {
+      time = await teams.create({ teamId: ID.unique(), name: nome + '/SP' });
+    } catch (e) {
+      erroModalMunicipio(['Não foi possível criar o time do município: ' + e.message]);
+      estadoModalMun.salvando = false; btn.disabled = false; btn.textContent = 'Cadastrar município';
+      return;
+    }
+    try {
+      linha = await tablesDB.createRow({
+        databaseId: DATABASE_ID, tableId: 'municipios', rowId: ID.unique(),
+        data: { nome: nome, uf: 'SP', sistema_gestao: sistema, codigo_tce: codigo, status: 'ativo', team_id: time.$id },
+        permissions: [ Permission.read(Role.team(time.$id)), Permission.update(Role.team(time.$id)) ]
+      });
+    } catch (e) {
+      try { await teams.delete({ teamId: time.$id }); } catch (e2) { /* melhor esforço: evita time órfão */ }
+      erroModalMunicipio(['Não foi possível cadastrar o município: ' + e.message]);
+      estadoModalMun.salvando = false; btn.disabled = false; btn.textContent = 'Cadastrar município';
+      return;
+    }
+    try {
+      await tablesDB.createRow({
+        databaseId: DATABASE_ID, tableId: 'licencas', rowId: ID.unique(),
+        data: {
+          municipio_id: linha.$id, plano: plano, status: (plano === 'trial' ? 'trial' : 'ativa'),
+          data_inicio: new Date().toISOString(), data_validade: new Date(validadeStr + 'T23:59:59').toISOString()
+        },
+        permissions: [ Permission.read(Role.team(time.$id)) ]
+      });
+    } catch (e) { licencaFalhou = true; }
+
+    await registrarAuditoria('cadastrar', linha.$id, nome,
+      'Código TCE ' + codigo + ' | Sistema ' + sistema + ' | Licença ' + plano + ' até ' + validadeStr + (licencaFalhou ? ' | ATENÇÃO: licença NÃO criada' : ''));
+
+    estadoModalMun.salvando = false;
+    fecharModalMunicipio();
+    await recarregarClientes();
+    await recarregarAuditoria();
+    mostrarToast(licencaFalhou
+      ? nome + ' cadastrado, mas a licença NÃO foi criada. Use o botão Licença na linha do município.'
+      : nome + ' cadastrado, ativo e com licença.', licencaFalhou);
+  }
+
+  document.getElementById('btnNovoMunicipio').addEventListener('click', function(){ abrirModalMunicipio('novo', null); });
+  document.getElementById('mmCancelar').addEventListener('click', fecharModalMunicipio);
+  document.getElementById('mmSalvar').addEventListener('click', salvarMunicipioModal);
+  document.getElementById('modalMunicipio').addEventListener('click', function(e){ if (e.target === this) fecharModalMunicipio(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharModalMunicipio(); });
+
+  // Sugere o código TCE assim que o nome escolhido bate com um município da tabela.
+  document.getElementById('mmNome').addEventListener('input', function(){
+    var nome = this.value.trim();
+    if (Object.prototype.hasOwnProperty.call(MUNICIPIOS_SP, nome)){
+      document.getElementById('mmCodigo').value = MUNICIPIOS_SP[nome];
+      document.getElementById('mmAjudaCodigo').textContent = 'Código sugerido pela tabela do TCE-SP para ' + nome + '. Confira antes de salvar.';
+    }
+  });
+  document.getElementById('mmPlano').addEventListener('change', function(){
+    document.getElementById('mmValidade').value = dataMaisDias(this.value === 'anual' ? 365 : 30);
+  });
+
+  Object.keys(MUNICIPIOS_SP).sort(function(a, b){ return a.localeCompare(b, 'pt-BR'); }).forEach(function(n){
+    var o = document.createElement('option'); o.value = n;
+    document.getElementById('listaMunicipiosSP').appendChild(o);
+  });
+
+  // Ações da tabela de municípios (delegação: os botões são recriados a cada recarga da lista).
+  document.getElementById('corpoTabelaClientes').addEventListener('click', function(e){
+    var el = e.target.closest('[data-acao]');
+    if (!el) return;
+    var id = el.getAttribute('data-id'), acao = el.getAttribute('data-acao');
+    if (acao === 'aprovar') aprovarMunicipio(id);
+    else if (acao === 'suspender') alterarStatus(id, 'suspenso');
+    else if (acao === 'reativar') alterarStatus(id, 'ativo');
+    else if (acao === 'dados') abrirModalMunicipio('editar', id);
+    else if (acao === 'licenca') toggleLicenca(id);
+    else if (acao === 'salvar-licenca') salvarLicenca(id);
+  });
 
   async function recarregarAuditoria(){
     var container = document.getElementById('listaAuditoria');
@@ -503,7 +817,7 @@
         databaseId: DATABASE_ID, tableId: 'auditoria_admin',
         queries: [Query.orderDesc('$createdAt'), Query.limit(20)]
       });
-      var ROTULOS_ACAO = { aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de', regra_criar: 'Criou a regra', regra_editar: 'Editou a regra', regra_desativar: 'Desativou a regra', regra_reativar: 'Reativou a regra' };
+      var ROTULOS_ACAO = { aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de', cadastrar: 'Cadastrou', dados: 'Alterou dados de', consulta_apuracoes: 'Consultou apurações de', regra_criar: 'Criou a regra', regra_editar: 'Editou a regra', regra_desativar: 'Desativou a regra', regra_reativar: 'Reativou a regra' };
       if (!resultado.rows.length){
         container.innerHTML = '<div class="estado-vazio">Nenhuma ação registrada ainda.</div>';
         return;
@@ -511,9 +825,9 @@
       container.innerHTML = resultado.rows.map(function(item){
         var quando = new Date(item.$createdAt);
         var quandoTexto = quando.toLocaleDateString('pt-BR') + ' às ' + quando.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-        return '<div class="item-lista"><span><span class="principal">' + (ROTULOS_ACAO[item.acao] || item.acao) + ' ' + (item.alvo_nome || item.alvo_id) + '</span>' +
-          '<br><span class="secundario">' + (item.detalhes || '') + '</span></span>' +
-          '<span class="direita"><span class="secundario">' + item.admin_email + '</span><br><span class="secundario">' + quandoTexto + '</span></span></div>';
+        return '<div class="item-lista"><span><span class="principal">' + esc(ROTULOS_ACAO[item.acao] || item.acao) + ' ' + esc(item.alvo_nome || item.alvo_id) + '</span>' +
+          '<br><span class="secundario">' + esc(item.detalhes || '') + '</span></span>' +
+          '<span class="direita"><span class="secundario">' + esc(item.admin_email) + '</span><br><span class="secundario">' + quandoTexto + '</span></span></div>';
       }).join('');
     } catch (e) {
       container.innerHTML = '<div class="estado-vazio">Não foi possível carregar o log de auditoria.</div>';
