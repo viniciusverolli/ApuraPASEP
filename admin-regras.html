@@ -1,0 +1,700 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ApuraPASEP — Regras de cálculo</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink:#172033; --muted:#475569; --line:#e2e8f0;
+    --primary:#218b78; --accent:#5d62d9; --accent-claro:#5eead4;
+    --red:#b91c1c; --red-soft:#fef2f2; --green:#166534; --green-soft:#dcfce7;
+    --amber:#92400e; --amber-soft:#fef3c7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{ font-family:'Inter',sans-serif; color:var(--ink); background:linear-gradient(135deg,#eef7f5,#f4f2fb); }
+  .shell{ display:grid; grid-template-columns: 250px 1fr; min-height:100vh; }
+
+  .side{ background:rgba(21,27,42,.92); backdrop-filter:blur(20px); color:#EFE9D8; padding: 26px 20px; display:flex; flex-direction:column; }
+  .side .brand{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .side .brand .t{ font-size:16px; font-weight:800; letter-spacing:-.02em; }
+  .side .brand .t span{ color:var(--accent-claro); }
+  .side .voltar{ display:flex; align-items:center; gap:6px; color:#94a3b8; text-decoration:none; font-size:12.5px; margin:0 0 28px; }
+  .side .voltar:hover{ color:#fff; }
+  .side .tag-admin{ display:inline-block; background:rgba(94,234,212,.14); border:1px solid rgba(94,234,212,.35); color:var(--accent-claro); font-size:10.5px; font-weight:700; letter-spacing:.04em; padding:3px 9px; border-radius:20px; margin-bottom:26px; align-self:flex-start; }
+  nav.main{ display:flex; flex-direction:column; gap:2px; }
+  nav.main a{ display:flex; align-items:center; gap:10px; color:#94a3b8; text-decoration:none; font-size:14px; padding:10px 12px; border-radius:10px; }
+  nav.main a .dot{ width:5px; height:5px; border-radius:50%; background:transparent; }
+  nav.main a.active{ background:rgba(255,255,255,.08); color:#F2F0EA; }
+  nav.main a.active .dot{ background:var(--accent-claro); }
+  nav.main a:hover{ color:#F2F0EA; }
+  .side .spacer{ flex:1; }
+  .side .who{ border-top:1px solid rgba(233,225,197,.14); padding-top:16px; font-size:12.5px; color:#9BA3A6; line-height:1.6; }
+  .side .who strong{ color:#EFE9D8; display:block; font-size:13.5px; }
+  .side .sair{ color:#8b9498; font-size:12px; text-decoration:none; margin-top:10px; display:inline-block; }
+  .side .sair:hover{ color:#EFE9D8; }
+
+  main{ padding: 30px 44px 60px; max-width:1260px; min-width:0; }
+  .topbar{ margin-bottom:26px; }
+  .topbar h1{ font-weight:800; font-size:24px; margin:0 0 4px; }
+  .topbar p{ font-size:13.5px; color:var(--muted); margin:0; }
+
+  .cards{ display:grid; grid-template-columns: repeat(4, 1fr); gap:16px; margin-bottom:24px; }
+  @media (max-width:900px){ .cards{grid-template-columns:repeat(2,1fr)} }
+  .card{
+    background:rgba(255,255,255,.6); backdrop-filter:blur(14px); border:1px solid rgba(255,255,255,.85);
+    border-radius:14px; padding:18px 20px; box-shadow:0 10px 26px rgba(62,75,110,.06);
+  }
+  .card .lab{ font-size:12px; color:var(--muted); margin-bottom:6px; }
+  .card .val{ font-size:26px; font-weight:800; color:var(--ink); }
+
+  .section-title{ font-size:13px; color:var(--muted); margin: 0 0 12px; }
+
+  table.clientes{
+    width:100%; border-collapse:collapse; background:rgba(255,255,255,.6); backdrop-filter:blur(14px);
+    border:1px solid rgba(255,255,255,.85); border-radius:14px; overflow:hidden;
+    box-shadow:0 10px 26px rgba(62,75,110,.06);
+  }
+  table.clientes th{ text-align:left; font-size:11.5px; color:var(--muted); font-weight:600; padding:11px 14px; border-bottom:1px solid var(--line); background:rgba(255,255,255,.4); text-transform:uppercase; letter-spacing:.03em; }
+  table.clientes td{ padding:12px 14px; font-size:13.5px; border-bottom:1px solid var(--line); vertical-align:top; }
+  table.clientes tr:last-child td{ border-bottom:none; }
+
+  .badge{ font-size:11px; padding:3px 10px; border-radius:20px; display:inline-block; white-space:nowrap; font-weight:600; }
+  .badge.ativo{ background:var(--green-soft); color:var(--green); }
+  .badge.pendente{ background:var(--amber-soft); color:var(--amber); }
+  .badge.suspenso{ background:var(--red-soft); color:var(--red); }
+  .badge.trial{ background:#EFEAF5; color:#5B4B8A; }
+  .badge.expirada{ background:var(--red-soft); color:var(--red); }
+
+  .btn-acao{ font:inherit; font-size:12px; padding:6px 12px; border-radius:8px; cursor:pointer; border:1px solid var(--line); background:rgba(255,255,255,.8); color:var(--ink); margin:2px 4px 2px 0; }
+  .btn-acao:hover{ border-color:var(--primary); }
+  .btn-acao.primario{ background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; border-color:transparent; }
+  .btn-acao.primario:hover{ filter:brightness(1.06); }
+  .btn-acao.perigo{ color:var(--red); border-color:#fca5a5; }
+  .btn-acao.perigo:hover{ background:var(--red-soft); }
+
+  .painel-licenca{ display:none; margin-top:10px; padding:12px; background:rgba(255,255,255,.5); border:1px solid var(--line); border-radius:10px; }
+  .painel-licenca.aberto{ display:block; }
+  .painel-licenca label{ display:block; font-size:11px; color:var(--muted); margin-bottom:3px; }
+  .painel-licenca select, .painel-licenca input{ font:inherit; font-size:12.5px; padding:6px 8px; border:1px solid var(--line); border-radius:7px; margin-right:8px; margin-bottom:8px; background:#fff; }
+
+  .estado-carregando, .estado-vazio{ text-align:center; color:var(--muted); padding:30px; font-size:13px; }
+
+  .barra-sistema{ margin-bottom:16px; }
+  .barra-sistema:last-child{ margin-bottom:0; }
+  .barra-sistema .rotulo{ display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .barra-sistema .trilho{ background:rgba(255,255,255,.6); border-radius:6px; height:10px; overflow:hidden; }
+  .barra-sistema .preenchido{ background:linear-gradient(135deg,var(--primary),var(--accent)); height:100%; border-radius:6px; }
+
+  .item-lista{ padding:12px 18px; border-bottom:1px solid var(--line); font-size:13px; display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .item-lista:last-child{ border-bottom:none; }
+  .item-lista .principal{ font-weight:600; }
+  .item-lista .secundario{ font-size:11.5px; color:var(--muted); }
+  .item-lista .direita{ text-align:right; white-space:nowrap; }
+
+  .acesso-negado{ max-width:440px; margin:80px auto; text-align:center; }
+  .acesso-negado h1{ font-size:20px; font-weight:800; }
+  .acesso-negado a{ color:var(--primary); }
+
+  .topbar-mobile{ display:none; }
+  .backdrop-menu{ display:none; }
+  .side .fechar-menu{
+    background:none; border:none; color:#F2F0EA; font-size:22px; align-self:flex-end;
+    cursor:pointer; margin:-6px -4px 14px 0; padding:6px; display:none;
+  }
+
+  a:focus-visible, button:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+
+  /* ===== Regras de cálculo ===== */
+  .aviso-regras{ background:rgba(254,243,199,.75); border:1px solid #f5d98b; color:#78350f; border-radius:12px; padding:14px 18px; font-size:13.5px; line-height:1.6; margin-bottom:14px; backdrop-filter:blur(8px); }
+  .aviso-regras.info{ background:rgba(227,247,242,.75); border-color:rgba(33,139,120,.3); color:#115e59; }
+  .secao-regras{ margin-bottom:28px; }
+  .cab-secao{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px; flex-wrap:wrap; }
+  .cab-secao h2{ font-size:15px; font-weight:800; margin:0 0 3px; }
+  .cab-secao p{ font-size:12.5px; color:var(--muted); margin:0; max-width:680px; line-height:1.5; }
+  .cab-secao .lado{ display:flex; align-items:center; gap:12px; }
+  .contador-ativas{ font-size:12px; color:var(--muted); white-space:nowrap; }
+  .badge.inativa{ background:#e2e8f0; color:#475569; }
+  table.clientes tr.inativa td{ color:#94a3b8; }
+  table.clientes code{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:12.5px; background:rgba(255,255,255,.7); padding:2px 6px; border:1px solid var(--line); border-radius:6px; }
+  .tabela-scroll{ overflow-x:auto; border-radius:14px; }
+
+  .modal-fundo{ display:none; position:fixed; inset:0; background:rgba(15,20,32,.55); backdrop-filter:blur(4px); z-index:100; align-items:center; justify-content:center; padding:16px; }
+  .modal-fundo.aberto{ display:flex; }
+  .modal{ background:rgba(255,255,255,.96); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.9); border-radius:18px; box-shadow:0 30px 70px rgba(15,20,32,.35); width:100%; max-width:540px; max-height:92vh; overflow-y:auto; padding:26px 26px 22px; }
+  .modal h2{ font-size:18px; font-weight:800; margin:0 0 4px; }
+  .modal .modal-sub{ font-size:13px; color:var(--muted); margin:0 0 18px; line-height:1.5; }
+  .campo-form{ margin-bottom:14px; }
+  .campo-form label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:5px; }
+  .campo-form input, .campo-form select, .campo-form textarea{ width:100%; font:inherit; font-size:14px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fff; color:var(--ink); }
+  .campo-form textarea{ min-height:74px; resize:vertical; }
+  .campo-form .ajuda{ font-size:11.5px; color:var(--muted); margin-top:4px; line-height:1.4; }
+  .campo-form input:focus, .campo-form select:focus, .campo-form textarea:focus{ outline:2px solid var(--primary); outline-offset:1px; border-color:var(--primary); }
+  .erro-form{ background:var(--red-soft); border:1px solid #fca5a5; color:var(--red); font-size:12.5px; padding:10px 13px; border-radius:10px; margin-bottom:14px; line-height:1.5; }
+  .erro-form ul{ margin:0; padding-left:18px; }
+  .modal-acoes{ display:flex; gap:10px; justify-content:flex-end; margin-top:18px; flex-wrap:wrap; }
+  .modal-acoes .btn-acao{ padding:9px 16px; font-size:13px; margin:0; }
+  .modal-acoes .btn-acao:disabled{ opacity:.6; cursor:default; }
+  .resumo-alteracao{ border:1px solid var(--line); border-radius:12px; overflow:hidden; margin-bottom:14px; background:#fff; }
+  .resumo-alteracao .linha{ display:grid; grid-template-columns:110px 1fr; gap:10px; padding:9px 12px; font-size:13px; border-bottom:1px solid var(--line); }
+  .resumo-alteracao .linha:last-child{ border-bottom:none; }
+  .resumo-alteracao .rot{ color:var(--muted); }
+  .resumo-alteracao .antes{ text-decoration:line-through; color:#94a3b8; margin-right:8px; }
+  .resumo-alteracao code{ font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:12.5px; }
+  .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#151b2a; color:#fff; padding:11px 18px; border-radius:12px; font-size:13px; z-index:120; box-shadow:0 12px 30px rgba(0,0,0,.3); display:none; max-width:90vw; line-height:1.45; }
+  .toast.aberto{ display:block; }
+  .toast.alerta{ background:#92400e; }
+</style>
+</head>
+<body>
+<div class="topbar-mobile">
+  <div class="marca-mini">
+    <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    Apura<span>PASEP</span>
+  </div>
+  <button class="btn-menu" id="btnAbrirMenuAdmin" aria-label="Abrir menu" aria-expanded="false" aria-controls="menuLateralAdmin">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+  </button>
+</div>
+<div class="backdrop-menu" id="backdropMenuAdmin"></div>
+
+<div class="shell" id="shellPrincipal" style="display:none">
+  <aside class="side" id="menuLateralAdmin">
+    <button class="fechar-menu" id="btnFecharMenuAdmin" aria-label="Fechar menu">✕</button>
+    <a href="painel.html" class="brand" style="text-decoration:none; color:inherit">
+      <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+        <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+        <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+        <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+      </svg>
+      <div class="t">Apura<span>PASEP</span></div>
+    </a>
+    <a href="painel.html" class="voltar">&larr; Voltar ao painel</a>
+    <div class="tag-admin">ADMINISTRAÇÃO</div>
+    <nav class="main" aria-label="Navegação da administração">
+      <a href="admin.html"><span class="dot" aria-hidden="true"></span> Clientes e licenças</a>
+      <a class="active" href="admin-regras.html"><span class="dot" aria-hidden="true"></span> Regras de cálculo</a>
+      <a href="repositorio_pasep_cosit.html"><span class="dot" aria-hidden="true"></span> Repositório de normas</a>
+    </nav>
+    <div class="spacer"></div>
+    <div class="who" id="infoUsuarioAdmin"></div>
+    <a class="sair" href="#" id="linkSairAdmin">Sair</a>
+  </aside>
+  <main>
+    <div class="topbar">
+      <h1>Regras de cálculo</h1>
+      <p>Regras de classificação que o motor de apuração aplica ao XML AUDESP. Visíveis e editáveis somente por administradores da plataforma.</p>
+    </div>
+
+    <div class="aviso-regras" role="note">
+      <strong>Atenção: as alterações valem imediatamente.</strong>
+      Qualquer mudança feita aqui é aplicada às próximas apurações de <b>todos os municípios</b>, sem período de teste. Apurações já salvas não são recalculadas.
+      Toda alteração exige um motivo e fica registrada no log de auditoria.
+    </div>
+    <div class="aviso-regras info" role="note">
+      Nem toda a lógica do motor é configurável por esta tela. Continuam no código do motor: o ajuste do ITR (código 1711520), a detecção de correções e estornos, e o tratamento da CFEM classificada como Estado.
+      Alterar ou desativar a regra do ITR aqui não muda esse ajuste.
+    </div>
+
+    <div id="areaRegras"><div class="estado-carregando">Carregando…</div></div>
+  </main>
+</div>
+
+<div id="blocoAcessoNegado" style="display:none">
+  <div class="acesso-negado">
+    <h1>Acesso restrito</h1>
+    <p>Esta área é exclusiva para administradores da plataforma.</p>
+    <p><a href="painel.html">Voltar ao painel</a></p>
+  </div>
+</div>
+
+
+<div class="modal-fundo" id="modalFundo">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitulo">
+    <h2 id="modalTitulo"></h2>
+    <p class="modal-sub" id="modalSub"></p>
+
+    <div id="painelFormulario">
+      <div class="campo-form" id="campoRotulo">
+        <label for="fRotulo">Rótulo (nome da regra)</label>
+        <input type="text" id="fRotulo" maxlength="150" autocomplete="off">
+      </div>
+      <div class="campo-form" id="campoPrefixo">
+        <label for="fPrefixo">Prefixo do código da receita</label>
+        <input type="text" id="fPrefixo" inputmode="numeric" autocomplete="off">
+        <div class="ajuda" id="ajudaPrefixo"></div>
+      </div>
+      <div class="campo-form" id="campoBloco">
+        <label for="fBloco">Bloco</label>
+        <select id="fBloco">
+          <option value="3">3: receitas correntes</option>
+          <option value="5">5: receitas de capital</option>
+        </select>
+        <div class="ajuda">Bloco 3 exige prefixo iniciado em 1; bloco 5 exige prefixo iniciado em 2.</div>
+      </div>
+      <div class="campo-form" id="campoMotivo">
+        <label for="fMotivo">Motivo da alteração (obrigatório)</label>
+        <textarea id="fMotivo" maxlength="250" placeholder="Ex.: nova Solução de Consulta Cosit, correção de prefixo, inclusão de rubrica"></textarea>
+        <div class="ajuda">Fica registrado no log de auditoria, junto com seu e-mail e a data.</div>
+      </div>
+      <div class="erro-form" id="erroForm" role="alert" style="display:none"></div>
+      <div class="modal-acoes">
+        <button type="button" class="btn-acao" id="btnCancelar">Cancelar</button>
+        <button type="button" class="btn-acao primario" id="btnRevisar">Revisar alteração</button>
+      </div>
+    </div>
+
+    <div id="painelConfirmacao" style="display:none">
+      <div class="resumo-alteracao" id="resumoAlteracao"></div>
+      <div class="aviso-regras" id="textoImpacto" role="note"></div>
+      <div class="erro-form" id="erroConfirmacao" role="alert" style="display:none"></div>
+      <div class="modal-acoes">
+        <button type="button" class="btn-acao" id="btnVoltar">Voltar e ajustar</button>
+        <button type="button" class="btn-acao primario" id="btnConfirmar">Confirmar e salvar</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<!-- Responsivo: fica no final do documento de propósito, para vencer o empate de
+     especificidade contra as regras base acima (mesmo peso, quem vem depois vence). -->
+<style>
+  @media (max-width:900px){
+    .painel-dashboard{ grid-template-columns:1fr !important; }
+    #cardsResumoGestao{ grid-template-columns:1fr !important; }
+    .shell{ grid-template-columns:1fr; }
+
+    .topbar-mobile{
+      display:flex; align-items:center; justify-content:space-between;
+      background:rgba(21,27,42,.95); backdrop-filter:blur(20px); color:#F2F0EA; padding:14px 18px; position:sticky; top:0; z-index:20;
+      width:100%; box-sizing:border-box;
+    }
+    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.02em; }
+    .topbar-mobile .marca-mini span{ color:var(--accent-claro); }
+    .btn-menu{
+      background:none; border:1px solid rgba(242,240,234,.3); border-radius:8px; color:#F2F0EA;
+      width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer;
+    }
+
+    .side{
+      position:fixed; top:0; left:0; height:100%; width:82%; max-width:300px; z-index:40;
+      transform:translateX(-100%); transition:transform .2s ease; box-shadow:2px 0 18px rgba(0,0,0,.25);
+      overflow-y:auto;
+    }
+    .side.aberto{ transform:translateX(0); }
+    .side .fechar-menu{ display:block; }
+
+    .backdrop-menu{
+      display:block; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30;
+      opacity:0; pointer-events:none; transition:opacity .2s ease;
+    }
+    .backdrop-menu.aberto{ opacity:1; pointer-events:auto; }
+
+    main{ padding:20px 16px 40px; }
+  }
+  @media (max-width:640px){
+    table.clientes{ font-size:12px; }
+  }
+</style>
+<style>
+  @media (max-width:560px){
+    .modal{ padding:20px 16px 16px; }
+    .resumo-alteracao .linha{ grid-template-columns:1fr; gap:2px; }
+    .cab-secao .lado{ width:100%; justify-content:space-between; }
+    .modal-acoes .btn-acao{ flex:1; }
+  }
+</style>
+
+<script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script>
+  var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
+  var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
+  var DATABASE_ID = 'apurapasep';
+  var TEAM_ADMINS_ID = '6ab476f0000e158fa770';
+  var TABELA_REGRAS = 'regras_motor';
+
+  var client = new Appwrite.Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
+  var account = new Appwrite.Account(client);
+  var tablesDB = new Appwrite.TablesDB(client);
+  var teams = new Appwrite.Teams(client);
+  var Query = Appwrite.Query;
+  var ID = Appwrite.ID;
+
+  // Categorias de regra e o que o motor espera de cada uma (tamanho do prefixo, uso do bloco).
+  // "tamanho" vem do próprio motor: retenção, FUNDEB e CFEM comparam os 7 primeiros dígitos
+  // do código; finalidade definida compara os 4 primeiros.
+  var CATEGORIAS = [
+    { chave:'retencao', titulo:'Retenção na fonte (art. 2º, §6º)',
+      descricao:'Receitas cujo PASEP é retido na fonte pela STN. Compõem o Bloco 2 do cálculo.',
+      tamanho:7, exemplo:'1711511', temBloco:false, permiteCriar:true, permiteDesativar:true,
+      efeitoDesativar:'deixam de ser tratados como retenção na fonte, o que reduz o valor considerado como retido e, em regra, aumenta o valor a pagar',
+      efeitoAtivar:'passam a ser tratados como retenção na fonte (Bloco 2)' },
+    { chave:'fundeb', titulo:'Base do FUNDEB (CF, art. 212-A)',
+      descricao:'Receitas que compõem a base da dedução de 20% do FUNDEB.',
+      tamanho:7, exemplo:'1721500', temBloco:false, permiteCriar:true, permiteDesativar:true,
+      efeitoDesativar:'deixam de compor a base da dedução de 20% do FUNDEB, o que aumenta a base de cálculo do PASEP',
+      efeitoAtivar:'passam a compor a base da dedução de 20% do FUNDEB' },
+    { chave:'finalidade', titulo:'Finalidade definida (art. 2º, §7º)',
+      descricao:'Transferências com objeto definido, sinalizadas como alerta e excluídas da base por padrão. Bloco 3: receitas correntes. Bloco 5: receitas de capital.',
+      tamanho:4, exemplo:'1717', temBloco:true, permiteCriar:true, permiteDesativar:true,
+      efeitoDesativar:'deixam de ser sinalizados como finalidade definida e passam a integrar a base de cálculo normalmente',
+      efeitoAtivar:'passam a ser sinalizados como finalidade definida (excluídos da base por padrão, até decisão expressa do responsável técnico)' },
+    { chave:'cfem_uniao', titulo:'CFEM: origem União',
+      descricao:'Prefixo usado para identificar a CFEM lançada com origem União. Existe uma única regra, que só pode ser editada.',
+      tamanho:7, exemplo:'1712510', temBloco:false, permiteCriar:false, permiteDesativar:false },
+    { chave:'cfem_estado', titulo:'CFEM: origem Estado',
+      descricao:'Prefixo usado para identificar a CFEM lançada com origem Estado. Existe uma única regra, que só pode ser editada.',
+      tamanho:7, exemplo:'1722510', temBloco:false, permiteCriar:false, permiteDesativar:false }
+  ];
+
+  var regras = [];
+  var usuarioAtual = null;
+  var estado = { modo:null, cat:null, regra:null, novo:null, motivo:'', salvando:false };
+  var toastTimer = null;
+
+  function esc(s){
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+      return { '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c];
+    });
+  }
+  function catPorChave(chave){ return CATEGORIAS.filter(function(c){ return c.chave === chave; })[0]; }
+  function estaAtiva(r){ return r.ativo !== false; }
+  function rotuloBloco(b){ return b === 3 ? '3 (corrente)' : (b === 5 ? '5 (capital)' : (b == null ? '' : String(b))); }
+  function descreverRegra(d, cat){ return d.label + ' (' + d.prefixo + (cat.temBloco ? ', bloco ' + d.bloco : '') + ')'; }
+
+  function mostrarToast(texto, alerta){
+    var t = document.getElementById('toast');
+    t.textContent = texto;
+    t.className = 'toast aberto' + (alerta ? ' alerta' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ t.className = 'toast'; }, alerta ? 9000 : 5000);
+  }
+
+  document.getElementById('linkSairAdmin').addEventListener('click', async function(e){
+    e.preventDefault();
+    try { await account.deleteSession({ sessionId: 'current' }); } catch(err){}
+    window.location.href = 'login.html';
+  });
+
+  async function carregarPagina(){
+    try {
+      usuarioAtual = await account.get();
+    } catch (e) {
+      window.location.href = 'login.html';
+      return;
+    }
+    var minhasEquipes;
+    try { minhasEquipes = await teams.list(); } catch (e) { minhasEquipes = { teams: [] }; }
+    var souAdmin = minhasEquipes.teams.some(function(t){ return t.$id === TEAM_ADMINS_ID; });
+    if (!souAdmin){
+      document.getElementById('blocoAcessoNegado').style.display = 'block';
+      return;
+    }
+    document.getElementById('shellPrincipal').style.display = 'grid';
+    document.getElementById('infoUsuarioAdmin').innerHTML = '<strong>Administrador</strong>' + esc(usuarioAtual.email);
+    await recarregarRegras();
+  }
+
+  async function recarregarRegras(){
+    var resultado;
+    try {
+      resultado = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, queries: [Query.limit(200)] });
+    } catch (e) {
+      document.getElementById('areaRegras').innerHTML = '<div class="estado-vazio">Não foi possível carregar as regras: ' + esc(e.message) + '</div>';
+      return;
+    }
+    regras = resultado.rows;
+    renderizar();
+    if (resultado.total > regras.length){
+      mostrarToast('Há mais de 200 regras cadastradas; apenas as 200 primeiras estão listadas.', true);
+    }
+  }
+
+  function renderizar(){
+    var html = CATEGORIAS.map(function(cat){
+      var linhas = regras.filter(function(r){ return r.categoria === cat.chave; })
+        .sort(function(a,b){ return String(a.prefixo).localeCompare(String(b.prefixo)); });
+      var ativas = linhas.filter(estaAtiva).length;
+
+      var corpo = linhas.length ? linhas.map(function(r){
+        var ativa = estaAtiva(r);
+        var botoes = '<button type="button" class="btn-acao" data-acao="editar" data-id="' + esc(r.$id) + '">Editar</button>';
+        if (cat.permiteDesativar){
+          botoes += ativa
+            ? '<button type="button" class="btn-acao perigo" data-acao="alternar" data-id="' + esc(r.$id) + '">Desativar</button>'
+            : '<button type="button" class="btn-acao primario" data-acao="alternar" data-id="' + esc(r.$id) + '">Reativar</button>';
+        }
+        return '<tr class="' + (ativa ? '' : 'inativa') + '">' +
+          '<td>' + esc(r.label) + '</td>' +
+          '<td><code>' + esc(r.prefixo) + '</code></td>' +
+          (cat.temBloco ? '<td>' + esc(rotuloBloco(r.bloco)) + '</td>' : '') +
+          '<td><span class="badge ' + (ativa ? 'ativo' : 'inativa') + '">' + (ativa ? 'Ativa' : 'Inativa') + '</span></td>' +
+          '<td>' + botoes + '</td></tr>';
+      }).join('') : '<tr><td colspan="' + (cat.temBloco ? 5 : 4) + '" class="estado-vazio">Nenhuma regra nesta categoria.</td></tr>';
+
+      var botaoNova = cat.permiteCriar
+        ? '<button type="button" class="btn-acao primario" data-acao="nova" data-categoria="' + cat.chave + '">+ Nova regra</button>' : '';
+
+      return '<section class="secao-regras" aria-labelledby="titulo-' + cat.chave + '">' +
+        '<div class="cab-secao"><div><h2 id="titulo-' + cat.chave + '">' + esc(cat.titulo) + '</h2><p>' + esc(cat.descricao) + '</p></div>' +
+        '<div class="lado"><span class="contador-ativas">' + ativas + ' ativa' + (ativas === 1 ? '' : 's') + ' de ' + linhas.length + '</span>' + botaoNova + '</div></div>' +
+        '<div class="tabela-scroll"><table class="clientes"><thead><tr><th>Rótulo</th><th>Prefixo</th>' + (cat.temBloco ? '<th>Bloco</th>' : '') + '<th>Situação</th><th>Ações</th></tr></thead>' +
+        '<tbody>' + corpo + '</tbody></table></div></section>';
+    }).join('');
+    document.getElementById('areaRegras').innerHTML = html;
+  }
+
+  document.getElementById('areaRegras').addEventListener('click', function(e){
+    var el = e.target.closest('[data-acao]');
+    if (!el) return;
+    var acao = el.getAttribute('data-acao');
+    if (acao === 'nova') abrirModal('criar', el.getAttribute('data-categoria'), null);
+    else if (acao === 'editar') abrirModal('editar', null, el.getAttribute('data-id'));
+    else if (acao === 'alternar') abrirModal('alternar', null, el.getAttribute('data-id'));
+  });
+
+  // ---------------- Modal ----------------
+  function mostrarPainel(qual){
+    document.getElementById('painelFormulario').style.display = (qual === 'formulario') ? '' : 'none';
+    document.getElementById('painelConfirmacao').style.display = (qual === 'confirmacao') ? '' : 'none';
+  }
+  function mostrarErroForm(lista){
+    var el = document.getElementById('erroForm');
+    el.innerHTML = '<ul>' + lista.map(function(m){ return '<li>' + esc(m) + '</li>'; }).join('') + '</ul>';
+    el.style.display = 'block';
+  }
+
+  function abrirModal(modo, categoriaChave, regraId){
+    var regra = regraId ? regras.filter(function(r){ return r.$id === regraId; })[0] : null;
+    var cat = catPorChave(regra ? regra.categoria : categoriaChave);
+    if (!cat) return;
+    estado = { modo: modo, cat: cat, regra: regra, novo: null, motivo: '', salvando: false };
+
+    var titulo, sub;
+    if (modo === 'criar'){ titulo = 'Nova regra'; sub = cat.titulo; }
+    else if (modo === 'editar'){ titulo = 'Editar regra'; sub = cat.titulo; }
+    else { titulo = (estaAtiva(regra) ? 'Desativar' : 'Reativar') + ' regra'; sub = regra.label + ' (' + regra.prefixo + ')'; }
+    document.getElementById('modalTitulo').textContent = titulo;
+    document.getElementById('modalSub').textContent = sub;
+
+    var mostrarCampos = (modo !== 'alternar');
+    document.getElementById('campoRotulo').style.display = mostrarCampos ? '' : 'none';
+    document.getElementById('campoPrefixo').style.display = mostrarCampos ? '' : 'none';
+    document.getElementById('campoBloco').style.display = (mostrarCampos && cat.temBloco) ? '' : 'none';
+    document.getElementById('fRotulo').value = (regra && mostrarCampos) ? (regra.label || '') : '';
+    document.getElementById('fPrefixo').value = (regra && mostrarCampos) ? (regra.prefixo || '') : '';
+    document.getElementById('fPrefixo').maxLength = cat.tamanho;
+    document.getElementById('ajudaPrefixo').textContent = 'Exatamente ' + cat.tamanho + ' dígitos numéricos, sem pontos (exemplo: ' + cat.exemplo + ').';
+    document.getElementById('fBloco').value = (regra && regra.bloco) ? String(regra.bloco) : '3';
+    document.getElementById('fMotivo').value = '';
+    document.getElementById('erroForm').style.display = 'none';
+    document.getElementById('erroConfirmacao').style.display = 'none';
+    mostrarPainel('formulario');
+
+    document.getElementById('modalFundo').classList.add('aberto');
+    document.body.style.overflow = 'hidden';
+    setTimeout(function(){ document.getElementById(mostrarCampos ? 'fRotulo' : 'fMotivo').focus(); }, 30);
+  }
+
+  function fecharModal(){
+    if (estado.salvando) return;
+    document.getElementById('modalFundo').classList.remove('aberto');
+    document.body.style.overflow = '';
+  }
+
+  document.getElementById('btnCancelar').addEventListener('click', fecharModal);
+  document.getElementById('btnVoltar').addEventListener('click', function(){ if (!estado.salvando) mostrarPainel('formulario'); });
+  document.getElementById('modalFundo').addEventListener('click', function(e){ if (e.target === this) fecharModal(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharModal(); });
+  document.getElementById('btnRevisar').addEventListener('click', revisar);
+  document.getElementById('btnConfirmar').addEventListener('click', confirmar);
+
+  function revisar(){
+    var cat = estado.cat, modo = estado.modo, regra = estado.regra;
+    var erros = [];
+    var novo = {};
+    var motivo = document.getElementById('fMotivo').value.trim();
+
+    if (modo === 'alternar'){
+      novo = { ativo: !estaAtiva(regra) };
+    } else {
+      var rotulo = document.getElementById('fRotulo').value.trim();
+      var prefixo = document.getElementById('fPrefixo').value.trim();
+      var bloco = cat.temBloco ? parseInt(document.getElementById('fBloco').value, 10) : null;
+
+      if (rotulo.length < 3) erros.push('Informe um rótulo com pelo menos 3 caracteres.');
+      if (rotulo.length > 150) erros.push('O rótulo deve ter no máximo 150 caracteres.');
+
+      if (!/^[0-9]+$/.test(prefixo) || prefixo.length !== cat.tamanho){
+        erros.push('O prefixo deve ter exatamente ' + cat.tamanho + ' dígitos numéricos (exemplo: ' + cat.exemplo + ').');
+      } else {
+        var duplicada = regras.some(function(r){
+          return r.categoria === cat.chave && String(r.prefixo) === prefixo && (!regra || r.$id !== regra.$id);
+        });
+        if (duplicada) erros.push('Já existe uma regra com o prefixo ' + prefixo + ' nesta categoria (ativa ou inativa). Edite a existente em vez de criar outra.');
+        if (cat.temBloco){
+          if (bloco === 3 && prefixo.charAt(0) !== '1') erros.push('Bloco 3 (receitas correntes) exige prefixo iniciado em 1.');
+          if (bloco === 5 && prefixo.charAt(0) !== '2') erros.push('Bloco 5 (receitas de capital) exige prefixo iniciado em 2.');
+        }
+      }
+      novo = { label: rotulo, prefixo: prefixo };
+      if (cat.temBloco) novo.bloco = bloco;
+
+      if (modo === 'editar'){
+        var mudou = novo.label !== regra.label || novo.prefixo !== String(regra.prefixo) || (cat.temBloco && novo.bloco !== regra.bloco);
+        if (!mudou) erros.push('Nenhuma alteração foi feita nos campos.');
+      }
+    }
+    if (motivo.length < 5) erros.push('Informe o motivo da alteração (mínimo de 5 caracteres). Ele fica registrado no log de auditoria.');
+
+    if (erros.length){ mostrarErroForm(erros); return; }
+    document.getElementById('erroForm').style.display = 'none';
+    estado.novo = novo;
+    estado.motivo = motivo;
+    montarConfirmacao();
+    mostrarPainel('confirmacao');
+  }
+
+  function montarConfirmacao(){
+    var cat = estado.cat, regra = estado.regra, novo = estado.novo, modo = estado.modo;
+    var linhas = [['Categoria', esc(cat.titulo)]];
+
+    if (modo === 'criar'){
+      linhas.push(['Rótulo', esc(novo.label)]);
+      linhas.push(['Prefixo', '<code>' + esc(novo.prefixo) + '</code>']);
+      if (cat.temBloco) linhas.push(['Bloco', esc(rotuloBloco(novo.bloco))]);
+    } else if (modo === 'editar'){
+      if (novo.label !== regra.label) linhas.push(['Rótulo', '<span class="antes">' + esc(regra.label) + '</span>' + esc(novo.label)]);
+      if (novo.prefixo !== String(regra.prefixo)) linhas.push(['Prefixo', '<span class="antes"><code>' + esc(regra.prefixo) + '</code></span><code>' + esc(novo.prefixo) + '</code>']);
+      if (cat.temBloco && novo.bloco !== regra.bloco) linhas.push(['Bloco', '<span class="antes">' + esc(rotuloBloco(regra.bloco)) + '</span>' + esc(rotuloBloco(novo.bloco))]);
+    } else {
+      var ativaAgora = estaAtiva(regra);
+      linhas.push(['Regra', esc(regra.label) + ' (<code>' + esc(regra.prefixo) + '</code>)']);
+      linhas.push(['Situação', '<span class="antes">' + (ativaAgora ? 'Ativa' : 'Inativa') + '</span>' + (ativaAgora ? 'Inativa' : 'Ativa')]);
+    }
+    linhas.push(['Motivo', esc(estado.motivo)]);
+
+    document.getElementById('resumoAlteracao').innerHTML = linhas.map(function(l){
+      return '<div class="linha"><div class="rot">' + l[0] + '</div><div>' + l[1] + '</div></div>';
+    }).join('');
+
+    var texto = 'Ao confirmar, a mudança passa a valer imediatamente para as próximas apurações de todos os municípios. Apurações já salvas não são recalculadas.';
+    if (modo === 'alternar'){
+      texto += estaAtiva(regra)
+        ? ' Ao desativar, códigos com esse prefixo ' + cat.efeitoDesativar + '.'
+        : ' Ao reativar, códigos com esse prefixo ' + cat.efeitoAtivar + '.';
+    } else if (modo === 'editar' && novo.prefixo !== String(regra.prefixo)){
+      texto += ' Códigos com o prefixo antigo deixam de ser classificados por esta regra, e códigos com o novo prefixo passam a ser.';
+    }
+    if (modo !== 'criar' && String(regra.prefixo) === '1711520'){
+      texto += ' Atenção: o ajuste do ITR usa o código 1711520 fixo no motor e não é alterado por esta regra.';
+    }
+    document.getElementById('textoImpacto').textContent = texto;
+  }
+
+  function definirSalvando(sim){
+    estado.salvando = sim;
+    document.getElementById('btnConfirmar').disabled = sim;
+    document.getElementById('btnVoltar').disabled = sim;
+    document.getElementById('btnConfirmar').textContent = sim ? 'Salvando...' : 'Confirmar e salvar';
+  }
+
+  async function registrarAuditoriaRegra(acao, regraId, rotulo, detalhes){
+    await tablesDB.createRow({
+      databaseId: DATABASE_ID, tableId: 'auditoria_admin', rowId: ID.unique(),
+      data: {
+        admin_id: usuarioAtual.$id, admin_email: usuarioAtual.email, acao: acao,
+        alvo_tipo: 'regra', alvo_id: regraId || '', alvo_nome: String(rotulo || '').slice(0, 150),
+        detalhes: String(detalhes || '').slice(0, 500)
+      }
+    });
+  }
+
+  async function confirmar(){
+    if (estado.salvando) return;
+    definirSalvando(true);
+    document.getElementById('erroConfirmacao').style.display = 'none';
+
+    var cat = estado.cat, regra = estado.regra, novo = estado.novo, modo = estado.modo, motivo = estado.motivo;
+    var regraId, acao, rotuloAlvo, detalhes;
+
+    try {
+      if (modo === 'criar'){
+        var dados = { categoria: cat.chave, label: novo.label, prefixo: novo.prefixo, ativo: true };
+        if (cat.temBloco) dados.bloco = novo.bloco;
+        var criada = await tablesDB.createRow({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, rowId: ID.unique(), data: dados });
+        regraId = criada.$id;
+        acao = 'regra_criar';
+        rotuloAlvo = novo.label;
+        detalhes = 'Categoria ' + cat.chave + ' | Criada: ' + descreverRegra(novo, cat) + ' | Motivo: ' + motivo;
+      } else if (modo === 'editar'){
+        await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, rowId: regra.$id, data: novo });
+        regraId = regra.$id;
+        acao = 'regra_editar';
+        rotuloAlvo = novo.label;
+        var depois = { label: novo.label, prefixo: novo.prefixo, bloco: cat.temBloco ? novo.bloco : null };
+        detalhes = 'Categoria ' + cat.chave + ' | Antes: ' + descreverRegra(regra, cat) + ' | Depois: ' + descreverRegra(depois, cat) + ' | Motivo: ' + motivo;
+      } else {
+        await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, rowId: regra.$id, data: { ativo: novo.ativo } });
+        regraId = regra.$id;
+        acao = novo.ativo ? 'regra_reativar' : 'regra_desativar';
+        rotuloAlvo = regra.label;
+        detalhes = 'Categoria ' + cat.chave + ' | ' + descreverRegra(regra, cat) + (novo.ativo ? ' reativada' : ' desativada') + ' | Motivo: ' + motivo;
+      }
+    } catch (err) {
+      var el = document.getElementById('erroConfirmacao');
+      el.textContent = 'Não foi possível salvar a alteração: ' + err.message;
+      el.style.display = 'block';
+      definirSalvando(false);
+      return;
+    }
+
+    // A regra já foi gravada. Se o registro de auditoria falhar, o administrador precisa ser
+    // avisado de forma visível, em vez de a falha passar em silêncio.
+    var falhouAuditoria = false;
+    try { await registrarAuditoriaRegra(acao, regraId, rotuloAlvo, detalhes); }
+    catch (e) { falhouAuditoria = true; }
+
+    definirSalvando(false);
+    fecharModal();
+    await recarregarRegras();
+    mostrarToast(
+      falhouAuditoria
+        ? 'Regra salva, mas NÃO foi possível registrar no log de auditoria. Anote a alteração e avise o responsável técnico.'
+        : 'Regra salva e registrada no log de auditoria.',
+      falhouAuditoria
+    );
+  }
+
+  // ---------------- Menu móvel (gaveta), mesmo padrão das outras páginas ----------------
+  var menuLateralAdmin = document.getElementById('menuLateralAdmin');
+  var backdropMenuAdmin = document.getElementById('backdropMenuAdmin');
+  var btnAbrirMenuAdmin = document.getElementById('btnAbrirMenuAdmin');
+  if (menuLateralAdmin && backdropMenuAdmin && btnAbrirMenuAdmin){
+    var abrirMenuAdmin = function(){
+      menuLateralAdmin.classList.add('aberto'); backdropMenuAdmin.classList.add('aberto');
+      btnAbrirMenuAdmin.setAttribute('aria-expanded', 'true');
+    };
+    var fecharMenuAdmin = function(){
+      menuLateralAdmin.classList.remove('aberto'); backdropMenuAdmin.classList.remove('aberto');
+      btnAbrirMenuAdmin.setAttribute('aria-expanded', 'false');
+    };
+    btnAbrirMenuAdmin.addEventListener('click', abrirMenuAdmin);
+    document.getElementById('btnFecharMenuAdmin').addEventListener('click', fecharMenuAdmin);
+    backdropMenuAdmin.addEventListener('click', fecharMenuAdmin);
+    menuLateralAdmin.querySelectorAll('nav.main a').forEach(function(a){ a.addEventListener('click', fecharMenuAdmin); });
+  }
+
+  carregarPagina();
+</script>
+</body>
+</html>

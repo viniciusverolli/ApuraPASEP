@@ -141,6 +141,7 @@
     <div class="tag-admin">ADMINISTRAÇÃO</div>
     <nav class="main" aria-label="Navegação da administração">
       <a class="active" href="admin.html"><span class="dot" aria-hidden="true"></span> Clientes e licenças</a>
+      <a href="admin-regras.html"><span class="dot" aria-hidden="true"></span> Regras de cálculo</a>
       <a href="repositorio_pasep_cosit.html"><span class="dot" aria-hidden="true"></span> Repositório de normas</a>
     </nav>
     <div class="spacer"></div>
@@ -502,7 +503,7 @@
         databaseId: DATABASE_ID, tableId: 'auditoria_admin',
         queries: [Query.orderDesc('$createdAt'), Query.limit(20)]
       });
-      var ROTULOS_ACAO = { aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de' };
+      var ROTULOS_ACAO = { aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de', regra_criar: 'Criou a regra', regra_editar: 'Editou a regra', regra_desativar: 'Desativou a regra', regra_reativar: 'Reativou a regra' };
       if (!resultado.rows.length){
         container.innerHTML = '<div class="estado-vazio">Nenhuma ação registrada ainda.</div>';
         return;
