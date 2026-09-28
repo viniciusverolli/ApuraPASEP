@@ -1,0 +1,183 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ApuraPASEP | Termos de Uso</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#172033; --muted:#475569; --line:#e2e8f0; --primary:#218b78; --accent:#5d62d9; }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; scroll-padding-top:20px; }
+  body{
+    margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--ink); line-height:1.7; font-size:15px;
+    background:linear-gradient(135deg,#eef7f5,#f4f2fb); min-height:100vh;
+    padding:24px 16px 60px; padding-top:max(24px, env(safe-area-inset-top));
+  }
+  .topo{ max-width:860px; margin:0 auto 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .marca{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+  .marca .t{ font-size:18px; font-weight:800; letter-spacing:-.02em; }
+  .marca .t span{ color:var(--primary); }
+  .topo nav a{ font-size:13px; color:var(--muted); text-decoration:none; margin-left:16px; }
+  .topo nav a:hover{ color:var(--primary); }
+  main{
+    max-width:860px; margin:0 auto; background:rgba(255,255,255,.72); backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.9); border-radius:18px; padding:36px 40px 44px;
+    box-shadow:0 20px 50px rgba(62,75,110,.1); min-width:0;
+  }
+  h1{ font-size:28px; font-weight:800; margin:0 0 4px; letter-spacing:-.01em; }
+  .versao{ font-size:13px; color:var(--muted); margin:0 0 22px; }
+  h2{ font-size:18px; font-weight:800; margin:34px 0 10px; padding-top:6px; border-top:1px solid var(--line); }
+  h3{ font-size:15px; font-weight:700; margin:20px 0 6px; }
+  p{ margin:0 0 12px; }
+  ul, ol{ margin:0 0 14px; padding-left:22px; }
+  li{ margin-bottom:6px; }
+  a{ color:var(--primary); }
+  .toc{ background:rgba(255,255,255,.7); border:1px solid var(--line); border-radius:12px; padding:14px 20px; margin:0 0 8px; }
+  .toc ol{ margin:0; columns:2; column-gap:28px; font-size:13.5px; }
+  .toc li{ margin-bottom:3px; break-inside:avoid; }
+  .destaque{ background:rgba(227,247,242,.8); border:1px solid rgba(33,139,120,.3); border-radius:12px; padding:14px 18px; margin:14px 0 16px; }
+  .destaque p:last-child{ margin-bottom:0; }
+  .minuta{ background:#fef3c7; border:1px solid #f5d98b; color:#78350f; border-radius:12px; padding:12px 16px; font-size:13.5px; line-height:1.55; margin:0 0 20px; }
+  mark.preencher{ background:#fde68a; color:#78350f; padding:1px 5px; border-radius:5px; outline:1px dashed #d97706; font-weight:600; }
+  .tabela-scroll{ overflow-x:auto; margin:0 0 16px; border-radius:12px; border:1px solid var(--line); background:#fff; }
+  table{ border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px; }
+  th, td{ text-align:left; vertical-align:top; padding:9px 12px; border-bottom:1px solid var(--line); }
+  th{ background:#f8fafc; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  tr:last-child td{ border-bottom:none; }
+  .rodape-doc{ max-width:860px; margin:22px auto 0; font-size:12.5px; color:var(--muted); text-align:center; }
+  .rodape-doc a{ margin:0 8px; }
+  a:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:4px; }
+  @media (max-width:700px){
+    main{ padding:24px 18px 32px; border-radius:14px; }
+    h1{ font-size:23px; }
+    .toc ol{ columns:1; }
+  }
+  @media print{
+    body{ background:#fff; padding:0; font-size:12pt; }
+    .topo nav, .minuta, .rodape-doc{ display:none !important; }
+    main{ box-shadow:none; border:none; background:#fff; padding:0; max-width:none; }
+    mark.preencher{ outline:none; }
+  }
+</style>
+</head>
+<body>
+<header class="topo">
+  <a href="painel.html" class="marca" aria-label="ApuraPASEP, ir para o painel">
+    <svg width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="t">Apura<span>PASEP</span></div>
+  </a>
+  <nav aria-label="Documentos"><a href="politica-de-privacidade.html">Política de Privacidade</a><a href="index.html">Início</a></nav>
+</header>
+
+<main>
+<div class="minuta" id="avisoMinuta" role="note">
+  <strong>Minuta para revisão.</strong> Os campos em amarelo dependem de informação ou decisão do responsável pela plataforma e precisam ser preenchidos antes da publicação.
+  Este aviso desaparece sozinho quando não restar nenhum campo em amarelo.
+</div>
+
+<h1>Termos de Uso</h1>
+<p class="versao">ApuraPASEP · Versão 1.0 · minuta de 28/09/2026 · vigência a partir de <mark class="preencher">[DATA DE PUBLICAÇÃO]</mark></p>
+
+<nav class="toc" aria-label="Sumário">
+<ol>
+  <li><a href="#t1">Quem somos e o que estes Termos regulam</a></li>
+  <li><a href="#t2">Natureza da ferramenta e responsabilidade técnica</a></li>
+  <li><a href="#t3">Cadastro, acesso e segurança da conta</a></li>
+  <li><a href="#t4">Licença de uso, planos e vigência</a></li>
+  <li><a href="#t5">Uso permitido e vedações</a></li>
+  <li><a href="#t6">Propriedade intelectual e dados do município</a></li>
+  <li><a href="#t7">Proteção de dados pessoais</a></li>
+  <li><a href="#t8">Disponibilidade, suporte e atualizações</a></li>
+  <li><a href="#t9">Limitação de responsabilidade</a></li>
+  <li><a href="#t10">Suspensão, encerramento e destino dos dados</a></li>
+  <li><a href="#t11">Alterações destes Termos</a></li>
+  <li><a href="#t12">Comunicações, lei aplicável e foro</a></li>
+</ol>
+</nav>
+
+<h2 id="t1">1. Quem somos e o que estes Termos regulam</h2>
+<p>1.1. O ApuraPASEP é uma plataforma online de apoio técnico à apuração mensal da contribuição para o PASEP devida por entes públicos municipais, a partir de arquivos XML de Contas Correntes do sistema AUDESP, do Tribunal de Contas do Estado de São Paulo. A plataforma é operada por <mark class="preencher">[NOME OU RAZÃO SOCIAL DO FORNECEDOR]</mark>, inscrito(a) no <mark class="preencher">[CPF OU CNPJ]</mark>, com endereço em <mark class="preencher">[ENDEREÇO COMPLETO]</mark> (&ldquo;ApuraPASEP&rdquo; ou &ldquo;nós&rdquo;). Contato: <mark class="preencher">[E-MAIL DE CONTATO]</mark>.</p>
+<p>1.2. Estes Termos regulam o uso da plataforma pelos municípios e por seus servidores e prestadores autorizados (&ldquo;Usuários&rdquo;). Ao marcar a caixa de aceite no cadastro, o Usuário declara que leu e concorda com estes Termos e com a <a href="politica-de-privacidade.html">Política de Privacidade</a>.</p>
+<p>1.3. Quem se cadastra em nome de um município declara ter poderes ou autorização do órgão para isso.</p>
+
+<h2 id="t2">2. Natureza da ferramenta e responsabilidade técnica</h2>
+<p>2.1. A plataforma é ferramenta de <strong>apoio técnico</strong>. Não constitui manifestação técnica formal, parecer jurídico ou contábil, nem substitui a análise e a responsabilidade do contador e dos demais agentes competentes do ente.</p>
+<p>2.2. Os cálculos aplicam a Lei Federal nº 9.715/1998, as Soluções de Consulta Cosit vigentes indicadas nas telas e nos relatórios e, quando cabível, a dedução relativa ao FUNDEB prevista no art. 212-A da Constituição Federal.</p>
+<p>2.3. Alguns temas comportam interpretação controvertida ou dependem do caso concreto, como a qualificação de receita com finalidade ou objeto definido (art. 2º, §7º, da Lei nº 9.715/1998) e a composição da base do FUNDEB em cada exercício. Nesses pontos a plataforma adota o tratamento descrito na própria tela (por exemplo, sinaliza a transferência e a exclui da base por padrão, até decisão expressa do usuário), e <strong>a decisão final cabe ao profissional responsável</strong>, à luz do caso concreto e do entendimento aplicável.</p>
+<p>2.4. O Usuário deve conferir os resultados antes de utilizá-los em guias de recolhimento, declarações, prestações de contas, pareceres ou defesas perante órgãos de controle.</p>
+
+<h2 id="t3">3. Cadastro, acesso e segurança da conta</h2>
+<p>3.1. O acesso depende de cadastro, de confirmação do e-mail e de aprovação pelo administrador da plataforma, que pode recusar, suspender ou cancelar cadastros que não atendam a estes Termos.</p>
+<p>3.2. O Usuário deve fornecer informações verdadeiras e atualizadas, inclusive sobre o município que representa.</p>
+<p>3.3. As credenciais de acesso são pessoais e intransferíveis. O Usuário responde pelos atos praticados com suas credenciais e deve avisar imediatamente sobre qualquer uso indevido ou suspeita de acesso não autorizado.</p>
+<p>3.4. A senha deve atender aos requisitos exibidos no cadastro e não deve ser reutilizada de outros serviços.</p>
+
+<h2 id="t4">4. Licença de uso, planos e vigência</h2>
+<p>4.1. Concedemos ao município uma licença de uso da plataforma, não exclusiva, intransferível e limitada ao município cadastrado e ao prazo do plano contratado (teste, mensal ou anual).</p>
+<p>4.2. Com o município suspenso ou a licença vencida, as funcionalidades de apuração e de salvamento podem ser bloqueadas. Os dados já salvos permanecem armazenados e podem ser exportados nos termos da cláusula 10.</p>
+<p>4.3. Preço, forma de pagamento e demais condições comerciais constam da proposta ou do instrumento de contratação e prevalecem sobre estes Termos no que dispuserem em contrário. Quando a contratação for feita por órgão público, observará a legislação de contratações públicas aplicável.</p>
+
+<h2 id="t5">5. Uso permitido e vedações</h2>
+<p>5.1. A plataforma deve ser usada apenas para a apuração do PASEP do município cadastrado e para fins institucionais lícitos.</p>
+<p>5.2. É vedado ao Usuário:</p>
+<ul>
+  <li>enviar arquivos que não esteja autorizado a tratar;</li>
+  <li>tentar acessar dados de outro município ou áreas administrativas;</li>
+  <li>realizar engenharia reversa, extrair, copiar ou reproduzir o motor de cálculo, as regras de classificação ou o código da plataforma;</li>
+  <li>automatizar o acesso em volume que prejudique o funcionamento do serviço;</li>
+  <li>contornar bloqueios de status, licença ou segurança;</li>
+  <li>usar a plataforma para fins ilícitos ou para prejudicar terceiros.</li>
+</ul>
+
+<h2 id="t6">6. Propriedade intelectual e dados do município</h2>
+<p>6.1. O software, a marca, o motor de cálculo, as regras de classificação, o layout e os demais elementos da plataforma pertencem ao ApuraPASEP e são protegidos pela legislação de propriedade intelectual. O Usuário recebe apenas a licença limitada descrita na cláusula 4.</p>
+<p>6.2. Os dados do município, isto é, os arquivos que ele envia e os resultados de suas apurações, continuam sendo do município. Ele nos autoriza a tratá-los apenas na medida necessária para prestar o serviço, conforme a <a href="politica-de-privacidade.html">Política de Privacidade</a>.</p>
+<p>6.3. Os relatórios e planilhas gerados podem ser utilizados livremente pelo município para suas finalidades institucionais.</p>
+
+<h2 id="t7">7. Proteção de dados pessoais</h2>
+<p>7.1. O tratamento de dados pessoais segue a Lei nº 13.709/2018 (LGPD) e está descrito na <a href="politica-de-privacidade.html">Política de Privacidade</a>, que faz parte destes Termos.</p>
+<p>7.2. De cada arquivo XML, a plataforma recebe apenas o Descritor e os registros de receita, conforme detalhado na seção 4 da Política de Privacidade. O município é responsável por garantir que tem autorização para enviar o arquivo e que o envio observa a LGPD e as normas de sigilo aplicáveis ao seu caso.</p>
+
+<h2 id="t8">8. Disponibilidade, suporte e atualizações</h2>
+<p>8.1. Empregamos os melhores esforços para manter a plataforma disponível, mas não garantimos funcionamento ininterrupto. Podem ocorrer manutenções e indisponibilidades, inclusive por falha de terceiros de que a plataforma depende, como o provedor de infraestrutura e a API de transparência do TCESP.</p>
+<p>8.2. As regras de cálculo são atualizadas conforme a legislação e as soluções de consulta vigentes. Uma atualização vale para as apurações feitas a partir dela; <strong>apurações já salvas não são recalculadas automaticamente</strong>. As alterações de regras ficam registradas em trilha de auditoria interna.</p>
+
+<h2 id="t9">9. Limitação de responsabilidade</h2>
+<p>9.1. Na máxima extensão permitida pela lei, não respondemos por: decisões tomadas com base nos resultados sem a devida conferência; erros ou omissões nos dados de origem (arquivo XML e sistema de gestão do município); divergência de interpretação normativa por órgãos de controle ou de fiscalização; indisponibilidade de serviços de terceiros; nem por danos indiretos ou lucros cessantes.</p>
+<p>9.2. Nada nestes Termos exclui ou limita responsabilidade que não possa ser excluída ou limitada por lei, nem os direitos dos titulares de dados pessoais.</p>
+
+<h2 id="t10">10. Suspensão, encerramento e destino dos dados</h2>
+<p>10.1. O município pode encerrar o uso a qualquer tempo. Podemos suspender ou encerrar o acesso em caso de violação destes Termos, fraude, risco à segurança, inadimplemento ou determinação legal, com aviso prévio sempre que possível.</p>
+<p>10.2. Encerrado o uso, o município terá <mark class="preencher">[PRAZO PARA SOLICITAR EXPORTAÇÃO, sugestão: 30 dias]</mark> para solicitar a exportação de seus dados. Passado esse prazo, os dados de apuração serão excluídos ou anonimizados em até <mark class="preencher">[PRAZO DE EXCLUSÃO, sugestão: 90 dias]</mark>, ressalvados os registros que precisemos manter por obrigação legal ou para o exercício regular de direitos.</p>
+
+<h2 id="t11">11. Alterações destes Termos</h2>
+<p>11.1. Podemos atualizar estes Termos. Cada versão indica seu número e sua data, e as mudanças relevantes serão comunicadas por e-mail ou por aviso na plataforma. Uma nova versão pode exigir novo aceite.</p>
+
+<h2 id="t12">12. Comunicações, lei aplicável e foro</h2>
+<p>12.1. As comunicações serão feitas para o e-mail cadastrado e por avisos na plataforma. O Usuário deve manter o e-mail atualizado.</p>
+<p>12.2. Estes Termos são regidos pela legislação brasileira. Fica eleito o foro da comarca de <mark class="preencher">[COMARCA. Em contratação com órgão público, avaliar o foro da sede do ente contratante]</mark> para dirimir controvérsias, ressalvadas as competências previstas em lei.</p>
+
+</main>
+
+<footer class="rodape-doc">
+  <a href="termos-de-uso.html">Termos de Uso</a>
+  <a href="politica-de-privacidade.html">Política de Privacidade</a>
+  <a href="cadastro.html">Solicitar cadastro</a>
+</footer>
+
+<script>
+  // O aviso de minuta só existe enquanto houver campo a preencher.
+  if (!document.querySelector('mark.preencher')){
+    var aviso = document.getElementById('avisoMinuta');
+    if (aviso) aviso.remove();
+  }
+</script>
+</body>
+</html>

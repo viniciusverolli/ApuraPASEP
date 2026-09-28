@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>ApuraPASEP | Política de Privacidade</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%2323262B'/%3E%3Crect x='32' y='9' width='52' height='66' rx='9' fill='none' stroke='%232E7D6B' stroke-width='6'/%3E%3Crect x='16' y='25' width='52' height='66' rx='9' fill='%2323262B' stroke='%23F2F0EA' stroke-width='6'/%3E%3Cpath d='M 25 61 L 38 73 L 60 43' stroke='%23F2F0EA' stroke-width='8' stroke-linecap='round' stroke-linejoin='round' fill='none'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{ --ink:#172033; --muted:#475569; --line:#e2e8f0; --primary:#218b78; --accent:#5d62d9; }
+  *{ box-sizing:border-box; }
+  html{ scroll-behavior:smooth; scroll-padding-top:20px; }
+  body{
+    margin:0; font-family:'Inter',system-ui,sans-serif; color:var(--ink); line-height:1.7; font-size:15px;
+    background:linear-gradient(135deg,#eef7f5,#f4f2fb); min-height:100vh;
+    padding:24px 16px 60px; padding-top:max(24px, env(safe-area-inset-top));
+  }
+  .topo{ max-width:860px; margin:0 auto 18px; display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  .marca{ display:flex; align-items:center; gap:10px; text-decoration:none; color:inherit; }
+  .marca .t{ font-size:18px; font-weight:800; letter-spacing:-.02em; }
+  .marca .t span{ color:var(--primary); }
+  .topo nav a{ font-size:13px; color:var(--muted); text-decoration:none; margin-left:16px; }
+  .topo nav a:hover{ color:var(--primary); }
+  main{
+    max-width:860px; margin:0 auto; background:rgba(255,255,255,.72); backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.9); border-radius:18px; padding:36px 40px 44px;
+    box-shadow:0 20px 50px rgba(62,75,110,.1); min-width:0;
+  }
+  h1{ font-size:28px; font-weight:800; margin:0 0 4px; letter-spacing:-.01em; }
+  .versao{ font-size:13px; color:var(--muted); margin:0 0 22px; }
+  h2{ font-size:18px; font-weight:800; margin:34px 0 10px; padding-top:6px; border-top:1px solid var(--line); }
+  h3{ font-size:15px; font-weight:700; margin:20px 0 6px; }
+  p{ margin:0 0 12px; }
+  ul, ol{ margin:0 0 14px; padding-left:22px; }
+  li{ margin-bottom:6px; }
+  a{ color:var(--primary); }
+  .toc{ background:rgba(255,255,255,.7); border:1px solid var(--line); border-radius:12px; padding:14px 20px; margin:0 0 8px; }
+  .toc ol{ margin:0; columns:2; column-gap:28px; font-size:13.5px; }
+  .toc li{ margin-bottom:3px; break-inside:avoid; }
+  .destaque{ background:rgba(227,247,242,.8); border:1px solid rgba(33,139,120,.3); border-radius:12px; padding:14px 18px; margin:14px 0 16px; }
+  .destaque p:last-child{ margin-bottom:0; }
+  .minuta{ background:#fef3c7; border:1px solid #f5d98b; color:#78350f; border-radius:12px; padding:12px 16px; font-size:13.5px; line-height:1.55; margin:0 0 20px; }
+  mark.preencher{ background:#fde68a; color:#78350f; padding:1px 5px; border-radius:5px; outline:1px dashed #d97706; font-weight:600; }
+  .tabela-scroll{ overflow-x:auto; margin:0 0 16px; border-radius:12px; border:1px solid var(--line); background:#fff; }
+  table{ border-collapse:collapse; width:100%; font-size:13.5px; min-width:560px; }
+  th, td{ text-align:left; vertical-align:top; padding:9px 12px; border-bottom:1px solid var(--line); }
+  th{ background:#f8fafc; font-size:12px; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); }
+  tr:last-child td{ border-bottom:none; }
+  .rodape-doc{ max-width:860px; margin:22px auto 0; font-size:12.5px; color:var(--muted); text-align:center; }
+  .rodape-doc a{ margin:0 8px; }
+  a:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; border-radius:4px; }
+  @media (max-width:700px){
+    main{ padding:24px 18px 32px; border-radius:14px; }
+    h1{ font-size:23px; }
+    .toc ol{ columns:1; }
+  }
+  @media print{
+    body{ background:#fff; padding:0; font-size:12pt; }
+    .topo nav, .minuta, .rodape-doc{ display:none !important; }
+    main{ box-shadow:none; border:none; background:#fff; padding:0; max-width:none; }
+    mark.preencher{ outline:none; }
+  }
+</style>
+</head>
+<body>
+<header class="topo">
+  <a href="painel.html" class="marca" aria-label="ApuraPASEP, ir para o painel">
+    <svg width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+    <div class="t">Apura<span>PASEP</span></div>
+  </a>
+  <nav aria-label="Documentos"><a href="termos-de-uso.html">Termos de Uso</a><a href="index.html">Início</a></nav>
+</header>
+
+<main>
+<div class="minuta" id="avisoMinuta" role="note">
+  <strong>Minuta para revisão.</strong> Os campos em amarelo dependem de informação ou decisão do responsável pela plataforma e precisam ser preenchidos antes da publicação.
+  Este aviso desaparece sozinho quando não restar nenhum campo em amarelo.
+</div>
+
+<h1>Política de Privacidade</h1>
+<p class="versao">ApuraPASEP · Versão 1.0 · minuta de 28/09/2026 · vigência a partir de <mark class="preencher">[DATA DE PUBLICAÇÃO]</mark></p>
+
+<nav class="toc" aria-label="Sumário">
+<ol>
+  <li><a href="#p1">Base normativa</a></li>
+  <li><a href="#p2">Quem é o controlador e os papéis no tratamento</a></li>
+  <li><a href="#p3">Quais dados tratamos</a></li>
+  <li><a href="#p4">Leitura dos dados da entidade</a></li>
+  <li><a href="#p5">Finalidades e bases legais</a></li>
+  <li><a href="#p6">Compartilhamento e prestadores de serviço</a></li>
+  <li><a href="#p7">Transferência internacional</a></li>
+  <li><a href="#p8">Por quanto tempo guardamos os dados</a></li>
+  <li><a href="#p9">Segurança e incidentes</a></li>
+  <li><a href="#p10">Direitos dos titulares</a></li>
+  <li><a href="#p11">Cookies e armazenamento no navegador</a></li>
+  <li><a href="#p12">Público-alvo, alterações e contato</a></li>
+</ol>
+</nav>
+
+<h2 id="p1">1. Base normativa</h2>
+<p>Esta Política observa a Lei nº 13.709/2018 (Lei Geral de Proteção de Dados, LGPD), a Lei nº 12.965/2014 (Marco Civil da Internet), a Lei nº 12.527/2011 (Lei de Acesso à Informação), quando aplicável aos dados de entes públicos, e a regulamentação da Autoridade Nacional de Proteção de Dados (ANPD).</p>
+
+<h2 id="p2">2. Quem é o controlador e os papéis no tratamento</h2>
+<p>2.1. <strong>Dados de conta e de uso</strong> (por exemplo, nome e e-mail dos usuários): o controlador é <mark class="preencher">[NOME OU RAZÃO SOCIAL DO FORNECEDOR]</mark>, <mark class="preencher">[CPF OU CNPJ]</mark>, <mark class="preencher">[ENDEREÇO COMPLETO]</mark>. Canal do encarregado e de privacidade: <mark class="preencher">[E-MAIL DO ENCARREGADO OU DE PRIVACIDADE]</mark>.</p>
+<p>2.2. <strong>Dados da entidade</strong> enviados para apuração: o controlador é o município, na condição de poder público (LGPD, art. 23), e o ApuraPASEP atua como operador (LGPD, arts. 5º, VII, e 39), tratando os dados conforme as instruções do município e as finalidades destes Termos.</p>
+<p>2.3. Os registros de receita do AUDESP são dados contábeis de ente público e, em regra, não contêm dados pessoais. Se algum dado pessoal constar deles, o tratamento se limita ao estritamente necessário para o cálculo.</p>
+
+<h2 id="p3">3. Quais dados tratamos</h2>
+<div class="tabela-scroll"><table>
+<thead><tr><th>Categoria</th><th>Exemplos</th><th>Origem e finalidade</th></tr></thead>
+<tbody>
+<tr><td>Conta do usuário</td><td>Nome, e-mail, senha (armazenada em forma de <em>hash</em>, nunca em texto legível), município vinculado, confirmação do e-mail, versão dos Termos aceita e data do aceite</td><td>Informados pelo usuário no cadastro. Permitir o acesso, identificar quem usa e comprovar o aceite.</td></tr>
+<tr><td>Cadastro do município</td><td>Nome, UF, código TCE, sistema de gestão, situação do cadastro, plano e validade da licença</td><td>Cadastro e administração da plataforma. Vincular usuários e arquivos ao município correto e controlar a licença.</td></tr>
+<tr><td>Dados enviados para cálculo</td><td>Descritor do arquivo (exercício, mês, código do município, tipo de documento) e registros de receita (classificação econômica, conta contábil, fonte de recursos, código de aplicação e movimentos)</td><td>Extraídos do XML AUDESP no navegador do usuário. Calcular o PASEP. Detalhes na seção 4.</td></tr>
+<tr><td>Resultados salvos</td><td>Competência, receitas, base de cálculo, valor retido, valor a pagar, situação e sistema de gestão usado</td><td>Gravados somente quando o usuário aciona &ldquo;Salvar no sistema&rdquo;. Manter o histórico do município.</td></tr>
+<tr><td>Registros técnicos e de segurança</td><td>Endereço IP, data e hora, navegador e sistema, registros de execução da função de cálculo</td><td>Gerados pelo acesso ao serviço e pela infraestrutura do provedor. Segurança, prevenção a fraudes e cumprimento de obrigação legal.</td></tr>
+<tr><td>Trilha de auditoria administrativa</td><td>Ações de administradores (aprovação, suspensão, licenças, alteração de regras de cálculo, consultas a apurações de municípios), com o e-mail do administrador e a data</td><td>Registro interno. Responsabilização e prestação de contas sobre o acesso e a administração.</td></tr>
+</tbody></table></div>
+<p>Não solicitamos dados pessoais sensíveis (LGPD, art. 5º, II) e não devem ser inseridos na plataforma.</p>
+
+<h2 id="p4">4. Leitura dos dados da entidade</h2>
+<div class="destaque">
+<p><strong>Em resumo:</strong> do arquivo XML do AUDESP, apenas o Descritor e os registros de receita saem do computador do usuário. O restante do arquivo não é enviado nem chega aos nossos servidores.</p>
+</div>
+<p>4.1. <strong>O que é lido.</strong> Do arquivo de Contas Correntes, a plataforma utiliza somente três tipos de bloco: o <em>Descritor</em>, os registros de <em>ReceitaArrecadar</em> e os de <em>PrevisaoReceitaOrcamentaria</em>. São os únicos que o cálculo do PASEP exige.</p>
+<p>4.2. <strong>Como.</strong> A seleção desses blocos é feita no próprio navegador do usuário. Os demais registros do arquivo, como empenhos, pagamentos, credores e outras contas correntes, não são enviados. A parte selecionada trafega por conexão segura (HTTPS), é processada em memória pela função de cálculo e devolvida ao usuário como resultado.</p>
+<p>4.3. <strong>Finalidade e necessidade</strong> (LGPD, art. 6º, I e III). A leitura serve exclusivamente à apuração do PASEP do município. Não usamos esses dados para publicidade, perfilamento, venda a terceiros ou treinamento de modelos de inteligência artificial.</p>
+<p>4.4. <strong>Não armazenamento do arquivo.</strong> A plataforma não grava o arquivo XML, nem o trecho enviado, em seu banco de dados. Só são gravados os resultados quando o usuário salva a apuração. O provedor de infraestrutura pode manter registros técnicos das execuções da função de cálculo por <mark class="preencher">[PERÍODO DE RETENÇÃO DOS REGISTROS DE EXECUÇÃO. Verificar na aba Executions e nas configurações de log da função]</mark>.</p>
+<p>4.5. <strong>Conferência com bases públicas.</strong> Quando o usuário aciona a conferência com a API de transparência do TCESP, a consulta é feita a partir do navegador dele e envolve dados públicos. Como em qualquer acesso à internet, o endereço IP do usuário é visto pelo TCESP.</p>
+<p>4.6. <strong>Responsabilidade do município.</strong> Cabe ao município garantir que tem autorização para enviar o arquivo e que o envio observa a LGPD e as normas de sigilo aplicáveis.</p>
+<p>4.7. <strong>Princípios aplicados</strong> (LGPD, art. 6º): finalidade, adequação, necessidade, livre acesso, qualidade dos dados, transparência, segurança, prevenção, não discriminação e responsabilização e prestação de contas.</p>
+
+<h2 id="p5">5. Finalidades e bases legais</h2>
+<div class="tabela-scroll"><table>
+<thead><tr><th>Finalidade</th><th>Base legal (LGPD, art. 7º)</th></tr></thead>
+<tbody>
+<tr><td>Criar e manter a conta, prestar o serviço, controlar licença e cadastro</td><td>Execução de contrato ou de procedimentos preliminares (inciso V)</td></tr>
+<tr><td>Manter registros de acesso e atender ordem de autoridade</td><td>Cumprimento de obrigação legal ou regulatória (inciso II)</td></tr>
+<tr><td>Segurança, prevenção a fraudes, trilha de auditoria e melhoria do serviço</td><td>Legítimo interesse (inciso IX), com avaliação de que não prevalecem direitos e liberdades do titular</td></tr>
+<tr><td>Tratamento de dados da entidade por conta do município</td><td>Base do próprio município, como controlador, no exercício de suas atribuições legais (incisos II e III e art. 23)</td></tr>
+</tbody></table></div>
+<p>O aceite destes documentos no cadastro registra a ciência e a adesão contratual do usuário. Ele não é o consentimento do art. 7º, I, que não é a base legal principal do tratamento.</p>
+
+<h2 id="p6">6. Compartilhamento e prestadores de serviço</h2>
+<div class="tabela-scroll"><table>
+<thead><tr><th>Quem</th><th>Papel</th><th>Dados envolvidos</th></tr></thead>
+<tbody>
+<tr><td>Appwrite (Appwrite Cloud)</td><td>Infraestrutura: banco de dados, autenticação, funções, hospedagem do site e envio de e-mails de verificação e recuperação de senha</td><td>Todos os dados da plataforma, exceto o conteúdo do arquivo XML que não é enviado</td></tr>
+<tr><td>GitHub</td><td>Hospedagem do código-fonte do site</td><td>Nenhum dado de usuário</td></tr>
+<tr><td>Google Fonts, jsDelivr e cdnjs</td><td>Entrega de fontes e bibliotecas ao navegador</td><td>Endereço IP e dados do navegador, como em qualquer requisição web</td></tr>
+<tr><td>TCESP</td><td>API pública de transparência, consultada apenas quando o usuário aciona a conferência</td><td>Endereço IP do usuário</td></tr>
+<tr><td>Google e Microsoft</td><td>Login social, se e quando esse recurso for habilitado</td><td>Identificação da conta usada no login</td></tr>
+</tbody></table></div>
+<p>Não compartilhamos dados pessoais para fins de marketing. Podemos compartilhá-los por obrigação legal, ordem judicial ou requisição de autoridade competente.</p>
+
+<h2 id="p7">7. Transferência internacional</h2>
+<p>7.1. A infraestrutura do provedor fica na região <mark class="preencher">[Nova York, Estados Unidos. Atualizar se a hospedagem for migrada]</mark>. Portanto, dados pessoais dos usuários, como nome e e-mail, são tratados fora do Brasil, o que caracteriza transferência internacional (LGPD, arts. 33 a 36, e Resolução CD/ANPD nº 19/2024).</p>
+<p>7.2. Mecanismo adotado: <mark class="preencher">[DEFINIR. Por exemplo: cláusulas-padrão contratuais aprovadas pela ANPD; outra hipótese do art. 33 da LGPD; ou hospedagem em região com decisão de adequação]</mark>.</p>
+
+<h2 id="p8">8. Por quanto tempo guardamos os dados</h2>
+<div class="tabela-scroll"><table>
+<thead><tr><th>Dado</th><th>Prazo</th></tr></thead>
+<tbody>
+<tr><td>Conta do usuário</td><td>Enquanto a conta estiver ativa e, depois, pelo prazo necessário ao exercício regular de direitos</td></tr>
+<tr><td>Dados do município e apurações salvas</td><td>Durante a vigência do uso e até o prazo de exclusão definido nos Termos (cláusula 10)</td></tr>
+<tr><td>Registros de acesso à aplicação</td><td>Seis meses, quando aplicável o art. 15 do Marco Civil da Internet, ou prazo maior por ordem de autoridade</td></tr>
+<tr><td>Trilha de auditoria administrativa</td><td><mark class="preencher">[PRAZO. Sugestão: 5 anos]</mark></td></tr>
+<tr><td>Registros de incidentes de segurança</td><td>No mínimo cinco anos (Resolução CD/ANPD nº 15/2024)</td></tr>
+</tbody></table></div>
+<p>Ao final do prazo, os dados são eliminados ou anonimizados, ressalvadas as hipóteses de conservação do art. 16 da LGPD.</p>
+
+<h2 id="p9">9. Segurança e incidentes</h2>
+<p>9.1. Adotamos medidas técnicas e administrativas compatíveis com o risco (LGPD, art. 46), entre elas: conexão criptografada (HTTPS); senhas armazenadas em <em>hash</em>; acesso de cada município restrito aos dados do seu próprio time; confirmação de e-mail e aprovação manual dos cadastros; trilha de auditoria das ações administrativas; processamento das regras de cálculo no servidor; e envio, ao servidor, apenas dos registros de receita necessários. Nenhum sistema é totalmente imune a falhas, e não podemos garantir segurança absoluta.</p>
+<p>9.2. Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos titulares, comunicaremos a ANPD e os titulares nos prazos da regulamentação (LGPD, art. 48; atualmente, três dias úteis contados do conhecimento de que o incidente afetou dados pessoais, nos termos da Resolução CD/ANPD nº 15/2024). Quando atuarmos como operador, avisaremos o município sem demora indevida para que ele cumpra suas obrigações como controlador.</p>
+
+<h2 id="p10">10. Direitos dos titulares</h2>
+<p>10.1. O titular pode solicitar, nos termos do art. 18 da LGPD: confirmação da existência de tratamento; acesso; correção de dados incompletos, inexatos ou desatualizados; anonimização, bloqueio ou eliminação de dados desnecessários ou tratados em desconformidade; portabilidade; informação sobre compartilhamento; e informação sobre a possibilidade de não fornecer consentimento e suas consequências, quando essa for a base.</p>
+<p>10.2. As solicitações devem ser enviadas para <mark class="preencher">[E-MAIL DO ENCARREGADO OU DE PRIVACIDADE]</mark> e serão atendidas nos prazos do art. 19 da LGPD. Quando o dado for tratado pelo município como controlador, encaminharemos a solicitação a ele.</p>
+<p>10.3. O titular também pode peticionar à ANPD (LGPD, art. 18, §1º).</p>
+
+<h2 id="p11">11. Cookies e armazenamento no navegador</h2>
+<p>Usamos apenas o armazenamento estritamente necessário ao funcionamento, principalmente para manter a sessão de login. Não usamos cookies de publicidade nem ferramentas de análise de terceiros. As fontes e bibliotecas carregadas de provedores externos, listadas na seção 6, recebem o endereço IP e os dados do navegador, como em qualquer requisição web.</p>
+
+<h2 id="p12">12. Público-alvo, alterações e contato</h2>
+<p>12.1. O ApuraPASEP é destinado a profissionais e servidores que atuam na apuração do PASEP. Não é direcionado a crianças e adolescentes, e não tratamos intencionalmente dados desse público.</p>
+<p>12.2. Podemos atualizar esta Política. Cada versão indica seu número e sua data, e as mudanças relevantes serão comunicadas por e-mail ou por aviso na plataforma.</p>
+<p>12.3. Dúvidas sobre esta Política: <mark class="preencher">[E-MAIL DO ENCARREGADO OU DE PRIVACIDADE]</mark>.</p>
+
+</main>
+
+<footer class="rodape-doc">
+  <a href="termos-de-uso.html">Termos de Uso</a>
+  <a href="politica-de-privacidade.html">Política de Privacidade</a>
+  <a href="cadastro.html">Solicitar cadastro</a>
+</footer>
+
+<script>
+  // O aviso de minuta só existe enquanto houver campo a preencher.
+  if (!document.querySelector('mark.preencher')){
+    var aviso = document.getElementById('avisoMinuta');
+    if (aviso) aviso.remove();
+  }
+</script>
+</body>
+</html>
