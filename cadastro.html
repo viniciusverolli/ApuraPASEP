@@ -845,6 +845,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script src="concluir-cadastro.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -964,7 +965,7 @@
       try {
         await account.createVerification({ url: window.location.origin + '/verificar-email.html' });
       } catch (e) { /* se o envio falhar, o usuário ainda pode pedir reenvio depois, no painel */ }
-      await concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao);
+      await finalizarCadastro(nomeMunicipio, uf, sistemaGestao);
     } catch(err){
       caixaErro.textContent = 'Não foi possível criar sua conta: ' + err.message;
       caixaErro.classList.add('show');
@@ -972,30 +973,22 @@
     }
   });
 
-  async function concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao){
+  // Os passos de criar o time e a linha do município ficam em concluir-cadastro.js, que também
+  // é usado pelo painel para retomar um cadastro interrompido no meio.
+  async function finalizarCadastro(nomeMunicipio, uf, sistemaGestao){
     try {
-      // O time do município é o que dá acesso a ele (equivalente ao antigo usuarios_municipio).
-      // Quem cria o time entra automaticamente como owner.
-      var novoTime = await teams.create({ teamId: ID.unique(), name: nomeMunicipio + '/' + uf });
-
-      await tablesDB.createRow({
-        databaseId: DATABASE_ID, tableId: 'municipios', rowId: ID.unique(),
-        data: { nome: nomeMunicipio, uf: uf, sistema_gestao: sistemaGestao, status: 'pendente', team_id: novoTime.$id },
-        permissions: [
-          Permission.read(Role.team(novoTime.$id)),
-          Permission.update(Role.team(novoTime.$id)),
-        ]
-      });
-
+      await concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao);
       mostrarSucesso(
         'Cadastro enviado',
         'O cadastro de ' + nomeMunicipio + '/' + uf + ' foi registrado e está aguardando aprovação do administrador da plataforma. Você será avisado assim que o acesso for liberado.'
       );
     } catch (err) {
-      document.getElementById('caixaErro').textContent = 'Sua conta foi criada, mas houve um erro ao registrar o município: ' + err.message + '. Fale com o administrador.';
+      // A conta já existe e os dados do cadastro ficaram guardados nela: ao entrar no sistema,
+      // o painel conclui automaticamente o que faltou.
+      document.getElementById('caixaErro').textContent = 'Sua conta foi criada, mas houve um erro ao registrar o município (' + err.message + '). Não é preciso refazer o cadastro: entre no sistema com o e-mail e a senha que você acabou de criar e o registro será concluído automaticamente.';
       document.getElementById('caixaErro').classList.add('show');
       var btn = document.querySelector('.btn-cadastrar');
-      if (btn){ btn.disabled = false; btn.textContent = 'Enviar cadastro'; }
+      if (btn){ btn.disabled = true; btn.textContent = 'Conta criada'; }
     }
   }
 

@@ -23,20 +23,8 @@
   *{box-sizing:border-box}
   html,body{margin:0}
   body{ font-family:'Inter',sans-serif; color:var(--ink); background:linear-gradient(135deg,#eef7f5,#f4f2fb); }
-  .shell{ display:grid; grid-template-columns: 244px 1fr 320px; min-height:100vh; }
-
-  .side{ background:rgba(21,27,42,.92); backdrop-filter:blur(20px); color:#EFE9D8; padding:26px 20px; display:flex; flex-direction:column; }
-  .side .brand{ display:flex; align-items:center; gap:10px; margin-bottom:34px; }
-  .side .fechar-menu{
-    background:none; border:none; color:#F2F0EA; font-size:22px; align-self:flex-end;
-    cursor:pointer; margin:-6px -4px 14px 0; padding:6px; display:none;
-  }
+  .shell{ display:grid; grid-template-columns: 1fr 320px; min-height:100vh; }
   .seal{ width:32px; height:32px; border:1.5px solid var(--accent-claro); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; color:var(--accent-claro); font-size:12px; }
-  .side .brand .t{ font-size:15px; font-weight:800; letter-spacing:-.02em; }
-  .side .who{ margin-top:auto; border-top:1px solid rgba(233,225,197,.18); padding-top:16px; font-size:12.5px; color:#B9B29B; line-height:1.6; }
-  .side .who input{ background:transparent; border:none; border-bottom:1px dashed rgba(233,225,197,.4); color:#EFE9D8; font:inherit; font-size:13.5px; font-weight:600; width:100%; padding:2px 0 4px; }
-  .side .who input::placeholder{ color:#8b856d; font-weight:400; }
-  .side .who input:focus{ outline:none; border-color:var(--accent-claro); }
 
   .status-api{ margin-top:auto; padding-top:16px; border-top:1px solid rgba(233,225,197,.18); display:flex; align-items:center; gap:8px; font-size:12px; color:#B9B29B; }
   .status-dot{ width:7px; height:7px; border-radius:50%; background:#8b856d; flex:none; }
@@ -44,7 +32,6 @@
   .status-dot.conectado{ background:#4CAF7D; }
   .status-dot.falhou{ background:var(--red, #8E3B33); }
   @keyframes pulso{ 0%,100%{opacity:1} 50%{opacity:.35} }
-  .side .rule{ font-size:11.5px; color:#8b856d; line-height:1.6; margin-top:16px; }
 
   main{ padding: 30px 40px 80px; min-width:0; }
   .topbar{ display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:22px; }
@@ -143,9 +130,6 @@
   .tabela-scroll{ overflow-x:auto; }
   #area-detalhe, #area-auditoria{ overflow-x:auto; }
 
-  .topbar-mobile{ display:none; }
-  .backdrop-menu{ display:none; }
-
   /* Responsivo: fica no final da folha de estilo de propósito, para vencer o empate de
      especificidade contra as regras base acima (mesmo peso, quem vem depois vence).
      Um único ponto de quebra (1150px): abaixo dele, o menu lateral vira gaveta e o
@@ -154,64 +138,15 @@
   @media (max-width:1150px){
     .shell{ display:block; }
 
-    .topbar-mobile{
-      display:flex; align-items:center; justify-content:space-between;
-      background:rgba(21,27,42,.95); backdrop-filter:blur(20px); color:#F2F0EA; padding:14px 18px; position:sticky; top:0; z-index:20;
-      width:100%; box-sizing:border-box;
-    }
-    .topbar-mobile .marca-mini{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.02em; }
-    .topbar-mobile .marca-mini span{ color:var(--accent-claro); }
-    .btn-menu{
-      background:none; border:1px solid rgba(242,240,234,.3); border-radius:8px; color:#F2F0EA;
-      width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer;
-    }
-
-    .side{
-      position:fixed; top:0; left:0; height:100%; width:82%; max-width:300px; z-index:40;
-      transform:translateX(-100%); transition:transform .2s ease; box-shadow:2px 0 18px rgba(0,0,0,.25);
-      overflow-y:auto;
-    }
-    .side.aberto{ transform:translateX(0); }
-    .side .fechar-menu{ display:block; }
-
-    .backdrop-menu{
-      display:block; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:30;
-      opacity:0; pointer-events:none; transition:opacity .2s ease;
-    }
-    .backdrop-menu.aberto{ opacity:1; pointer-events:auto; }
-
     main{ padding:20px 16px 50px; }
     .summary{ width:100%; }
   }
 </style>
 </head>
 <body>
-<div class="topbar-mobile">
-  <a href="painel.html" class="marca-mini" style="text-decoration:none; color:inherit" aria-label="ApuraPASEP, ir para o painel">
-    <svg width="20" height="20" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
-      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
-      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-    </svg>
-    <div class="t">Apura<span>PASEP</span></div>
-  </a>
-  <button class="btn-menu" id="btnAbrirMenuSide" aria-label="Abrir informações do município" aria-expanded="false" aria-controls="menuLateralSide">
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-  </button>
-</div>
-<div class="backdrop-menu" id="backdropMenuSide"></div>
+<script src="menu-lateral.js" data-quebra="1150"></script>
 <div class="shell">
-  <aside class="side" id="menuLateralSide">
-    <button class="fechar-menu" id="btnFecharMenuSide" aria-label="Fechar">✕</button>
-    <a href="painel.html" class="brand" style="text-decoration:none; color:inherit">
-      <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" style="flex:none">
-        <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
-        <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
-        <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-      </svg>
-      <div class="t">Apura<span style="color:#3FA48C">PASEP</span></div>
-    </a>
-    <a href="painel.html" style="display:flex; align-items:center; gap:6px; color:#B9C0C4; text-decoration:none; font-size:12.5px; margin:-16px 0 20px;">&larr; Voltar ao painel</a>
+  <div id="ml-extra-origem" hidden>
     <div class="who">
       <input id="nome-ente" type="text" placeholder="Nome do município (para o relatório)" readonly aria-label="Nome do município, preenchido automaticamente pelo XML importado">
       <div id="municipio-trava" class="rule">Nenhum XML importado ainda. O primeiro arquivo carregado define o município autorizado para esta sessão.</div>
@@ -221,9 +156,10 @@
       <span class="status-dot" id="status-api-dot"></span>
       <span id="status-api-texto">Verificando conexão com a API do TCESP…</span>
     </div>
-  </aside>
+  </div>
 
   <main>
+    <div data-voltar-painel></div>
     <div class="topbar"><h1>Importar XML AUDESP</h1></div>
 
     <div class="dropzone" id="dropzone">
@@ -1351,7 +1287,39 @@
     doc.save(nomeArquivo);
   }
 
-  // ---------- Salvar apuração no Supabase (tabela apuracoes) ----------
+  // Detalhamento por rubrica gravado junto da apuração (coluna apuracoes.detalhamento, JSON),
+  // para o "Revisar lançamentos" do painel e do admin-apuracoes. Guarda os blocos já
+  // classificados, com os lançamentos de cada rubrica, as receitas de finalidade definida com a
+  // escolha "incluir na base" feita pelo usuário, e a memória de cálculo. Não guarda o XML nem os
+  // extratos completos — só o que é preciso para conferir a composição do valor salvo.
+  function montarDetalhamento(d, r){
+    function rubricas(lista){
+      return (lista || []).map(function(l){
+        return {
+          label: l.label, codigo: l.codigo, valor: l.valor, nota: l.nota || null,
+          lancamentos: (l.lancamentos || []).map(function(x){
+            return { codigo: x.codigo, fonte: x.fonte, aplicacao: x.aplicacao, valor: x.valor, tipo: x.tipo };
+          })
+        };
+      });
+    }
+    return {
+      versao: 1,
+      bloco2: rubricas(d.bloco2), totalBloco2: d.totalBloco2,
+      bloco4: rubricas(d.bloco4), totalFundeb: d.totalFundeb, dedFundebFlat: d.dedFundebFlat,
+      itr: d.itr,
+      alertas: (d.alertas || []).map(function(a){
+        return { label: a.label, bloco: a.bloco, codigo: a.codigo, fonte: a.fonte, aplicacao: a.aplicacao, valor: a.valor, incluir: !!a.incluir };
+      }),
+      calculo: {
+        receitaCorrente: d.receitaCorrente, receitaCapital: d.receitaCapital,
+        totalFinalidadeCorrente: r.totalFinalidadeCorrente, totalCapitalIncluido: r.totalCapitalIncluido,
+        base: r.base, valorTotal: r.valorTotal, retido: r.retido, valorPagar: r.valorPagar
+      }
+    };
+  }
+
+  // ---------- Salvar apuração no Appwrite (tabela apuracoes) ----------
   async function salvarApuracaoNoSistema(d, r){
     var btn = document.getElementById('btn-salvar-sistema');
     var msg = document.getElementById('msg-salvar-sistema');
@@ -1434,7 +1402,8 @@
         pasep_retido: r.retido,
         valor_pagar: r.valorPagar,
         status: status,
-        sistema_gestao_usado: municipio.sistema_gestao
+        sistema_gestao_usado: municipio.sistema_gestao,
+        detalhamento: JSON.stringify(montarDetalhamento(d, r))
       };
 
       // O Appwrite não tem "upsert" — precisamos checar se já existe uma apuração desta
@@ -1881,25 +1850,6 @@
   }
   verificarConexaoAPI();
 
-  // Menu móvel (gaveta) para o painel lateral de informações do município.
-  var menuLateralSide = document.getElementById('menuLateralSide');
-  var backdropMenuSide = document.getElementById('backdropMenuSide');
-  var btnAbrirMenuSide = document.getElementById('btnAbrirMenuSide');
-  if (menuLateralSide && backdropMenuSide && btnAbrirMenuSide){
-    function abrirMenuSide(){
-      menuLateralSide.classList.add('aberto');
-      backdropMenuSide.classList.add('aberto');
-      btnAbrirMenuSide.setAttribute('aria-expanded', 'true');
-    }
-    function fecharMenuSide(){
-      menuLateralSide.classList.remove('aberto');
-      backdropMenuSide.classList.remove('aberto');
-      btnAbrirMenuSide.setAttribute('aria-expanded', 'false');
-    }
-    btnAbrirMenuSide.addEventListener('click', abrirMenuSide);
-    document.getElementById('btnFecharMenuSide').addEventListener('click', fecharMenuSide);
-    backdropMenuSide.addEventListener('click', fecharMenuSide);
-  }
 })();
 </script>
 </body>

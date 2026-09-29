@@ -234,9 +234,8 @@
   var client = new Appwrite.Client().setEndpoint(APPWRITE_ENDPOINT).setProject(APPWRITE_PROJECT_ID);
   var account = new Appwrite.Account(client);
 
-  // NOTA: a rotina de concluir cadastro pendente (quando o e-mail exige confirmação) foi
-  // retirada nesta migração — ela dependia das tabelas do Supabase. Será reconstruída em
-  // cima de Teams quando cadastro.html for reescrito para o Appwrite.
+  // A conclusão de um autocadastro interrompido (conta criada sem time/município) é feita pelo
+  // painel, logo após o login — ver concluir-cadastro.js.
 
   // Se já existe uma sessão válida (usuário voltou com o navegador ainda conectado), pula
   // direto pro painel, sem mostrar o formulário de novo.
