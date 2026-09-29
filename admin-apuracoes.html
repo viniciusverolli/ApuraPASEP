@@ -270,6 +270,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script src="revisar-lancamentos.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -416,7 +417,7 @@
     document.getElementById('cardsResumoApur').style.display = 'grid';
 
     areaEl.innerHTML = '<div class="tabela-scroll"><table class="clientes"><thead><tr>' +
-      '<th>Competência</th><th class="num">Base de cálculo</th><th class="num">Retido na fonte</th><th class="num">Valor a pagar</th><th>Status</th><th>Sistema</th><th>Atualizada em</th>' +
+      '<th>Competência</th><th class="num">Base de cálculo</th><th class="num">Retido na fonte</th><th class="num">Valor a pagar</th><th>Status</th><th>Sistema</th><th>Atualizada em</th><th></th>' +
       '</tr></thead><tbody>' + filtradas.map(function(a){
         var quando = a.$updatedAt ? new Date(a.$updatedAt).toLocaleDateString('pt-BR') : '—';
         return '<tr><td><strong>' + esc(MESES[a.competencia_mes] || a.competencia_mes) + '/' + esc(a.competencia_ano) + '</strong></td>' +
@@ -425,8 +426,16 @@
           '<td class="num' + classeValor(a.valor_pagar) + '"><strong>' + esc(brl(a.valor_pagar)) + '</strong></td>' +
           '<td><span class="badge ' + (a.status === 'concluida' ? 'ativo' : 'pendente') + '">' + esc(a.status) + '</span></td>' +
           '<td>' + esc(a.sistema_gestao_usado || '—') + '</td>' +
-          '<td>' + esc(quando) + '</td></tr>';
+          '<td>' + esc(quando) + '</td>' +
+          '<td><button type="button" class="btn-acao" data-revisar="' + esc(a.$id) + '">Revisar lançamentos</button></td></tr>';
       }).join('') + '</tbody></table></div>';
+
+    areaEl.querySelectorAll('[data-revisar]').forEach(function(btn){
+      btn.addEventListener('click', function(){
+        var ap = apuracoes.find(function(a){ return a.$id === btn.dataset.revisar; });
+        if (ap) abrirRevisaoLancamentos(ap, { titulo: municipioSelecionado.nome + '/' + municipioSelecionado.uf });
+      });
+    });
   }
 
   document.getElementById('selMunicipio').addEventListener('change', function(){ selecionarMunicipio(this.value); });

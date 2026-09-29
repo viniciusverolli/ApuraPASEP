@@ -92,6 +92,12 @@
     font-size:11.5px; padding:4px 9px; cursor:pointer;
   }
   .btn-excluir-apuracao:hover{ background:var(--red-soft); border-color:#fca5a5; }
+  .btn-revisar-apuracao{
+    background:none; border:1px solid var(--line); color:var(--ink); border-radius:8px;
+    font-size:11.5px; padding:4px 9px; cursor:pointer; margin-right:6px;
+  }
+  .btn-revisar-apuracao:hover{ background:rgba(255,255,255,.8); border-color:#94a3b8; }
+  td.acoes-linha{ white-space:nowrap; }
   .status{ font-size:11.5px; padding:3px 10px; border-radius:20px; display:inline-block; white-space:nowrap; }
   .status.ok{ background:var(--green-soft); color:var(--green); }
   .status.pend{ background:rgba(227,247,242,.9); color:#115e59; }
@@ -180,7 +186,7 @@
       <div class="ic" aria-hidden="true">!</div>
       <div class="body">
         <strong>Competência mais recente com pendência</strong>
-        <p>Há lançamentos de finalidade definida aguardando confirmação nesta competência. Nenhum valor foi incluído na base sem decisão do responsável técnico. <a href="PASEP_teste_jspdf.html">Revisar lançamentos</a></p>
+        <p>Há lançamentos de finalidade definida aguardando confirmação nesta competência. Nenhum valor foi incluído na base sem decisão do responsável técnico. <a href="#" id="linkRevisarPendencia">Revisar lançamentos</a></p>
       </div>
     </div>
 
@@ -240,6 +246,8 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script src="revisar-lancamentos.js"></script>
+<script src="concluir-cadastro.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -291,6 +299,22 @@
       usuario = await account.get();
     } catch (e) {
       window.location.href = 'login.html';
+      return;
+    }
+
+    // Autocadastro interrompido no meio (conta criada, mas time/município não): conclui agora,
+    // antes de qualquer outra checagem, para o município aparecer ao administrador para aprovação.
+    var retomada = await retomarCadastroPendente(usuario);
+    if (retomada && !retomada.concluido){
+      document.getElementById('infoUsuario').innerHTML = '<strong>Cadastro incompleto</strong>' + usuario.email;
+      document.getElementById('infoExercicio').textContent = '';
+      document.getElementById('cardsResumo').innerHTML =
+        '<div class="card" style="border-color:#DCB6B0"><div class="lab" style="color:var(--red)">Não foi possível concluir o cadastro do município</div>' +
+        '<div class="sub">Sua conta existe, mas o registro do município ainda não foi concluído (' + retomada.erro + '). Recarregue a página para tentar de novo; se o erro persistir, fale com o administrador da plataforma.</div></div>';
+      document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+      document.getElementById('navNovaApuracao').style.display = 'none';
+      document.getElementById('navImportar').style.display = 'none';
+      document.getElementById('blocoAcoes').style.display = 'none';
       return;
     }
 
@@ -444,7 +468,11 @@
     document.getElementById('infoExercicio').innerHTML =
       'Exercício <b>' + maisRecente.competencia_ano + '</b> · Competência mais recente <b>' + MESES[maisRecente.competencia_mes] + '</b>';
 
+    var tituloRevisao = municipio.nome + '/' + municipio.uf;
+    var apuracaoSelecionada = maisRecente;
+
     function renderizarCards(ap){
+      apuracaoSelecionada = ap;
       document.getElementById('cardsResumo').innerHTML =
         '<div class="card destaque"><div class="lab">Valor a pagar — ' + MESES[ap.competencia_mes] + '/' + ap.competencia_ano + '</div><div class="val">R$ ' + brl(ap.valor_pagar) + '</div><div class="sub">' + (ap.status === 'pendente' ? 'Pendência de revisão' : 'Guia ainda não emitida') + '</div></div>' +
         '<div class="card"><div class="lab">Base de cálculo</div><div class="val">R$ ' + brl(ap.base_calculo) + '</div><div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div></div>' +
@@ -475,17 +503,31 @@
         '<td class="num">' + brl(ap.pasep_retido) + '</td>' +
         '<td class="num">' + brl(ap.valor_pagar) + '</td>' +
         '<td>' + statusHtml + '</td>' +
-        '<td><button class="btn-excluir-apuracao" data-apuracao-id="' + ap.$id + '">Excluir</button></td></tr>';
+        '<td class="acoes-linha"><button class="btn-revisar-apuracao" data-apuracao-id="' + ap.$id + '">Revisar lançamentos</button>' +
+        '<button class="btn-excluir-apuracao" data-apuracao-id="' + ap.$id + '">Excluir</button></td></tr>';
     }).join('');
 
     // Clicar na linha (fora do botão de excluir) troca os cards de cima para essa competência.
     document.querySelectorAll('#corpoTabelaHist tr.linha-apuracao').forEach(function(tr){
       tr.addEventListener('click', function(e){
-        if (e.target.closest('.btn-excluir-apuracao')) return;
+        if (e.target.closest('.btn-excluir-apuracao') || e.target.closest('.btn-revisar-apuracao')) return;
         var ap = apuracoes.find(function(a){ return a.$id === tr.dataset.apuracaoId; });
         if (ap) renderizarCards(ap);
       });
     });
+
+    // "Revisar lançamentos": detalhamento por rubrica salvo junto da apuração (revisar-lancamentos.js).
+    document.querySelectorAll('.btn-revisar-apuracao').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation();
+        var ap = apuracoes.find(function(a){ return a.$id === btn.dataset.apuracaoId; });
+        if (ap) abrirRevisaoLancamentos(ap, { titulo: tituloRevisao, linkReprocessar: true });
+      });
+    });
+    document.getElementById('linkRevisarPendencia').onclick = function(e){
+      e.preventDefault();
+      abrirRevisaoLancamentos(apuracaoSelecionada, { titulo: tituloRevisao, linkReprocessar: true });
+    };
 
     // Excluir apuração, com confirmação explícita antes de gravar a exclusão.
     document.querySelectorAll('.btn-excluir-apuracao').forEach(function(btn){

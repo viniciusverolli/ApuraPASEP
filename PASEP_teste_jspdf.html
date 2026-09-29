@@ -1351,7 +1351,39 @@
     doc.save(nomeArquivo);
   }
 
-  // ---------- Salvar apuração no Supabase (tabela apuracoes) ----------
+  // Detalhamento por rubrica gravado junto da apuração (coluna apuracoes.detalhamento, JSON),
+  // para o "Revisar lançamentos" do painel e do admin-apuracoes. Guarda os blocos já
+  // classificados, com os lançamentos de cada rubrica, as receitas de finalidade definida com a
+  // escolha "incluir na base" feita pelo usuário, e a memória de cálculo. Não guarda o XML nem os
+  // extratos completos — só o que é preciso para conferir a composição do valor salvo.
+  function montarDetalhamento(d, r){
+    function rubricas(lista){
+      return (lista || []).map(function(l){
+        return {
+          label: l.label, codigo: l.codigo, valor: l.valor, nota: l.nota || null,
+          lancamentos: (l.lancamentos || []).map(function(x){
+            return { codigo: x.codigo, fonte: x.fonte, aplicacao: x.aplicacao, valor: x.valor, tipo: x.tipo };
+          })
+        };
+      });
+    }
+    return {
+      versao: 1,
+      bloco2: rubricas(d.bloco2), totalBloco2: d.totalBloco2,
+      bloco4: rubricas(d.bloco4), totalFundeb: d.totalFundeb, dedFundebFlat: d.dedFundebFlat,
+      itr: d.itr,
+      alertas: (d.alertas || []).map(function(a){
+        return { label: a.label, bloco: a.bloco, codigo: a.codigo, fonte: a.fonte, aplicacao: a.aplicacao, valor: a.valor, incluir: !!a.incluir };
+      }),
+      calculo: {
+        receitaCorrente: d.receitaCorrente, receitaCapital: d.receitaCapital,
+        totalFinalidadeCorrente: r.totalFinalidadeCorrente, totalCapitalIncluido: r.totalCapitalIncluido,
+        base: r.base, valorTotal: r.valorTotal, retido: r.retido, valorPagar: r.valorPagar
+      }
+    };
+  }
+
+  // ---------- Salvar apuração no Appwrite (tabela apuracoes) ----------
   async function salvarApuracaoNoSistema(d, r){
     var btn = document.getElementById('btn-salvar-sistema');
     var msg = document.getElementById('msg-salvar-sistema');
@@ -1434,7 +1466,8 @@
         pasep_retido: r.retido,
         valor_pagar: r.valorPagar,
         status: status,
-        sistema_gestao_usado: municipio.sistema_gestao
+        sistema_gestao_usado: municipio.sistema_gestao,
+        detalhamento: JSON.stringify(montarDetalhamento(d, r))
       };
 
       // O Appwrite não tem "upsert" — precisamos checar se já existe uma apuração desta

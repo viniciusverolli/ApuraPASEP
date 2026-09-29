@@ -258,6 +258,30 @@
     </div>
   </div>
 </div>
+<div class="modal-fundo" id="modalConvite">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mcTitulo">
+    <h2 id="mcTitulo">Convidar usuário</h2>
+    <p class="modal-sub" id="mcSub"></p>
+    <div class="campo-form">
+      <label for="mcEmail">E-mail do usuário</label>
+      <input type="email" id="mcEmail" autocomplete="off">
+    </div>
+    <div class="campo-form">
+      <label for="mcNome">Nome (opcional)</label>
+      <input type="text" id="mcNome" autocomplete="off">
+      <div class="ajuda">O usuário recebe um e-mail com o link de aceite. Se ainda não tiver conta, define a senha ao aceitar.</div>
+    </div>
+    <div class="erro-form" id="mcErro" role="alert" style="display:none"></div>
+    <div class="campo-form">
+      <label>Usuários com acesso a este município</label>
+      <div id="mcMembros" class="ajuda" style="font-size:12.5px">Carregando…</div>
+    </div>
+    <div class="modal-acoes">
+      <button type="button" class="btn-acao" id="mcCancelar">Fechar</button>
+      <button type="button" class="btn-acao primario" id="mcEnviar">Enviar convite</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <div id="blocoAcessoNegado" style="display:none">
@@ -501,6 +525,7 @@
       if (m.status === 'suspenso') acoes += '<button type="button" class="btn-acao primario" data-acao="reativar" data-id="' + id + '">Reativar</button>';
       acoes += '<button type="button" class="btn-acao" data-acao="dados" data-id="' + id + '">Dados</button>';
       acoes += '<button type="button" class="btn-acao" data-acao="licenca" data-id="' + id + '">Licença</button>';
+      acoes += '<button type="button" class="btn-acao" data-acao="convidar" data-id="' + id + '">Usuários</button>';
       acoes += '<div class="painel-licenca" id="lic-' + id + '">' +
         '<label>Plano</label>' +
         '<select id="plano-' + id + '"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select>' +
@@ -742,7 +767,9 @@
       linha = await tablesDB.createRow({
         databaseId: DATABASE_ID, tableId: 'municipios', rowId: ID.unique(),
         data: { nome: nome, uf: 'SP', sistema_gestao: sistema, codigo_tce: codigo, status: 'ativo', team_id: time.$id },
-        permissions: [ Permission.read(Role.team(time.$id)), Permission.update(Role.team(time.$id)) ]
+        // Só leitura para o time: status, código TCE e sistema de gestão são alterados apenas
+        // pelo administrador (update no nível da tabela, time plataforma-admins).
+        permissions: [ Permission.read(Role.team(time.$id)) ]
       });
     } catch (e) {
       try { await teams.delete({ teamId: time.$id }); } catch (e2) { /* melhor esforço: evita time órfão */ }
@@ -772,6 +799,92 @@
       ? nome + ' cadastrado, mas a licença NÃO foi criada. Use o botão Licença na linha do município.'
       : nome + ' cadastrado, ativo e com licença.', licencaFalhou);
   }
+
+  // ===== Convite de usuário para o time de um município =====
+  // O convite é uma membership do Appwrite Teams: o Appwrite envia o e-mail com o link para
+  // aceitar-convite.html, que confirma a entrada no time (e, para quem ainda não tinha conta,
+  // pede a definição da senha). Só o owner do time pode convidar — o administrador é owner dos
+  // times que ele mesmo criou pelo "+ Cadastrar município"; nos times criados por autocadastro,
+  // o owner é o responsável que se cadastrou.
+  var conviteMunicipioId = null;
+
+  function erroConvite(texto){
+    var el = document.getElementById('mcErro');
+    el.textContent = texto || '';
+    el.style.display = texto ? '' : 'none';
+  }
+
+  async function carregarMembrosConvite(m){
+    var alvo = document.getElementById('mcMembros');
+    try {
+      var r = await teams.listMemberships({ teamId: m.team_id });
+      alvo.innerHTML = r.memberships.length ? r.memberships.map(function(mb){
+        var situacao = mb.confirm ? 'ativo' : 'convite pendente';
+        var papel = (mb.roles || []).indexOf('owner') !== -1 ? ' · responsável (owner)' : '';
+        return '<div>' + esc(mb.userName || '—') + ' &lt;' + esc(mb.userEmail) + '&gt; — ' + situacao + papel + '</div>';
+      }).join('') : 'Nenhum usuário.';
+    } catch (e) {
+      alvo.textContent = 'Não foi possível listar os usuários deste município. Você não faz parte do time dele, provavelmente porque foi criado por autocadastro.';
+    }
+  }
+
+  function abrirModalConvite(municipioId){
+    var m = mapaMunicipios[municipioId];
+    if (!m) return;
+    conviteMunicipioId = municipioId;
+    document.getElementById('mcSub').textContent = m.nome + ' / ' + m.uf;
+    document.getElementById('mcEmail').value = '';
+    document.getElementById('mcNome').value = '';
+    document.getElementById('mcMembros').textContent = 'Carregando…';
+    erroConvite('');
+    var btn = document.getElementById('mcEnviar');
+    btn.disabled = false; btn.textContent = 'Enviar convite';
+    document.getElementById('modalConvite').classList.add('aberto');
+    if (m.team_id) carregarMembrosConvite(m);
+    else document.getElementById('mcMembros').textContent = 'Este município não tem time associado.';
+    document.getElementById('mcEmail').focus();
+  }
+
+  function fecharModalConvite(){
+    document.getElementById('modalConvite').classList.remove('aberto');
+    conviteMunicipioId = null;
+  }
+
+  async function enviarConvite(){
+    var m = mapaMunicipios[conviteMunicipioId];
+    if (!m) return;
+    var email = document.getElementById('mcEmail').value.trim();
+    var nome = document.getElementById('mcNome').value.trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ erroConvite('Informe um e-mail válido.'); return; }
+    if (!m.team_id){ erroConvite('Este município não tem time associado; não é possível convidar usuários.'); return; }
+    erroConvite('');
+    var btn = document.getElementById('mcEnviar');
+    btn.disabled = true; btn.textContent = 'Enviando...';
+    try {
+      var params = { teamId: m.team_id, roles: ['member'], email: email, url: window.location.origin + '/aceitar-convite.html' };
+      if (nome) params.name = nome;
+      await teams.createMembership(params);
+    } catch (e) {
+      var msg = e.code === 401
+        ? 'Você não tem permissão para convidar usuários para este município: só o responsável (owner) do time pode convidar, e este time foi criado pelo próprio município no autocadastro.'
+        : e.code === 409 ? email + ' já faz parte deste município ou já tem um convite pendente.'
+        : 'Não foi possível enviar o convite: ' + e.message;
+      erroConvite(msg);
+      btn.disabled = false; btn.textContent = 'Enviar convite';
+      return;
+    }
+    await registrarAuditoria('convidar_usuario', m.$id, m.nome, 'Convite enviado para ' + email);
+    mostrarToast('Convite enviado para ' + email + '.');
+    document.getElementById('mcEmail').value = '';
+    document.getElementById('mcNome').value = '';
+    btn.disabled = false; btn.textContent = 'Enviar convite';
+    carregarMembrosConvite(m);
+  }
+
+  document.getElementById('mcCancelar').addEventListener('click', fecharModalConvite);
+  document.getElementById('mcEnviar').addEventListener('click', enviarConvite);
+  document.getElementById('modalConvite').addEventListener('click', function(e){ if (e.target === this) fecharModalConvite(); });
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharModalConvite(); });
 
   document.getElementById('btnNovoMunicipio').addEventListener('click', function(){ abrirModalMunicipio('novo', null); });
   document.getElementById('mmCancelar').addEventListener('click', fecharModalMunicipio);
@@ -807,6 +920,7 @@
     else if (acao === 'dados') abrirModalMunicipio('editar', id);
     else if (acao === 'licenca') toggleLicenca(id);
     else if (acao === 'salvar-licenca') salvarLicenca(id);
+    else if (acao === 'convidar') abrirModalConvite(id);
   });
 
   async function recarregarAuditoria(){
