@@ -42,6 +42,26 @@ código entre telas; nenhum contém regra de classificação):
 |---|---|---|
 | `revisar-lancamentos.js` | `painel.html`, `admin-apuracoes.html` | Modal "Revisar lançamentos" (lê `apuracoes.detalhamento`) |
 | `concluir-cadastro.js` | `cadastro.html`, `painel.html` | Cria time + município do autocadastro, com retomada se interrompido |
+| `menu-lateral.js` | painel, ferramenta de apuração, repositório de normas, 3 telas de admin | **Menu lateral único** (fixo no computador, gaveta no celular), mostrador da licença, usuário, Sair, grupo Administração (só para `plataforma-admins`) e o botão "Voltar ao painel" |
+
+**Menu lateral e botão "Voltar ao painel".** Nenhuma página escreve mais o próprio menu. Para
+usar o componente numa página nova: `<script src="menu-lateral.js"></script>` logo depois de
+`<body>`, o SDK do Appwrite carregado na página e, onde o botão deve aparecer,
+`<div data-voltar-painel></div>` (use `data-voltar-painel="escuro"` sobre fundo escuro).
+`data-quebra="1150"` no script muda a largura em que o menu vira gaveta (a ferramenta de
+apuração usa 1150 porque tem três colunas). Conteúdo específico da página pode ir dentro de
+`<div id="ml-extra-origem" hidden>`: o script move esse conteúdo para dentro do menu. Nas
+páginas públicas (`termos-de-uso.html`, `politica-de-privacidade.html`) o script roda com
+`data-modo="voltar"` e mostra só o botão, e apenas para quem está conectado. As páginas de
+entrada (`index`, `home`, `login`, `cadastro`, `recuperar-senha`, `verificar-email`,
+`aceitar-convite`) não usam o menu, pois o usuário ainda não está no sistema. O item
+"Configurações" do menu aparece como "em breve": a tela não existe.
+
+**Mostrador da licença** (lê a tabela `licencas`, que precisa de `read` para o time do
+município): plano, validade e dias restantes, em verde (mais de 30 dias), amarelo (8 a 30) e
+vermelho (7 ou menos, vencida ou suspensa). Também cobre município pendente, suspenso, sem
+licença e conta administradora sem município. É só exibição; o bloqueio por status e
+vencimento continua nas páginas.
 
 ### 1.2 Appwrite — recursos
 
