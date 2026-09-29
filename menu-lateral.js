@@ -46,7 +46,6 @@
     { href: 'painel.html', txt: 'Painel' },
     { href: 'PASEP_teste_jspdf.html', txt: 'Nova apuração', apuracao: true },
     { href: 'painel.html#historico', txt: 'Histórico' },
-    { href: 'PASEP_teste_jspdf.html', txt: 'Importar XML / balancete', apuracao: true },
     { href: 'repositorio_pasep_cosit.html', txt: 'Repositório de normas' },
     { href: null, txt: 'Configurações', embreve: true }
   ];
