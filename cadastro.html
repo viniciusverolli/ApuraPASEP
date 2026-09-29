@@ -792,7 +792,7 @@
           <option value="SE">SE — Sergipe</option>
           <option value="TO">TO — Tocantins</option>
         </select>
-        <div class="ajuda">No momento a apuração automática depende da API do TCESP, disponível apenas para municípios de São Paulo.</div>
+        <div class="ajuda">No momento a apuração automática atende apenas municípios de São Paulo, pois parte do XML AUDESP, leiaute padronizado pelo TCE-SP.</div>
       </div>
 
       <div class="campo">
@@ -824,11 +824,11 @@
         <legend>Sistema de gestão utilizado</legend>
         <label class="opcao-sistema">
           <input type="radio" name="sistemaGestao" value="fiorilli" checked>
-          <span><strong>Fiorilli</strong><span class="desc">Leitura do balancete totalmente suportada.</span></span>
+          <span><strong>Fiorilli</strong><span class="desc">A apuração parte do XML AUDESP, sem depender do sistema de gestão.</span></span>
         </label>
         <label class="opcao-sistema">
           <input type="radio" name="sistemaGestao" value="gemmap">
-          <span><strong>GEMMAP <span class="tag-construcao">Em construção</span></strong><span class="desc">Leitura automática do balancete GEMMAP ainda está sendo desenvolvida — a apuração via XML AUDESP funciona normalmente enquanto isso.</span></span>
+          <span><strong>GEMMAP</strong><span class="desc">A apuração parte do XML AUDESP, sem depender do sistema de gestão.</span></span>
         </label>
       </fieldset>
 

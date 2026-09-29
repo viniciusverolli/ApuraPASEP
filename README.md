@@ -33,6 +33,7 @@ funções serverless).
 | `admin-regras.html` | Admin edita as regras de classificação do motor de cálculo |
 | `admin-apuracoes.html` | Admin consulta o histórico de apurações de qualquer município |
 | `repositorio_pasep_cosit.html` | Repositório de Soluções de Consulta Cosit |
+| `arquivo/` | Código guardado para o futuro, fora do ar (ver §8) |
 | `termos-de-uso.html`, `politica-de-privacidade.html` | Minutas jurídicas — **têm campos ainda não preenchidos**, ver §6 |
 
 **Scripts compartilhados** (exceção deliberada à regra de arquivo único, para não duplicar
@@ -167,13 +168,16 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
 
 ## 4. Limitações funcionais conhecidas
 
-- **Só o sistema de gestão Fiorilli está implementado.** O leiaute do XML AUDESP é padronizado
-  pelo TCE-SP e comum a qualquer jurisdicionado do estado (não é peculiaridade do Fiorilli),
-  então a apuração em si funciona para qualquer município de SP — mas a *leitura do balancete*
-  para auditoria cruzada (item separado do XML) só tem parser para Fiorilli. GEMMAP aparece
-  como opção no cadastro, marcado "em construção".
-- **Cobertura geográfica:** só municípios de São Paulo — a apuração automática depende da API
-  pública de transparência do TCESP.
+- **A conferência do cálculo é feita pelo próprio sistema, sem fontes externas.** O usuário
+  confere pelo "Revisar lançamentos" (composição por rubrica, na tela) e pela planilha detalhada
+  em Excel (todos os lançamentos do XML e a memória de cálculo em fórmulas). Na planilha do
+  usuário comum, os totais do Bloco 2 (retenção) e do FUNDEB entram como valores já calculados
+  pelo servidor, e não como fórmulas sobre a classificação: a aba "Classificação" e as fórmulas
+  que dependem dela só existem na planilha do administrador, para não expor as regras.
+- **Cobertura geográfica:** só municípios de São Paulo, pois a apuração parte do XML AUDESP, o
+  leiaute padronizado pelo TCE-SP. O sistema de gestão do município (Fiorilli, GEMMAP ou outro)
+  não interfere na apuração; o campo é só um dado do cadastro.
+- **Auditoria contra a API do TCESP e contra o balancete: desativada** (ver §8).
 
 ---
 
@@ -252,3 +256,24 @@ Pendências principais:
 - Anexo II — Tabelas de Escrituração Contábil - Auxiliares 2026 (AUDESP/STN), aba
   "Classificação da Receita - 2026", internalizada na ferramenta para exibir a especificação
   oficial de cada código de receita nos relatórios
+
+---
+
+## 8. Recursos desativados e guardados para o futuro
+
+**Auditoria: conferência contra a API do TCESP e contra o balancete** (desativada em 29/09/2026).
+Estava em fase de testes e não agrega ao usuário comum. Saíram da interface: a seção de
+auditoria da ferramenta (visível só para administradores), a conferência independente, o envio
+do balancete do Fiorilli, o indicador de conexão com a API, o botão "Auditar competência" do
+painel, o item "Importar XML / balancete" do menu e a aba "Auditoria" da planilha em Excel. A
+ferramenta também deixou de consultar a API do TCESP ao abrir.
+
+- Código e explicação em `arquivo/auditoria-tcesp-balancete/` (`LEIA-ME.md` e
+  `auditoria-tcesp-balancete.js`, com o texto original de cada trecho e o lugar de onde saiu).
+- Versão completa e funcionando: branch `arquivo-auditoria-tcesp-v1` (commit `874b95b`). Não
+  apagar esse branch, não alterá-lo e não incorporá-lo à versão principal.
+- A planilha em Excel passou de "Planilha de Auditoria" para "Planilha detalhada" (botão, título
+  e nome do arquivo, `PASEP_PLANILHA_...xlsx`).
+- **Textos jurídicos ainda mencionam a consulta ao TCESP:** política de privacidade (§4.5 e a
+  linha "TCESP" da tabela de terceiros) e termos de uso (§8.1). Não foram alterados por serem
+  minutas em revisão; devem ser atualizados junto com o preenchimento dos campos (§6).
