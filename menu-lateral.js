@@ -162,6 +162,12 @@
       var escuro = el.getAttribute('data-voltar-painel') === 'escuro';
       el.innerHTML = '<a class="ml-voltar' + (escuro ? ' escuro' : '') + '" href="painel.html">&larr; Voltar ao painel</a>';
     });
+    // Mesmo botão, com outro destino e rótulo: <div data-voltar-link="login.html" data-voltar-rotulo="Voltar ao login">.
+    // Usado pelas páginas de quem ainda não entrou (cadastro). Aparece sempre, sem depender de sessão.
+    document.querySelectorAll('[data-voltar-link]').forEach(function(el){
+      var escuro = el.getAttribute('data-voltar-estilo') === 'escuro';
+      el.innerHTML = '<a class="ml-voltar' + (escuro ? ' escuro' : '') + '" href="' + esc(el.getAttribute('data-voltar-link')) + '">&larr; ' + esc(el.getAttribute('data-voltar-rotulo') || 'Voltar') + '</a>';
+    });
     return alvos;
   }
 
