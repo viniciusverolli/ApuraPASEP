@@ -109,6 +109,16 @@
 
   a:focus-visible, button:focus-visible, input:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
   .tabela-scroll{ overflow-x:auto; }
+  .passos-uso{ list-style:none; margin:0 0 20px; padding:0; display:flex; gap:10px; flex-wrap:wrap; counter-reset:passo; }
+  .passos-uso li{ flex:1 1 180px; display:flex; align-items:center; gap:10px; background:rgba(255,255,255,.55); border:1px solid rgba(255,255,255,.85); border-radius:12px; padding:10px 14px; font-size:13px; color:var(--muted); }
+  .passos-uso li::before{ counter-increment:passo; content:counter(passo); width:24px; height:24px; flex:none; border-radius:50%; background:#e2e8f0; color:#475569; font-weight:800; font-size:12px; display:flex; align-items:center; justify-content:center; }
+  .passos-uso li.atual{ color:#172033; font-weight:700; border-color:rgba(33,139,120,.5); background:rgba(227,247,242,.8); }
+  .passos-uso li.atual::before{ background:#218b78; color:#fff; }
+  .passos-uso li.feito{ color:#166534; }
+  .passos-uso li.feito::before{ content:"\2713"; background:#dcfce7; color:#166534; }
+  .alerta-erro strong{ display:block; margin-bottom:3px; }
+  .alerta-erro .dica{ color:#7f1d1d; font-size:12.5px; margin-top:3px; }
+  .alerta-erro .fechar-erro{ float:right; background:none; border:none; color:inherit; font-size:18px; line-height:1; cursor:pointer; padding:0 0 0 10px; }
   #area-detalhe{ overflow-x:auto; }
 
   /* Responsivo: fica no final da folha de estilo de propósito, para vencer o empate de
@@ -139,6 +149,11 @@
   <main>
     <div data-voltar-painel></div>
     <div class="topbar"><h1>Importar XML AUDESP</h1></div>
+    <ol class="passos-uso" id="passos-uso" aria-label="Etapas da apuração">
+      <li class="atual">Enviar o XML AUDESP</li>
+      <li>Conferir o resultado</li>
+      <li>Salvar e baixar a planilha</li>
+    </ol>
 
     <div class="dropzone" id="dropzone">
       <div class="fileicon">XML</div>
@@ -287,6 +302,8 @@
 
   function renderDetalhe(chave){
     selecionado = chave;
+    etapa3.salvou = false; etapa3.baixou = false;
+    definirPasso(2);
     var a = arquivos[chave], d = a.dados;
     var r = calcular(d);
     var html = '';
@@ -359,27 +376,70 @@
 
     var resumo = document.getElementById('painel-resumo');
     resumo.innerHTML = '<h4>Memória de cálculo — '+MESES[d.mes]+'/'+d.ano+'</h4>'+
-      '<div class="sline"><span>Receita Corrente Arrecadada</span><b>'+numFmt(d.receitaCorrente)+'</b></div>'+
-      '<div class="sline"><span>(-) Dedução FUNDEB (20%)</span><b>'+numFmt(d.dedFundebFlat)+'</b></div>'+
-      '<div class="sline"><span>(-) Transferências Correntes (com Finalidade Definida)</span><b>'+numFmt(r.totalFinalidadeCorrente)+'</b></div>'+
-      '<div class="sline"><span>(+) Transferências de Capital (sem Finalidade Definida)</span><b>'+numFmt(r.totalCapitalIncluido)+'</b></div>'+
-      '<div class="sline"><span>(=) Base de Cálculo</span><b>'+numFmt(r.base)+'</b></div>'+
-      '<div class="sline"><span>(-) PASEP Retido na Fonte</span><b>'+numFmt(r.retido)+'</b></div>'+
-      '<div class="destaque-pagar"><span>Valor a Pagar</span><strong>'+brl(r.valorPagar)+'</strong></div>'+
+      '<div class="sline"><span data-ajuda="Total das receitas correntes arrecadadas na competência, lido do XML AUDESP (registros de Receita Arrecadada)." data-ajuda-titulo="Receita Corrente Arrecadada">Receita Corrente Arrecadada</span><b>'+numFmt(d.receitaCorrente)+'</b></div>'+
+      '<div class="sline"><span data-ajuda="Receitas que formam o FUNDEB (Solução de Consulta Cosit nº 278/2017). A dedução corresponde a 20% do total dessas receitas." data-ajuda-titulo="(-) Dedução FUNDEB (20%)">(-) Dedução FUNDEB (20%)</span><b>'+numFmt(d.dedFundebFlat)+'</b></div>'+
+      '<div class="sline"><span data-ajuda="Transferências correntes com destinação vinculada saem da base. Quando há lançamentos aguardando decisão, a apuração fica pendente até o responsável técnico confirmar." data-ajuda-titulo="(-) Transferências Correntes (com Finalidade Definida)">(-) Transferências Correntes (com Finalidade Definida)</span><b>'+numFmt(r.totalFinalidadeCorrente)+'</b></div>'+
+      '<div class="sline"><span data-ajuda="Transferências de capital ficam fora da base por padrão (Lei nº 9.715/98, art. 2º, §6º, conforme o bloco 4 desta tela). Só entram se você marcar a inclusão." data-ajuda-titulo="(+) Transferências de Capital (sem Finalidade Definida)">(+) Transferências de Capital (sem Finalidade Definida)</span><b>'+numFmt(r.totalCapitalIncluido)+'</b></div>'+
+      '<div class="sline"><span data-ajuda="Resultado das linhas acima. Sobre ela incide a alíquota de 1% (art. 8º, III, da Lei nº 9.715/98)." data-ajuda-titulo="(=) Base de Cálculo">(=) Base de Cálculo</span><b>'+numFmt(r.base)+'</b></div>'+
+      '<div class="sline"><span data-ajuda="PASEP já retido nas transferências recebidas, abatido do valor devido." data-ajuda-titulo="(-) PASEP Retido na Fonte">(-) PASEP Retido na Fonte</span><b>'+numFmt(r.retido)+'</b></div>'+
+      '<div class="destaque-pagar"><span data-ajuda="1% da base de cálculo menos o PASEP retido na fonte." data-ajuda-titulo="Valor a pagar">Valor a Pagar</span><strong>'+brl(r.valorPagar)+'</strong></div>'+
       '<div style="margin-top:18px"><button class="btn-pdf-lateral" id="btn-pdf">Gerar relatório em PDF</button></div>'+
       '<div style="margin-top:10px"><button class="btn-pdf-lateral-secundario" id="btn-pdf-detalhado">Planilha detalhada em Excel</button></div>'+
       '<div style="margin-top:10px"><button class="btn-pdf-lateral-secundario" id="btn-salvar-sistema">Salvar no sistema</button></div>'+
       '<div id="msg-salvar-sistema" style="margin-top:8px; font-size:12px; line-height:1.5"></div>';
     document.getElementById('btn-pdf').addEventListener('click', function(){ gerarPDF(d, r); });
     document.getElementById('btn-pdf-detalhado').addEventListener('click', function(){ gerarPlanilhaDetalhada(d, chave); });
+    if (window.iniciarAjuda) window.iniciarAjuda(resumo);
     document.getElementById('btn-salvar-sistema').addEventListener('click', function(){ salvarApuracaoNoSistema(d, r); });
 
     renderTabela();
   }
 
-  function mostrarErro(msg){
-    document.getElementById('alerta-global').innerHTML = '<div class="alerta-erro">'+msg+'</div>';
-    setTimeout(function(){ document.getElementById('alerta-global').innerHTML=''; }, 8000);
+  // Etapas exibidas no topo: 1 enviar o XML, 2 conferir o resultado, 3 salvar e baixar a planilha.
+  // Entrada: número da etapa atual (4 = tudo concluído).
+  // A etapa 3 só conclui quando a apuração foi salva no sistema e a planilha foi baixada.
+  var etapa3 = { salvou: false, baixou: false };
+  function concluiuEtapa3(qual){
+    etapa3[qual] = true;
+    definirPasso(etapa3.salvou && etapa3.baixou ? 4 : 3);
+  }
+  function definirPasso(n){
+    document.querySelectorAll('#passos-uso li').forEach(function(li, i){
+      li.classList.toggle('feito', i + 1 < n);
+      li.classList.toggle('atual', i + 1 === n);
+      if (i + 1 === n) li.setAttribute('aria-current', 'step'); else li.removeAttribute('aria-current');
+    });
+  }
+
+  // Traduz a mensagem técnica em "o que houve" e "o que fazer".
+  function explicarErro(msg, nomeArquivo){
+    var m = String(msg || '');
+    var casos = [
+      [/não parece um XML AUDESP|Descritor não foi encontrado/i, 'O arquivo não é um XML AUDESP de Contas Correntes.', 'No sistema de gestão, gere o arquivo "Contas Correntes" do AUDESP (não o PDF nem o balancete) e envie o .xml.'],
+      [/raiz do XML/i, 'O arquivo não tem a estrutura de um XML.', 'Abra o arquivo no Bloco de Notas: se começar com "<?xml", gere-o de novo no sistema de gestão; se for outro formato, exporte como XML.'],
+      [/Não foram encontrados registros de receita|Nenhum bloco de receita/i, 'O arquivo não traz registros de receita arrecadada.', 'Confira se é o XML da competência inteira (com Receita Arrecadada) e não de outro módulo, como despesa ou folha.'],
+      [/competência \(mês\/ano\)/i, 'Não foi possível identificar o mês e o ano do arquivo.', 'O descritor do XML precisa informar a competência. Gere o arquivo de novo e confira se ele não foi editado.'],
+      [/Leiaute não reconhecido/i, 'Este leiaute do AUDESP ainda não é lido pela ferramenta.', 'Envie o leiaute "Contas Correntes". Outros leiautes ainda não são aceitos.'],
+      [/pertence a .* mas esta sessão/i, 'O arquivo é de outro município.', 'Cada sessão trabalha com um município. Envie apenas arquivos do seu município.'],
+      [/excede o limite de envio/i, 'O arquivo é grande demais mesmo depois de reduzido.', 'Avise o suporte informando o município e a competência.'],
+      [/Não foi possível carregar a conexão|Failed to fetch|Network/i, 'Sem conexão com o servidor de apuração.', 'Confira a internet e tente de novo.'],
+      [/Faça login|Sessão|401/i, 'Sua sessão expirou.', 'Entre de novo no sistema e repita o envio.']
+    ];
+    for (var i = 0; i < casos.length; i++){
+      if (casos[i][0].test(m)) return { titulo: casos[i][1], dica: casos[i][2], detalhe: m };
+    }
+    return { titulo: 'Não foi possível processar este arquivo.', dica: 'Tente de novo. Se o erro continuar, avise o suporte informando o município, a competência e o texto abaixo.', detalhe: m };
+  }
+
+  function mostrarErro(msg, nomeArquivo){
+    var ex = explicarErro(msg, nomeArquivo);
+    var el = document.getElementById('alerta-global');
+    el.innerHTML = '<div class="alerta-erro" role="alert"><button type="button" class="fechar-erro" aria-label="Fechar aviso">&times;</button>' +
+      '<strong>' + (nomeArquivo ? '"' + nomeArquivo + '": ' : '') + ex.titulo + '</strong>' +
+      '<div class="dica">' + ex.dica + '</div>' +
+      '<div class="dica" style="opacity:.8">Detalhe técnico: ' + ex.detalhe + '</div></div>';
+    el.querySelector('.fechar-erro').addEventListener('click', function(){ el.innerHTML = ''; });
+    setTimeout(function(){ if (el.firstChild && el.querySelector('.fechar-erro')) el.innerHTML = ''; }, 30000);
   }
 
   // Componente de barra de progresso reutilizável
@@ -461,6 +521,14 @@
 
   function processarArquivos(fileList){
     Array.prototype.forEach.call(fileList, function(file){
+      if (!/\.xml$/i.test(file.name)){
+        mostrarErro('Este arquivo não é um XML (extensão diferente de .xml). No sistema de gestão, exporte o arquivo AUDESP "Contas Correntes" em XML.', file.name);
+        return;
+      }
+      if (file.size === 0){
+        mostrarErro('O arquivo está vazio (0 KB). Gere o XML de novo no sistema de gestão.', file.name);
+        return;
+      }
       var reader = new FileReader();
       reader.onload = async function(e){
         var container = document.getElementById('area-progresso');
@@ -505,7 +573,7 @@
           }
         } catch(err){
           prog.remover();
-          mostrarErro('Falha ao processar "'+file.name+'": '+err.message);
+          mostrarErro(err.message, file.name);
           return;
         }
 
@@ -897,6 +965,7 @@
         return;
       }
 
+      concluiuEtapa3('salvou');
       mostrarMsg('Apuração de ' + MESES[d.mes] + '/' + d.ano + ' salva para ' + municipio.nome + '.', 'var(--green)');
     } catch(err){
       mostrarMsg('Erro inesperado ao salvar: ' + err.message, 'var(--red)');
@@ -1211,6 +1280,7 @@
       a.href = url; a.download = nomeArquivo;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
       URL.revokeObjectURL(url);
+      concluiuEtapa3('baixou');
     } catch(err){
       alert('Não foi possível gerar a planilha: ' + err.message);
       console.error(err);

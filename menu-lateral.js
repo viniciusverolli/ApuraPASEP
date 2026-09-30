@@ -393,6 +393,99 @@
     if (semAcesso) document.querySelectorAll('.ml-nav [data-apuracao]').forEach(function(a){ a.style.display = 'none'; });
   }
 
+
+  // ---------- Acessibilidade, trilha de navegação e ajuda contextual ----------
+  var CSS_EXTRA =
+    '.ml-pular{ position:absolute; left:8px; top:-60px; z-index:200; background:#172033; color:#F2F0EA; padding:10px 14px; border-radius:8px; font:600 14px Inter,sans-serif; text-decoration:none; }' +
+    '.ml-pular:focus{ top:8px; outline:2px solid #5eead4; outline-offset:2px; }' +
+    '.ml-side a:focus-visible, .ml-side button:focus-visible, .ml-topbar a:focus-visible, .ml-topbar button:focus-visible{ outline:2px solid #5eead4; outline-offset:2px; }' +
+    '.ml-trilha{ font:500 12.5px Inter,sans-serif; color:#475569; margin:0 0 14px; }' +
+    '.ml-trilha ol{ list-style:none; margin:0; padding:0; display:flex; flex-wrap:wrap; gap:4px 8px; align-items:center; }' +
+    '.ml-trilha li+li::before{ content:"\\203A"; margin-right:8px; color:#94a3b8; }' +
+    '.ml-trilha a{ color:#475569; text-decoration:none; border-bottom:1px solid #cbd5e1; }' +
+    '.ml-trilha a:hover{ color:#172033; border-color:#172033; }' +
+    '.ml-trilha [aria-current]{ color:#172033; font-weight:700; }' +
+    '.ml-ajuda-btn{ display:inline-flex; align-items:center; justify-content:center; width:18px; height:18px; margin-left:6px; border-radius:50%; border:1px solid currentColor; background:transparent; color:inherit; font:700 11px Inter,sans-serif; line-height:1; cursor:pointer; padding:0; vertical-align:middle; opacity:.75; }' +
+    '.ml-ajuda-btn:hover, .ml-ajuda-btn[aria-expanded="true"]{ opacity:1; }' +
+    '.ml-ajuda-btn:focus-visible{ outline:2px solid #5eead4; outline-offset:2px; opacity:1; }' +
+    '.ml-ajuda-pop{ position:absolute; z-index:150; max-width:300px; background:#172033; color:#F2F0EA; border-radius:10px; padding:10px 12px; font:400 12.5px/1.5 Inter,sans-serif; box-shadow:0 10px 30px rgba(15,20,32,.35); text-align:left; }' +
+    '@media (max-width:' + QUEBRA + 'px){ .ml-nav a, .ml-nav .ml-desativado, .ml-sair, .ml-voltar{ min-height:44px; display:flex; align-items:center; } .ml-topbar .ml-btn-menu{ width:44px; height:44px; } .ml-fechar{ min-width:44px; min-height:44px; } }' +
+    '@media (prefers-reduced-motion:reduce){ *{ transition:none !important; scroll-behavior:auto !important; } }';
+
+  // Páginas do sistema e seus caminhos (o último item é a página atual).
+  var TRILHAS = {
+    'PASEP_teste_jspdf.html': [['Painel', 'painel.html'], ['Nova apuração']],
+    'repositorio_pasep_cosit.html': [['Painel', 'painel.html'], ['Repositório de normas']],
+    'admin.html': [['Painel', 'painel.html'], ['Administração']],
+    'admin-regras.html': [['Painel', 'painel.html'], ['Administração', 'admin.html'], ['Regras de cálculo']],
+    'admin-apuracoes.html': [['Painel', 'painel.html'], ['Administração', 'admin.html'], ['Apurações por município']]
+  };
+
+  function montarTrilha(){
+    var main = document.querySelector('main');
+    if (!main) return;
+    if (!main.id) main.id = 'conteudo-principal';
+    main.setAttribute('tabindex', '-1');
+    var pular = document.createElement('a');
+    pular.className = 'ml-pular'; pular.href = '#' + main.id; pular.textContent = 'Ir para o conteúdo';
+    document.body.insertBefore(pular, document.body.firstChild);
+
+    var passos = TRILHAS[arquivoAtual()];
+    if (!passos) return;
+    var nav = document.createElement('nav');
+    nav.className = 'ml-trilha'; nav.setAttribute('aria-label', 'Você está em');
+    nav.innerHTML = '<ol>' + passos.map(function(p, i){
+      var ultimo = i === passos.length - 1;
+      return '<li>' + (p[1] && !ultimo ? '<a href="' + esc(p[1]) + '">' + esc(p[0]) + '</a>' : '<span' + (ultimo ? ' aria-current="page"' : '') + '>' + esc(p[0]) + '</span>') + '</li>';
+    }).join('') + '</ol>';
+    main.insertBefore(nav, main.firstChild);
+  }
+
+  // Ajuda contextual: qualquer elemento com data-ajuda="texto" ganha um botão "?" que abre uma
+  // explicação curta (teclado: Enter/Espaço abre, Esc fecha). Pode ser chamada de novo depois
+  // de a página redesenhar trechos: window.iniciarAjuda(raiz).
+  var popAberto = null;
+  function fecharAjuda(){
+    if (!popAberto) return;
+    popAberto.botao.setAttribute('aria-expanded', 'false');
+    if (popAberto.pop.parentNode) popAberto.pop.parentNode.removeChild(popAberto.pop);
+    popAberto = null;
+  }
+  window.iniciarAjuda = function(raiz){
+    (raiz || document).querySelectorAll('[data-ajuda]:not([data-ajuda-ok])').forEach(function(alvo){
+      alvo.setAttribute('data-ajuda-ok', '1');
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'ml-ajuda-btn'; b.textContent = '?';
+      b.setAttribute('aria-label', 'Ajuda: ' + (alvo.getAttribute('data-ajuda-titulo') || alvo.textContent.trim().slice(0, 40)));
+      b.setAttribute('aria-expanded', 'false');
+      b.addEventListener('click', function(e){
+        e.stopPropagation();
+        var estava = popAberto && popAberto.botao === b;
+        fecharAjuda();
+        if (estava) return;
+        var pop = document.createElement('div');
+        pop.className = 'ml-ajuda-pop'; pop.setAttribute('role', 'tooltip');
+        pop.textContent = alvo.getAttribute('data-ajuda');
+        document.body.appendChild(pop);
+        var r = b.getBoundingClientRect();
+        var esq = Math.max(8, Math.min(window.scrollX + r.left - 8, window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 8));
+        pop.style.left = esq + 'px';
+        pop.style.top = (window.scrollY + r.bottom + 6) + 'px';
+        b.setAttribute('aria-expanded', 'true');
+        popAberto = { pop: pop, botao: b };
+      });
+      alvo.appendChild(b);
+    });
+  };
+  document.addEventListener('click', fecharAjuda);
+  document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharAjuda(); });
+
+  function cssExtra(){
+    var s = document.createElement('style');
+    s.id = 'ml-css-extra'; s.textContent = CSS_EXTRA;
+    document.head.appendChild(s);
+  }
+
   function iniciar(){
     var origem = document.getElementById('ml-extra-origem');
     var extra = document.getElementById('mlExtra');
@@ -401,10 +494,13 @@
       origem.parentNode.removeChild(origem);
     }
     preencherBotoesVoltar();
+    if (MODO === 'menu') montarTrilha();
+    window.iniciarAjuda();
     carregarDados(MODO === 'menu');
   }
 
   css();
+  cssExtra();
   if (MODO === 'menu') montarMenu();
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', iniciar);
   else iniciar();
