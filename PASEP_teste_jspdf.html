@@ -416,6 +416,8 @@
     var m = String(msg || '');
     var casos = [
       [/não parece um XML AUDESP|Descritor não foi encontrado/i, 'O arquivo não é um XML AUDESP de Contas Correntes.', 'No sistema de gestão, gere o arquivo "Contas Correntes" do AUDESP (não o PDF nem o balancete) e envie o .xml.'],
+      [/extensão diferente de \.xml/i, 'O arquivo não está em formato XML.', 'No sistema de gestão, exporte o arquivo AUDESP "Contas Correntes" em XML (não PDF nem planilha).'],
+      [/arquivo está vazio/i, 'O arquivo está vazio.', 'Gere o XML de novo no sistema de gestão e confira se o tamanho é maior que zero.'],
       [/raiz do XML/i, 'O arquivo não tem a estrutura de um XML.', 'Abra o arquivo no Bloco de Notas: se começar com "<?xml", gere-o de novo no sistema de gestão; se for outro formato, exporte como XML.'],
       [/Não foram encontrados registros de receita|Nenhum bloco de receita/i, 'O arquivo não traz registros de receita arrecadada.', 'Confira se é o XML da competência inteira (com Receita Arrecadada) e não de outro módulo, como despesa ou folha.'],
       [/competência \(mês\/ano\)/i, 'Não foi possível identificar o mês e o ano do arquivo.', 'O descritor do XML precisa informar a competência. Gere o arquivo de novo e confira se ele não foi editado.'],

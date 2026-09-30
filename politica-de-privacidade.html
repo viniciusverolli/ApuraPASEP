@@ -115,7 +115,7 @@
 <div class="tabela-scroll"><table>
 <thead><tr><th>Categoria</th><th>Exemplos</th><th>Origem e finalidade</th></tr></thead>
 <tbody>
-<tr><td>Conta do usuário</td><td>Nome, e-mail, senha (armazenada em forma de <em>hash</em>, nunca em texto legível), município vinculado, confirmação do e-mail, versão dos Termos aceita e data do aceite</td><td>Informados pelo usuário no cadastro. Permitir o acesso, identificar quem usa e comprovar o aceite.</td></tr>
+<tr><td>Conta do usuário</td><td>Nome, e-mail, senha (armazenada em forma de <em>hash</em>, nunca em texto legível), município vinculado, confirmação do e-mail, versão dos Termos aceita e data do aceite. No cadastro do município, também o nome e o e-mail de quem o solicitou (o responsável), para conferência antes da aprovação. Para cada município, a data do último acesso e o e-mail do usuário que acessou</td><td>Informados pelo usuário no cadastro ou gerados pelo uso. Permitir o acesso, identificar quem usa, confirmar a legitimidade do pedido de cadastro, acompanhar o uso da licença e comprovar o aceite.</td></tr>
 <tr><td>Cadastro do município</td><td>Nome, UF, código TCE, sistema de gestão, situação do cadastro, plano e validade da licença</td><td>Cadastro e administração da plataforma. Vincular usuários e arquivos ao município correto e controlar a licença.</td></tr>
 <tr><td>Dados enviados para cálculo</td><td>Descritor do arquivo (exercício, mês, código do município, tipo de documento) e registros de receita (classificação econômica, conta contábil, fonte de recursos, código de aplicação e movimentos)</td><td>Extraídos do XML AUDESP no navegador do usuário. Calcular o PASEP. Detalhes na seção 4.</td></tr>
 <tr><td>Resultados salvos</td><td>Competência, receitas, base de cálculo, valor retido, valor a pagar, situação e sistema de gestão usado</td><td>Gravados somente quando o usuário aciona &ldquo;Salvar no sistema&rdquo;. Manter o histórico do município.</td></tr>
@@ -132,7 +132,7 @@
 <p>4.2. <strong>Como.</strong> A seleção desses blocos é feita no próprio navegador do usuário. Os demais registros do arquivo, como empenhos, pagamentos, credores e outras contas correntes, não são enviados. A parte selecionada trafega por conexão segura (HTTPS), é processada em memória pela função de cálculo e devolvida ao usuário como resultado.</p>
 <p>4.3. <strong>Finalidade e necessidade</strong> (LGPD, art. 6º, I e III). A leitura serve exclusivamente à apuração do PASEP do município. Não usamos esses dados para publicidade, perfilamento, venda a terceiros ou treinamento de modelos de inteligência artificial.</p>
 <p>4.4. <strong>Não armazenamento do arquivo.</strong> A plataforma não grava o arquivo XML, nem o trecho enviado, em seu banco de dados. Só são gravados os resultados quando o usuário salva a apuração. O provedor de infraestrutura pode manter registros técnicos das execuções da função de cálculo por <mark class="preencher">[PERÍODO DE RETENÇÃO DOS REGISTROS DE EXECUÇÃO. Verificar na aba Executions e nas configurações de log da função]</mark>.</p>
-<p>4.5. <strong>Conferência com bases públicas.</strong> Quando o usuário aciona a conferência com a API de transparência do TCESP, a consulta é feita a partir do navegador dele e envolve dados públicos. Como em qualquer acesso à internet, o endereço IP do usuário é visto pelo TCESP.</p>
+<p>4.5. <strong>Conferência do resultado.</strong> A conferência é feita pelo próprio usuário, com a planilha detalhada em Excel gerada no navegador dele. A plataforma não consulta bases externas, como a API de transparência do TCESP, durante a apuração.</p>
 <p>4.6. <strong>Responsabilidade do município.</strong> Cabe ao município garantir que tem autorização para enviar o arquivo e que o envio observa a LGPD e as normas de sigilo aplicáveis.</p>
 <p>4.7. <strong>Princípios aplicados</strong> (LGPD, art. 6º): finalidade, adequação, necessidade, livre acesso, qualidade dos dados, transparência, segurança, prevenção, não discriminação e responsabilização e prestação de contas.</p>
 
@@ -154,7 +154,6 @@
 <tr><td>Appwrite (Appwrite Cloud)</td><td>Infraestrutura: banco de dados, autenticação, funções, hospedagem do site e envio de e-mails de verificação e recuperação de senha</td><td>Todos os dados da plataforma, exceto o conteúdo do arquivo XML que não é enviado</td></tr>
 <tr><td>GitHub</td><td>Hospedagem do código-fonte do site</td><td>Nenhum dado de usuário</td></tr>
 <tr><td>Google Fonts, jsDelivr e cdnjs</td><td>Entrega de fontes e bibliotecas ao navegador</td><td>Endereço IP e dados do navegador, como em qualquer requisição web</td></tr>
-<tr><td>TCESP</td><td>API pública de transparência, consultada apenas quando o usuário aciona a conferência</td><td>Endereço IP do usuário</td></tr>
 <tr><td>Google e Microsoft</td><td>Login social, se e quando esse recurso for habilitado</td><td>Identificação da conta usada no login</td></tr>
 </tbody></table></div>
 <p>Não compartilhamos dados pessoais para fins de marketing. Podemos compartilhá-los por obrigação legal, ordem judicial ou requisição de autoridade competente.</p>
