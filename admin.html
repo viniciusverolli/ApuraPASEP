@@ -198,6 +198,7 @@
     <div class="cab-tabela-clientes" id="secaoMunicipios">
       <div class="section-title" style="margin:0">Municípios cadastrados</div>
       <div>
+        <button type="button" class="btn-acao" id="btnUsuariosPlataforma">Usuários da plataforma</button>
         <button type="button" class="btn-acao" id="btnExportarLista">Exportar lista (CSV para Excel)</button>
         <button type="button" class="btn-acao primario" id="btnNovoMunicipio">+ Cadastrar município</button>
       </div>
@@ -299,7 +300,7 @@
 </div>
 <div class="modal-fundo" id="modalConvite">
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="mcTitulo">
-    <h2 id="mcTitulo">Convidar usuário</h2>
+    <h2 id="mcTitulo">Usuários do município</h2>
     <p class="modal-sub" id="mcSub"></p>
     <div class="campo-form">
       <label for="mcEmail">E-mail do usuário</label>
@@ -308,7 +309,7 @@
     <div class="campo-form">
       <label for="mcNome">Nome (opcional)</label>
       <input type="text" id="mcNome" autocomplete="off">
-      <div class="ajuda">O usuário recebe um e-mail com o link de aceite. Se ainda não tiver conta, define a senha ao aceitar.</div>
+      <div class="ajuda">O usuário passa a ter acesso na hora. Se ainda não tiver conta, ela é criada e ele recebe por e-mail o link para definir a senha.</div>
     </div>
     <div class="erro-form" id="mcErro" role="alert" style="display:none"></div>
     <div class="campo-form">
@@ -317,8 +318,25 @@
     </div>
     <div class="modal-acoes">
       <button type="button" class="btn-acao" id="mcCancelar">Fechar</button>
-      <button type="button" class="btn-acao primario" id="mcEnviar">Enviar convite</button>
+      <button type="button" class="btn-acao primario" id="mcEnviar">Adicionar usuário</button>
     </div>
+  </div>
+</div>
+<div class="modal-fundo" id="modalUsuarios">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="muTitulo" style="max-width:920px">
+    <h2 id="muTitulo">Usuários da plataforma</h2>
+    <p class="modal-sub" id="muSub">Carregando…</p>
+    <div class="barra-tabela">
+      <input type="search" id="muBusca" placeholder="Buscar por nome, e-mail ou município" aria-label="Buscar usuário">
+      <select id="muFiltro" aria-label="Filtrar usuários">
+        <option value="">Todos</option><option value="semmun">Sem município</option><option value="naoverif">E-mail não confirmado</option><option value="nuncaacessou">Nunca acessaram</option><option value="inativos">Sem acesso há 60 dias</option>
+      </select>
+    </div>
+    <div class="tabela-scroll"><table class="clientes">
+      <thead><tr><th>Usuário</th><th>Município</th><th>E-mail</th><th>Cadastro</th><th>Último acesso</th></tr></thead>
+      <tbody id="muCorpo"><tr><td colspan="5" class="estado-carregando">Carregando…</td></tr></tbody>
+    </table></div>
+    <div class="modal-acoes"><button type="button" class="btn-acao" id="muFechar">Fechar</button></div>
   </div>
 </div>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
@@ -349,6 +367,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
 <script src="admin-util.js"></script>
+<script src="servidor.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -451,12 +470,15 @@
   }
   function usoHtml(m){
     var u = estado.apuracoes[m.$id];
-    if (!u) return '<span class="secundario">nenhuma apuração</span>' + (m.status === 'ativo' ? '<br><span class="badge pendente">sem ' + textoCompetencia(chaveRef()) + '</span>' : '');
+    if (!u) return '<span class="secundario">nenhuma apuração</span>' + (m.status === 'ativo' ? '<br><span class="badge pendente">sem ' + textoCompetencia(chaveRef()) + '</span>' : '') + acessoHtml(m);
     var selo = '';
     var ed = emDia(m);
     if (ed === true) selo = '<br><span class="badge ativo">em dia</span>';
     else if (ed === false) selo = '<br><span class="badge pendente">sem ' + textoCompetencia(chaveRef()) + '</span>';
-    return '<span>' + textoCompetencia(u.ultima) + '</span><br><span class="secundario">' + u.total + (u.total === 1 ? ' apuração' : ' apurações') + '</span>' + selo;
+    return '<span>' + textoCompetencia(u.ultima) + '</span><br><span class="secundario">' + u.total + (u.total === 1 ? ' apuração' : ' apurações') + '</span>' + selo + acessoHtml(m);
+  }
+  function acessoHtml(m){
+    return m.ultimo_acesso ? '<br><span class="secundario" title="' + esc(m.ultimo_acesso_email || '') + '">acesso em ' + dataBr(m.ultimo_acesso) + '</span>' : '';
   }
 
   // ---------------- Carga e tela ----------------
@@ -715,6 +737,14 @@
     }
   }
 
+  // E-mail ao responsável (feito pela função do servidor). Falha no envio nunca desfaz a decisão.
+  async function avisarPorEmail(municipioId, resultado){
+    try {
+      var r = await chamarServidor(client, 'admin_notificar', { municipio_id: municipioId, resultado: resultado });
+      return r.email && r.email.enviado ? ' Responsável avisado por e-mail.' : ' E-mail ao responsável não enviado (' + ((r.email && r.email.motivo) || 'motivo desconhecido') + ').';
+    } catch (e) { return ' E-mail ao responsável não enviado.'; }
+  }
+
   async function aprovarMunicipio(municipioId){
     var m = mapaMunicipios[municipioId];
     if (!m) return;
@@ -738,7 +768,8 @@
       await registrarAuditoria('aprovar', municipioId, m.nome, 'Licença trial de 30 dias criada automaticamente. Responsável: ' + (m.responsavel_email || 'não informado'));
       await recarregarClientes();
       await recarregarAuditoria();
-      mostrarToast(m.nome + ' aprovado, com licença de teste de 30 dias.');
+      var textoEmail = await avisarPorEmail(municipioId, 'aprovado');
+      mostrarToast(m.nome + ' aprovado, com licença de teste de 30 dias.' + textoEmail);
     } catch (err) {
       mostrarToast('Não foi possível aprovar: ' + erroAmigavel(err), true);
     }
@@ -757,7 +788,8 @@
       await registrarAuditoria(novoStatus === 'suspenso' ? 'suspender' : 'reativar', municipioId, m.nome, 'Status alterado para ' + novoStatus);
       await recarregarClientes();
       await recarregarAuditoria();
-      mostrarToast(m.nome + (novoStatus === 'suspenso' ? ' suspenso.' : ' reativado.'));
+      var textoEmail2 = await avisarPorEmail(municipioId, novoStatus === 'suspenso' ? 'suspenso' : 'reativado');
+      mostrarToast(m.nome + (novoStatus === 'suspenso' ? ' suspenso.' : ' reativado.') + textoEmail2);
     } catch (err) {
       mostrarToast('Não foi possível alterar o status: ' + erroAmigavel(err), true);
     }
@@ -991,10 +1023,10 @@
 
 
   // ===== Usuários de um município (convidar, remover, trocar o responsável) =====
-  // Usa as memberships do Appwrite Teams. Só funciona quando o administrador participa do time do
-  // município (os que ele mesmo cadastrou). Nos municípios de autocadastro o time é do responsável
-  // que se cadastrou e o administrador não o enxerga: para esses casos seria preciso uma função no
-  // servidor, que ainda não existe (o plano gratuito tem uma vaga de função, já ocupada pelo motor).
+  // Tudo passa pela função do servidor (servidor.js), que consegue ver e alterar o time de
+  // qualquer município, inclusive os de autocadastro, dos quais o administrador não participa.
+  // O servidor coloca a pessoa no time na hora (não envia convite por e-mail). Quando a conta é
+  // nova, esta página pede ao Appwrite o e-mail de definição de senha.
   var conviteMunicipioId = null;
   var membrosDoConvite = [];
 
@@ -1008,20 +1040,20 @@
     var alvo = document.getElementById('mcMembros');
     if (!m.team_id){ alvo.textContent = 'Este município não tem time associado.'; return; }
     try {
-      var r = await teams.listMemberships({ teamId: m.team_id });
-      membrosDoConvite = r.memberships;
-      var eDono = function(mb){ return (mb.roles || []).indexOf('owner') !== -1; };
-      alvo.innerHTML = r.memberships.length ? r.memberships.map(function(mb){
+      var r = await chamarServidor(client, 'admin_membros', { teamId: m.team_id });
+      membrosDoConvite = r.membros;
+      var eDono = function(mb){ return (mb.papeis || []).indexOf('owner') !== -1; };
+      alvo.innerHTML = r.membros.length ? r.membros.map(function(mb){
         var botoes = '';
-        if (!eDono(mb)) botoes += '<button type="button" class="btn-mini" data-mb-acao="promover" data-mb="' + esc(mb.$id) + '">Tornar responsável</button>';
-        if (!mb.confirm) botoes += '<button type="button" class="btn-mini" data-mb-acao="reenviar" data-mb="' + esc(mb.$id) + '">Reenviar convite</button>';
-        botoes += '<button type="button" class="btn-mini perigo" data-mb-acao="remover" data-mb="' + esc(mb.$id) + '">Remover</button>';
-        return '<div class="membro"><div>' + esc(mb.userName || '—') + ' &lt;' + esc(mb.userEmail) + '&gt;<br><span class="secundario">' +
-          (mb.confirm ? 'ativo' : 'convite pendente') + (eDono(mb) ? ' · responsável (owner)' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
+        if (!eDono(mb)) botoes += '<button type="button" class="btn-mini" data-mb-acao="promover" data-mb="' + esc(mb.id) + '">Tornar responsável</button>';
+        botoes += '<button type="button" class="btn-mini" data-mb-acao="senha" data-mb="' + esc(mb.id) + '">Enviar link de senha</button>';
+        botoes += '<button type="button" class="btn-mini perigo" data-mb-acao="remover" data-mb="' + esc(mb.id) + '">Remover</button>';
+        return '<div class="membro"><div>' + esc(mb.nome || '—') + ' &lt;' + esc(mb.email) + '&gt;<br><span class="secundario">' +
+          (mb.confirmado ? 'ativo' : 'convite antigo pendente') + (eDono(mb) ? ' · responsável (owner)' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
       }).join('') : 'Nenhum usuário.';
     } catch (e) {
       membrosDoConvite = [];
-      alvo.innerHTML = 'Não foi possível listar os usuários deste município: você não faz parte do grupo dele. Isso acontece nos municípios que se cadastraram sozinhos. Para convidar, remover ou trocar o responsável nesses casos, é preciso uma função no servidor (ainda não implantada).';
+      alvo.textContent = 'Não foi possível listar os usuários deste município: ' + erroAmigavel(e);
     }
   }
 
@@ -1035,7 +1067,7 @@
     document.getElementById('mcMembros').textContent = 'Carregando…';
     erroConvite('');
     var btn = document.getElementById('mcEnviar');
-    btn.disabled = false; btn.textContent = 'Enviar convite';
+    btn.disabled = false; btn.textContent = 'Adicionar usuário';
     document.getElementById('modalConvite').classList.add('aberto');
     carregarMembrosConvite(m);
     document.getElementById('mcEmail').focus();
@@ -1051,55 +1083,56 @@
     if (!m) return;
     var email = valor('mcEmail').trim(), nome = valor('mcNome').trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ erroConvite('Informe um e-mail válido.'); return; }
-    if (!m.team_id){ erroConvite('Este município não tem time associado; não é possível convidar usuários.'); return; }
+    if (!m.team_id){ erroConvite('Este município não tem time associado; não é possível adicionar usuários.'); return; }
     erroConvite('');
     var btn = document.getElementById('mcEnviar');
-    btn.disabled = true; btn.textContent = 'Enviando...';
+    btn.disabled = true; btn.textContent = 'Adicionando...';
+    var resposta;
     try {
-      var params = { teamId: m.team_id, roles: ['member'], email: email, url: window.location.origin + '/aceitar-convite.html' };
-      if (nome) params.name = nome;
-      await teams.createMembership(params);
+      resposta = await chamarServidor(client, 'admin_convidar', { teamId: m.team_id, email: email, nome: nome || null, papeis: ['member'] });
     } catch (e) {
-      erroConvite(e.code === 401 || e.code === 403
-        ? 'Você não tem permissão para convidar usuários para este município: só o responsável (owner) do grupo pode convidar, e este grupo foi criado pelo próprio município no autocadastro.'
-        : erroAmigavel(e));
-      btn.disabled = false; btn.textContent = 'Enviar convite';
+      erroConvite(erroAmigavel(e));
+      btn.disabled = false; btn.textContent = 'Adicionar usuário';
       return;
     }
-    await registrarAuditoria('convidar_usuario', m.$id, m.nome, 'Convite enviado para ' + email);
-    mostrarToast('Convite enviado para ' + email + '.');
+    var aviso = email + ' agora tem acesso a ' + m.nome + '.';
+    if (resposta.contaCriada){
+      try {
+        await account.createRecovery({ email: email, url: window.location.origin + '/recuperar-senha.html' });
+        aviso = 'Conta criada para ' + email + ' e link para definir a senha enviado por e-mail.';
+      } catch (e) {
+        aviso = 'Conta criada para ' + email + ', mas o e-mail de senha NÃO foi enviado. Use "Enviar link de senha" na lista abaixo.';
+      }
+    }
+    await registrarAuditoria('convidar_usuario', m.$id, m.nome, 'Usuário adicionado: ' + email + (resposta.contaCriada ? ' (conta nova)' : ''));
+    mostrarToast(aviso);
     document.getElementById('mcEmail').value = '';
     document.getElementById('mcNome').value = '';
-    btn.disabled = false; btn.textContent = 'Enviar convite';
+    btn.disabled = false; btn.textContent = 'Adicionar usuário';
     carregarMembrosConvite(m);
     recarregarAuditoria();
   }
 
   async function acaoMembro(acao, membershipId){
     var m = mapaMunicipios[conviteMunicipioId];
-    var mb = membrosDoConvite.filter(function(x){ return x.$id === membershipId; })[0];
+    var mb = membrosDoConvite.filter(function(x){ return x.id === membershipId; })[0];
     if (!m || !mb) return;
-    var nomeUsuario = (mb.userName || mb.userEmail);
-    var donos = membrosDoConvite.filter(function(x){ return (x.roles || []).indexOf('owner') !== -1; }).length;
+    var nomeUsuario = (mb.nome || mb.email);
     try {
       if (acao === 'remover'){
-        if ((mb.roles || []).indexOf('owner') !== -1 && donos <= 1){ erroConvite('Este é o único responsável (owner) do município. Torne outro usuário responsável antes de removê-lo.'); return; }
         if (!(await confirmar({ titulo: 'Remover ' + nomeUsuario + '?', texto: nomeUsuario + ' perde o acesso a ' + m.nome + '. Nenhuma apuração é apagada.', rotuloOk: 'Remover', perigo: true }))) return;
-        await teams.deleteMembership({ teamId: m.team_id, membershipId: membershipId });
-        await registrarAuditoria('usuario_remover', m.$id, m.nome, 'Removido: ' + mb.userEmail);
+        await chamarServidor(client, 'admin_remover_membro', { teamId: m.team_id, membershipId: membershipId });
+        await registrarAuditoria('usuario_remover', m.$id, m.nome, 'Removido: ' + mb.email);
         mostrarToast(nomeUsuario + ' removido.');
       } else if (acao === 'promover'){
         if (!(await confirmar({ titulo: 'Tornar ' + nomeUsuario + ' responsável?', texto: 'O responsável (owner) pode convidar e remover usuários do município.', rotuloOk: 'Tornar responsável' }))) return;
-        await teams.updateMembership({ teamId: m.team_id, membershipId: membershipId, roles: ['owner'] });
-        await registrarAuditoria('usuario_responsavel', m.$id, m.nome, 'Novo responsável: ' + mb.userEmail);
+        await chamarServidor(client, 'admin_definir_papel', { teamId: m.team_id, membershipId: membershipId, papeis: ['owner'] });
+        await registrarAuditoria('usuario_responsavel', m.$id, m.nome, 'Novo responsável: ' + mb.email);
         mostrarToast(nomeUsuario + ' agora é responsável.');
-      } else if (acao === 'reenviar'){
-        await teams.deleteMembership({ teamId: m.team_id, membershipId: membershipId });
-        var params = { teamId: m.team_id, roles: mb.roles && mb.roles.length ? mb.roles : ['member'], email: mb.userEmail, url: window.location.origin + '/aceitar-convite.html' };
-        if (mb.userName) params.name = mb.userName;
-        await teams.createMembership(params);
-        await registrarAuditoria('usuario_reenviar', m.$id, m.nome, 'Convite reenviado para ' + mb.userEmail);
-        mostrarToast('Convite reenviado para ' + mb.userEmail + '.');
+      } else if (acao === 'senha'){
+        await account.createRecovery({ email: mb.email, url: window.location.origin + '/recuperar-senha.html' });
+        await registrarAuditoria('usuario_reenviar', m.$id, m.nome, 'Link de senha enviado para ' + mb.email);
+        mostrarToast('Link para definir a senha enviado para ' + mb.email + '.');
       }
       erroConvite('');
       carregarMembrosConvite(m);
@@ -1318,6 +1351,47 @@
     if (b) acaoMembro(b.getAttribute('data-mb-acao'), b.getAttribute('data-mb'));
   });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharModalConvite(); });
+
+  // ===== Usuários da plataforma (todos, inclusive dos municípios de autocadastro) =====
+  var usuariosPlataforma = [];
+  function renderUsuariosPlataforma(){
+    var busca = norm(valor('muBusca')), f = valor('muFiltro'), agora = Date.now();
+    var lista = usuariosPlataforma.filter(function(u){
+      var munis = u.municipios.map(function(x){ return x.nome + '/' + x.uf; }).join(' ');
+      if (busca && norm(u.nome + ' ' + u.email + ' ' + munis).indexOf(busca) === -1) return false;
+      if (f === 'semmun') return !u.admin && !u.municipios.length;
+      if (f === 'naoverif') return u.verificado === false;
+      if (f === 'nuncaacessou') return !u.ultimoAcesso;
+      if (f === 'inativos') return u.ultimoAcesso && agora - new Date(u.ultimoAcesso).getTime() > 60 * 864e5;
+      return true;
+    });
+    document.getElementById('muSub').textContent = lista.length + ' de ' + usuariosPlataforma.length + ' usuários.';
+    document.getElementById('muCorpo').innerHTML = lista.length ? lista.map(function(u){
+      var munis = u.admin ? '<span class="badge ativo">administrador</span> ' : '';
+      munis += u.municipios.length ? u.municipios.map(function(x){ return esc(x.nome) + '/' + esc(x.uf) + ((x.papeis || []).indexOf('owner') !== -1 ? ' (responsável)' : ''); }).join('<br>') : (u.admin ? '' : '<span class="badge pendente">sem município</span>');
+      return '<tr><td>' + esc(u.nome || '—') + '<br><span class="secundario">' + esc(u.email) + '</span></td><td>' + munis + '</td>' +
+        '<td>' + (u.verificado === false ? '<span class="badge pendente">não confirmado</span>' : '<span class="secundario">confirmado</span>') + '</td>' +
+        '<td>' + (u.criadoEm ? dataBr(u.criadoEm) : '—') + '</td>' +
+        '<td>' + (u.ultimoAcesso ? dataHoraBr(u.ultimoAcesso) : '<span class="secundario">nunca</span>') + '</td></tr>';
+    }).join('') : '<tr><td colspan="5" class="estado-carregando">Nenhum usuário encontrado.</td></tr>';
+  }
+  async function abrirUsuariosPlataforma(){
+    document.getElementById('modalUsuarios').classList.add('aberto');
+    document.getElementById('muSub').textContent = 'Carregando…';
+    document.getElementById('muCorpo').innerHTML = '<tr><td colspan="5" class="estado-carregando">Carregando…</td></tr>';
+    try {
+      usuariosPlataforma = (await chamarServidor(client, 'admin_usuarios', {})).usuarios;
+      renderUsuariosPlataforma();
+    } catch (e) {
+      document.getElementById('muSub').textContent = '';
+      document.getElementById('muCorpo').innerHTML = '<tr><td colspan="5" class="estado-carregando">' + esc(erroAmigavel(e)) + '</td></tr>';
+    }
+  }
+  document.getElementById('btnUsuariosPlataforma').addEventListener('click', abrirUsuariosPlataforma);
+  document.getElementById('muFechar').addEventListener('click', function(){ document.getElementById('modalUsuarios').classList.remove('aberto'); });
+  document.getElementById('modalUsuarios').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('aberto'); });
+  document.getElementById('muBusca').addEventListener('input', renderUsuariosPlataforma);
+  document.getElementById('muFiltro').addEventListener('change', renderUsuariosPlataforma);
 
   document.getElementById('btnNovoMunicipio').addEventListener('click', function(){ abrirModalMunicipio('novo', null); });
   document.getElementById('mmCancelar').addEventListener('click', fecharModalMunicipio);

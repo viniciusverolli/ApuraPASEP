@@ -12,8 +12,8 @@
 // quando tudo foi concluído. painel.html chama retomarCadastroPendente() a cada acesso: se
 // encontrar dados pendentes, conclui o que faltou, sem duplicar o time nem o município.
 //
-// Depende das variáveis globais da página: account, teams, tablesDB, DATABASE_ID e do SDK
-// Appwrite carregado (Appwrite.ID, Appwrite.Query, Appwrite.Permission, Appwrite.Role).
+// Depende das variáveis globais da página: client, account, teams, tablesDB, DATABASE_ID, de
+// servidor.js (chamarServidor) e do SDK Appwrite carregado (Appwrite.ID, Appwrite.Query, Appwrite.Permission, Appwrite.Role).
 // ============================================================
 (function(){
   var TEAM_ADMINS_ID = '6ab476f0000e158fa770';
@@ -54,17 +54,13 @@
       queries: [Appwrite.Query.equal('team_id', teamId), Appwrite.Query.limit(1)]
     });
     if (jaTem.rows.length === 0){
-      await tablesDB.createRow({
-        databaseId: DATABASE_ID, tableId: 'municipios', rowId: Appwrite.ID.unique(),
-        data: {
-          nome: pendente.nome, uf: pendente.uf, sistema_gestao: pendente.sistema_gestao, status: 'pendente', team_id: teamId,
-          // Quem pediu o cadastro: o administrador confere antes de aprovar (admin.html).
-          responsavel_nome: pendente.responsavel_nome || null, responsavel_email: pendente.responsavel_email || null
-        },
-        // Só leitura para o time: alterar status, código TCE ou sistema de gestão é atribuição
-        // do administrador (permissão de update no nível da tabela, time plataforma-admins).
-        // Com update liberado ao time, o próprio município conseguiria se aprovar pela API.
-        permissions: [ Appwrite.Permission.read(Appwrite.Role.team(teamId)) ]
+      // A linha do município é criada pela função do servidor (servidor.js), que grava sempre
+      // com status "pendente", só leitura para o time, sem duplicar município e avisando os
+      // administradores. O navegador não tem mais permissão de criar linhas em "municipios".
+      // Quem pediu o cadastro fica como responsável (nome e e-mail), para o administrador conferir.
+      await chamarServidor(client, 'registrar_municipio', {
+        teamId: teamId, nome: pendente.nome, uf: pendente.uf, sistema_gestao: pendente.sistema_gestao,
+        responsavel_nome: pendente.responsavel_nome || null
       });
     }
 
@@ -96,6 +92,13 @@
       await executar(pendente, usuario.prefs);
       return { concluido: true };
     } catch (e) {
+      // Recusa definitiva do servidor (por exemplo, município já cadastrado): repetir não adianta.
+      // Desfaz o que sobrou (time criado e dados pendentes) para não tentar de novo a cada acesso.
+      if (e.recusado){
+        try { if (pendente.team_id) await teams.delete({ teamId: pendente.team_id }); } catch (x) { /* sem permissão: ignora */ }
+        try { await gravarPendente(usuario.prefs, null); } catch (x) { /* ignora */ }
+        return { concluido: false, erro: e.message, definitivo: true };
+      }
       return { concluido: false, erro: e.message };
     }
   };

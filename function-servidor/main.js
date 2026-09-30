@@ -12,7 +12,7 @@
 //   registrar_acesso      guarda o último acesso do município (no máximo 1 gravação por hora)
 //   admin_usuarios        (admin) todos os usuários, com município, papel e último acesso
 //   admin_membros         (admin) membros de qualquer time de município
-//   admin_convidar        (admin) convida para qualquer time de município
+//   admin_convidar        (admin) coloca um usuário (criando a conta, se preciso) em qualquer time de município
 //   admin_remover_membro  (admin) remove membro de time de município
 //   admin_definir_papel   (admin) altera os papéis de um membro
 //   admin_notificar       (admin) e-mail ao responsável sobre aprovação/suspensão/reativação
@@ -27,6 +27,7 @@
 // providers.read, messages.write, targets.read.
 // ============================================================
 
+import { randomBytes } from 'node:crypto';
 import { Client, Users, Teams, TablesDB, Messaging, Query, ID, Permission, Role } from 'node-appwrite';
 
 var DATABASE_ID = 'apurapasep';
@@ -274,15 +275,31 @@ async function adminMembros(s, c){
   return { ok: true, membros: membros.map(function(m){ return { id: m.$id, userId: m.userId, nome: m.userName, email: m.userEmail, papeis: m.roles, confirmado: m.confirm, entrou: m.joined }; }) };
 }
 
+// Pelo servidor o Appwrite não envia e-mail de convite: a pessoa entra no time na hora. Por isso
+// esta ação localiza (ou cria, com senha aleatória e e-mail marcado como verificado pelo
+// administrador) a conta e a coloca no time. Quando a conta é nova ("contaCriada"), a página do
+// administrador dispara o e-mail de definição de senha (account.createRecovery), que o próprio
+// Appwrite envia. Quando a conta já existia, a pessoa só passa a ver o município.
 async function adminConvidar(s, c){
   exigirTimeDeMunicipio(c.teamId);
   var email = String(c.email || '').trim().toLowerCase();
   if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) falhar('E-mail inválido.');
-  var papeis = (Array.isArray(c.papeis) && c.papeis.length) ? c.papeis.filter(function(p){ return ['owner', 'member'].indexOf(p) >= 0 }) : ['member'];
+  var papeis = (Array.isArray(c.papeis) ? c.papeis : []).filter(function(p){ return ['owner', 'member'].indexOf(p) >= 0; });
   if (!papeis.length) papeis = ['member'];
-  if (!c.url || !/^https:\/\//.test(c.url)) falhar('Endereço de retorno do convite inválido.');
-  await s.teams.createMembership({ teamId: c.teamId, roles: papeis, email: email, url: c.url, name: c.nome || undefined });
-  return { ok: true };
+  await s.teams.get({ teamId: c.teamId });
+
+  var achados = await s.users.list({ queries: [Query.equal('email', email), Query.limit(1)] });
+  var usuario = achados.users[0], contaCriada = false;
+  if (!usuario){
+    var senha = randomBytes(24).toString('base64url') + 'Aa1!';
+    usuario = await s.users.create({ userId: ID.unique(), email: email, password: senha, name: String(c.nome || '').slice(0, 128) || undefined });
+    await s.users.updateEmailVerification({ userId: usuario.$id, emailVerification: true });
+    contaCriada = true;
+  }
+  var ja = await s.teams.listMemberships({ teamId: c.teamId, queries: [Query.equal('userId', usuario.$id), Query.limit(1)] });
+  if (ja.memberships.length) falhar('Este usuário já faz parte do município.');
+  await s.teams.createMembership({ teamId: c.teamId, roles: papeis, userId: usuario.$id });
+  return { ok: true, contaCriada: contaCriada, userId: usuario.$id };
 }
 
 async function adminRemoverMembro(s, c){

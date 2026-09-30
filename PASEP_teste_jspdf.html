@@ -126,6 +126,7 @@
 </head>
 <body>
 <script src="menu-lateral.js" data-quebra="1150"></script>
+<script src="servidor.js"></script>
 <div class="shell">
   <div id="ml-extra-origem" hidden>
     <div class="who">
@@ -845,10 +846,8 @@
         return;
       }
       if (municipio.status !== 'ativo'){
-        // Verificação client-side, para dar uma mensagem clara ao usuário. Nota de honestidade:
-        // hoje isso NÃO é reforçado por permissão no servidor — suspender ou marcar pendente
-        // um município não revoga as permissões já concedidas ao time dele nesta tabela. Essa é
-        // uma lacuna arquitetural conhecida, registrada na lista de robustez do projeto.
+        // Verificação no navegador só para dar uma mensagem clara e rápida; a função do
+        // servidor repete a checagem (status e licença) e recusa a gravação se não for permitida.
         var msgStatus = municipio.status === 'pendente'
           ? 'O cadastro de ' + municipio.nome + ' ainda está aguardando aprovação do administrador da plataforma. Você poderá salvar apurações assim que o acesso for liberado.'
           : 'O acesso de ' + municipio.nome + ' está suspenso. Fale com o administrador da plataforma para regularizar.';
@@ -856,8 +855,7 @@
         return;
       }
 
-      // Licença vencida também bloqueia salvar, mesmo com o município "ativo" — mesma checagem
-      // e mesma ressalva de honestidade do bloco acima (só client-side, não reforçada no servidor).
+      // Licença vencida também bloqueia salvar, mesmo com o município "ativo" (repetido no servidor).
       try {
         // Cópia da licença na linha do município (ver menu-lateral.js); reserva: tabela "licencas".
         var licencaSalvar = licencaDoMunicipio(municipio);
@@ -878,48 +876,22 @@
       // explícita do responsável técnico nesta competência — mesmo critério usado na tela de apuração.
       var status = (d.alertas && d.alertas.length > 0) ? 'pendente' : 'concluida';
 
-      var dadosApuracao = {
-        municipio_id: municipio.$id,
-        competencia_mes: d.mes,
-        competencia_ano: Number(d.ano),
-        receita_corrente: d.receitaCorrente,
-        receita_capital: d.receitaCapital,
-        base_calculo: r.base,
-        pasep_retido: r.retido,
-        valor_pagar: r.valorPagar,
-        status: status,
-        sistema_gestao_usado: municipio.sistema_gestao,
-        detalhamento: JSON.stringify(montarDetalhamento(d, r))
-      };
-
-      // O Appwrite não tem "upsert" — precisamos checar se já existe uma apuração desta
-      // competência para este município (o índice único no banco também garante isso, mas
-      // checar antes evita um erro de conflito e permite atualizar em vez de duplicar).
+      // A gravação é feita pela função do servidor (servidor.js), que confere de novo quem
+      // está salvando, se o município está ativo e se a licença está vigente. As checagens
+      // acima só dão uma mensagem mais rápida; quem decide é o servidor.
       try {
-        var existente = await appwriteTablesDB.listRows({
-          databaseId: DATABASE_ID, tableId: 'apuracoes',
-          queries: [
-            AppwriteQuery.equal('municipio_id', municipio.$id),
-            AppwriteQuery.equal('competencia_mes', d.mes),
-            AppwriteQuery.equal('competencia_ano', Number(d.ano)),
-            AppwriteQuery.limit(1),
-          ]
+        await chamarServidor(appwriteClient, 'salvar_apuracao', {
+          municipio_id: municipio.$id,
+          competencia_mes: d.mes,
+          competencia_ano: Number(d.ano),
+          receita_corrente: d.receitaCorrente,
+          receita_capital: d.receitaCapital,
+          base_calculo: r.base,
+          pasep_retido: r.retido,
+          valor_pagar: r.valorPagar,
+          status: status,
+          detalhamento: JSON.stringify(montarDetalhamento(d, r))
         });
-
-        if (existente.rows.length > 0){
-          await appwriteTablesDB.updateRow({
-            databaseId: DATABASE_ID, tableId: 'apuracoes', rowId: existente.rows[0].$id, data: dadosApuracao
-          });
-        } else {
-          await appwriteTablesDB.createRow({
-            databaseId: DATABASE_ID, tableId: 'apuracoes', rowId: AppwriteID.unique(), data: dadosApuracao,
-            permissions: [
-              AppwritePermission.read(AppwriteRole.team(municipio.team_id)),
-              AppwritePermission.update(AppwriteRole.team(municipio.team_id)),
-              AppwritePermission.delete(AppwriteRole.team(municipio.team_id)),
-            ]
-          });
-        }
       } catch (err) {
         mostrarMsg('Erro ao salvar: ' + err.message, 'var(--red)');
         return;

@@ -156,6 +156,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
 <script src="revisar-lancamentos.js"></script>
+<script src="servidor.js"></script>
 <script src="concluir-cadastro.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
@@ -191,11 +192,16 @@
       document.getElementById('infoExercicio').textContent = '';
       document.getElementById('cardsResumo').innerHTML =
         '<div class="card" style="border-color:#DCB6B0"><div class="lab" style="color:var(--red)">Não foi possível concluir o cadastro do município</div>' +
-        '<div class="sub">Sua conta existe, mas o registro do município ainda não foi concluído (' + retomada.erro + '). Recarregue a página para tentar de novo; se o erro persistir, fale com o administrador da plataforma.</div></div>';
+        (retomada.definitivo
+          ? '<div class="sub">' + retomada.erro + '</div></div>'
+          : '<div class="sub">Sua conta existe, mas o registro do município ainda não foi concluído (' + retomada.erro + '). Recarregue a página para tentar de novo; se o erro persistir, fale com o administrador da plataforma.</div></div>');
       document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
       document.getElementById('blocoAcoes').style.display = 'none';
       return;
     }
+
+    // Último acesso do município (gravado pelo servidor, no máximo uma vez por hora). Falha não atrapalha.
+    chamarServidor(client, 'registrar_acesso', {}).catch(function(){});
 
     // E-mail ainda não confirmado: bloqueia o painel até a verificação, com opção de reenviar
     // o e-mail (caso o original tenha expirado, ido para spam, ou nunca chegado).

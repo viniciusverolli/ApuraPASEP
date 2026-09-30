@@ -917,6 +917,7 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script src="servidor.js"></script>
 <script src="concluir-cadastro.js"></script>
 <script src="menu-lateral.js" data-modo="voltar"></script>
 <script>
@@ -1056,6 +1057,14 @@
         'O cadastro de ' + nomeMunicipio + '/' + uf + ' foi registrado e está aguardando aprovação do administrador da plataforma. Você será avisado assim que o acesso for liberado.'
       );
     } catch (err) {
+      if (err.recusado){
+        // O servidor recusou o cadastro do município (ex.: já cadastrado). Não há o que retomar.
+        document.getElementById('caixaErro').textContent = 'Sua conta foi criada, mas o cadastro do município não foi aceito: ' + err.message;
+        document.getElementById('caixaErro').classList.add('show');
+        var btnR = document.querySelector('.btn-cadastrar');
+        if (btnR){ btnR.disabled = true; btnR.textContent = 'Cadastro não aceito'; }
+        return;
+      }
       // A conta já existe e os dados do cadastro ficaram guardados nela: ao entrar no sistema,
       // o painel conclui automaticamente o que faltou.
       document.getElementById('caixaErro').textContent = 'Sua conta foi criada, mas houve um erro ao registrar o município (' + err.message + '). Não é preciso refazer o cadastro: entre no sistema com o e-mail e a senha que você acabou de criar e o registro será concluído automaticamente.';
