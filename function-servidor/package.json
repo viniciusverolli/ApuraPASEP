@@ -1,0 +1,9 @@
+{
+  "name": "apurapasep-servidor-function",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "main.js",
+  "dependencies": {
+    "node-appwrite": "^29.0.0"
+  }
+}
