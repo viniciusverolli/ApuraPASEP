@@ -58,8 +58,8 @@ entrada (`index`, `home`, `login`, `cadastro`, `recuperar-senha`, `verificar-ema
 `aceitar-convite`) não usam o menu, pois o usuário ainda não está no sistema. O item
 "Configurações" do menu aparece como "em breve": a tela não existe.
 
-**Mostrador da licença** (lê a tabela `licencas`, que precisa de `read` para o time do
-município): plano, validade e dias restantes, em verde (mais de 30 dias), amarelo (8 a 30) e
+**Mostrador da licença** (lê as colunas `licenca_*` da linha do município, ver §3): plano,
+validade e dias restantes, em verde (mais de 30 dias), amarelo (8 a 30) e
 vermelho (7 ou menos, vencida ou suspensa). Também cobre município pendente, suspenso, sem
 licença e conta administradora sem município. É só exibição; o bloqueio por status e
 vencimento continua nas páginas.
@@ -158,9 +158,21 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
 - **Checagem de duplicidade do cadastro é ineficaz:** como cada linha de `municipios` só é
   legível pelo próprio time e pelos admins, o `listRows` por nome+UF feito em `cadastro.html`
   nunca enxerga o município de outro time. A duplicidade só é pega na aprovação manual.
-- **Licenças:** precisam de `read` para o time do município, senão o painel não enxerga o
-  vencimento e nunca bloqueia. A licença de Piratininga estava sem essa permissão (só o usuário
-  admin lia) e foi corrigida em 29/09/2026.
+- **Licenças ficam em dois lugares** (mudança de 30/09/2026):
+  1. tabela `licencas`: o registro completo, uma linha por concessão, lido só pelo administrador
+     (sem permissão por linha para o time do município);
+  2. colunas `licenca_plano`, `licenca_status`, `licenca_inicio` e `licenca_validade` da linha
+     do município: a cópia que o painel, o menu e a ferramenta do município leem. O time já lê
+     a própria linha, e só o administrador a altera (permissão da tabela).
+  `admin.html` grava os dois (função `registrarLicenca`) e `menu-lateral.js` expõe
+  `licencaDoMunicipio(linha)`, que as páginas usam; se a linha não tiver a cópia (município
+  antigo), elas consultam a tabela `licencas` como antes.
+  **Por quê:** o Appwrite só deixa conceder permissão a um time de que quem grava participa, e
+  o administrador não é membro dos times que se cadastraram sozinhos. Dar leitura da licença ao
+  time do município fazia salvar a licença e **aprovar o cadastro falharem para todo município de
+  autocadastro** (mensagem "Permissions must be one of ..."). Na aprovação, a licença agora é
+  criada antes de ativar o município; antes, a falha deixava o município ativo, sem licença e
+  sem registro no log de auditoria.
 - **Toda alteração de status/licença/regra de cálculo feita pelo admin fica registrada** na
   tabela `auditoria_admin`, visível em `admin.html`.
 

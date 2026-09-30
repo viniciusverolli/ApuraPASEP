@@ -473,11 +473,27 @@
     }
   }
 
-  // A licença precisa ser legível pelo time do próprio município (o painel dele consulta o
-  // vencimento). Sem essa permissão por linha, só administradores enxergariam as licenças.
-  function permissoesLicenca(municipioId){
-    var m = mapaMunicipios[municipioId];
-    return (m && m.team_id) ? [Permission.read(Role.team(m.team_id))] : undefined;
+  // A licença é registrada em dois lugares:
+  //   1. tabela "licencas": o registro completo, uma linha por concessão, lido só pelo administrador;
+  //   2. colunas licenca_* da linha do município: a cópia que o painel, o menu e a ferramenta do
+  //      município leem (o time já tem leitura da própria linha; só o administrador altera).
+  // Por que não dar leitura da linha da licença ao time do município: o Appwrite só deixa
+  // conceder permissão a um time de que quem grava participa, e o administrador não é membro
+  // dos times que se cadastraram sozinhos. Tentar isso fazia a licença falhar (e a aprovação
+  // também) para todo município de autocadastro.
+  async function registrarLicenca(municipioId, lic){
+    await tablesDB.createRow({
+      databaseId: DATABASE_ID, tableId: 'licencas', rowId: ID.unique(),
+      data: { municipio_id: municipioId, plano: lic.plano, status: lic.status, data_inicio: lic.data_inicio, data_validade: lic.data_validade }
+    });
+    try {
+      await tablesDB.updateRow({
+        databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId,
+        data: { licenca_plano: lic.plano, licenca_status: lic.status, licenca_inicio: lic.data_inicio, licenca_validade: lic.data_validade }
+      });
+    } catch (e) {
+      throw new Error('a licença foi registrada, mas não foi possível atualizá-la no cadastro do município (' + e.message + '). Tente salvar de novo');
+    }
   }
 
   async function aprovarMunicipio(municipioId){
@@ -488,18 +504,16 @@
       return;
     }
     try {
-      await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: 'ativo' } });
       // Aprovação cria automaticamente uma licença trial de 30 dias; o administrador pode
-      // trocar o plano depois pelo botão "Licença".
+      // trocar o plano depois pelo botão "Licença". A licença vem ANTES de ativar o município:
+      // se ela falhar, nada muda (antes, o município ficava ativo, sem licença e sem registro
+      // no log de auditoria).
       var validade = new Date(); validade.setDate(validade.getDate() + 30);
-      await tablesDB.createRow({
-        databaseId: DATABASE_ID, tableId: 'licencas', rowId: ID.unique(),
-        data: {
-          municipio_id: municipioId, plano: 'trial', status: 'trial',
-          data_inicio: new Date().toISOString(), data_validade: validade.toISOString()
-        },
-        permissions: permissoesLicenca(municipioId)
+      await registrarLicenca(municipioId, {
+        plano: 'trial', status: 'trial',
+        data_inicio: new Date().toISOString(), data_validade: validade.toISOString()
       });
+      await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: 'ativo' } });
       await registrarAuditoria('aprovar', municipioId, m.nome, 'Licença trial de 30 dias criada automaticamente');
       await recarregarClientes();
       await recarregarAuditoria();
@@ -532,13 +546,9 @@
     var validade = document.getElementById('validade-' + municipioId).value;
     if (!validade){ alert('Escolha a data de validade da licença.'); return; }
     try {
-      await tablesDB.createRow({
-        databaseId: DATABASE_ID, tableId: 'licencas', rowId: ID.unique(),
-        data: {
-          municipio_id: municipioId, plano: plano, status: 'ativa',
-          data_inicio: new Date().toISOString(), data_validade: new Date(validade).toISOString()
-        },
-        permissions: permissoesLicenca(municipioId)
+      await registrarLicenca(municipioId, {
+        plano: plano, status: 'ativa',
+        data_inicio: new Date().toISOString(), data_validade: new Date(validade).toISOString()
       });
       await registrarAuditoria('licenca', municipioId, m.nome, 'Plano ' + plano + ', válida até ' + validade);
       await recarregarClientes();
@@ -686,13 +696,9 @@
       return;
     }
     try {
-      await tablesDB.createRow({
-        databaseId: DATABASE_ID, tableId: 'licencas', rowId: ID.unique(),
-        data: {
-          municipio_id: linha.$id, plano: plano, status: (plano === 'trial' ? 'trial' : 'ativa'),
-          data_inicio: new Date().toISOString(), data_validade: new Date(validadeStr + 'T23:59:59').toISOString()
-        },
-        permissions: [ Permission.read(Role.team(time.$id)) ]
+      await registrarLicenca(linha.$id, {
+        plano: plano, status: (plano === 'trial' ? 'trial' : 'ativa'),
+        data_inicio: new Date().toISOString(), data_validade: new Date(validadeStr + 'T23:59:59').toISOString()
       });
     } catch (e) { licencaFalhou = true; }
 
