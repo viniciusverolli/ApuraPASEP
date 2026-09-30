@@ -135,6 +135,16 @@
     document.head.appendChild(s);
   }
 
+  // A licença do município fica copiada em colunas da própria linha do município (licenca_*),
+  // que o time do município pode ler. A tabela "licencas" só é legível pelo administrador para
+  // municípios que se cadastraram sozinhos (o administrador não é membro do time deles e, por
+  // isso, não consegue conceder leitura a ele). Esta função é usada também por painel.html e
+  // pela ferramenta de apuração. Devolve null quando a cópia não existe (município antigo).
+  window.licencaDoMunicipio = function(m){
+    if (!m || !m.licenca_validade) return null;
+    return { plano: m.licenca_plano, status: m.licenca_status, data_inicio: m.licenca_inicio, data_validade: m.licenca_validade };
+  };
+
   function esc(v){
     return String(v == null ? '' : v).replace(/[&<>"']/g, function(c){
       return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -334,7 +344,8 @@
         municipio = rm.rows[0] || null;
       } catch (e) { municipio = null; }
       if (municipio){
-        try {
+        licenca = window.licencaDoMunicipio(municipio);
+        if (!licenca) try {
           var rl = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'licencas', queries: [Query.equal('municipio_id', municipio.$id), Query.orderDesc('$createdAt'), Query.limit(1)] });
           licenca = rl.rows[0] || null;
         } catch (e) { falhaLicenca = true; }

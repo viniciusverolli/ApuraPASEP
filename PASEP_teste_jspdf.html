@@ -859,11 +859,15 @@
       // Licença vencida também bloqueia salvar, mesmo com o município "ativo" — mesma checagem
       // e mesma ressalva de honestidade do bloco acima (só client-side, não reforçada no servidor).
       try {
-        var resultadoLicencaSalvar = await appwriteTablesDB.listRows({
-          databaseId: DATABASE_ID, tableId: 'licencas',
-          queries: [AppwriteQuery.equal('municipio_id', municipio.$id), AppwriteQuery.orderDesc('$createdAt'), AppwriteQuery.limit(1)]
-        });
-        var licencaSalvar = resultadoLicencaSalvar.rows[0];
+        // Cópia da licença na linha do município (ver menu-lateral.js); reserva: tabela "licencas".
+        var licencaSalvar = licencaDoMunicipio(municipio);
+        if (!licencaSalvar){
+          var resultadoLicencaSalvar = await appwriteTablesDB.listRows({
+            databaseId: DATABASE_ID, tableId: 'licencas',
+            queries: [AppwriteQuery.equal('municipio_id', municipio.$id), AppwriteQuery.orderDesc('$createdAt'), AppwriteQuery.limit(1)]
+          });
+          licencaSalvar = resultadoLicencaSalvar.rows[0];
+        }
         if (licencaSalvar && licencaSalvar.data_validade && new Date(licencaSalvar.data_validade) < new Date()){
           mostrarMsg('A licença de ' + municipio.nome + ' venceu em ' + new Date(licencaSalvar.data_validade).toLocaleDateString('pt-BR') + '. Fale com o administrador da plataforma para renovar o acesso.', 'var(--red)');
           return;

@@ -283,14 +283,18 @@
     // bloqueia o uso — sem isso, o status do município sozinho nunca refletia o vencimento.
     // Se não houver nenhuma licença cadastrada para este município, não bloqueia por esse
     // motivo (mantém o comportamento anterior para dados já existentes sem licença registrada).
-    var licencaAtual;
-    try {
-      var resultadoLicencas = await tablesDB.listRows({
-        databaseId: DATABASE_ID, tableId: 'licencas',
-        queries: [Query.equal('municipio_id', municipio.$id), Query.orderDesc('$createdAt'), Query.limit(1)]
-      });
-      licencaAtual = resultadoLicencas.rows[0];
-    } catch (e) { licencaAtual = null; }
+    // A licença vem da cópia na linha do município (licenca_*, ver menu-lateral.js); só se não
+    // houver cópia (município antigo) consulta a tabela "licencas".
+    var licencaAtual = licencaDoMunicipio(municipio);
+    if (!licencaAtual){
+      try {
+        var resultadoLicencas = await tablesDB.listRows({
+          databaseId: DATABASE_ID, tableId: 'licencas',
+          queries: [Query.equal('municipio_id', municipio.$id), Query.orderDesc('$createdAt'), Query.limit(1)]
+        });
+        licencaAtual = resultadoLicencas.rows[0];
+      } catch (e) { licencaAtual = null; }
+    }
 
     if (licencaAtual && licencaAtual.data_validade && new Date(licencaAtual.data_validade) < new Date()){
       document.getElementById('infoExercicio').textContent = '';
