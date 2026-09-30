@@ -78,10 +78,14 @@ vencimento continua nas páginas.
   - `motor-pasep` — recebe o XML (reduzido no navegador, ver §1.4) e devolve o cálculo. Lê as
     regras de `regras_motor` a cada execução, autenticando com uma API Key própria guardada
     como variável de ambiente da função (`APPWRITE_API_KEY`), escopo `rows.read`.
-  - `salvar-apuracao` — **nunca implantada** (decisão consciente de não configurar por ora,
-    ver §5). **O código da função não está neste repositório**, e a parte de navegador que a
-    chamava ficava só em `PASEP teste jspdf.html`, removido em 29/09/2026. Ao implantar, as
-    duas partes precisam ser reescritas (a gravação deve incluir a coluna `detalhamento`).
+  - `servidor` (código em `function-servidor/`, chamada pelo site via `servidor.js`): segunda e
+    última função do plano gratuito, criada em 30/09/2026. Usa a chave automática da própria
+    função (escopos `users.read`, `teams.read`, `teams.write`, `rows.read`, `rows.write`,
+    `providers.read`, `messages.write`, `targets.read`), sem chave manual. Ações: `registrar_municipio`,
+    `salvar_apuracao`, `registrar_acesso`, `admin_usuarios`, `admin_membros`, `admin_convidar`,
+    `admin_remover_membro`, `admin_definir_papel`, `admin_notificar`. Tem execução agendada
+    diária (11h UTC) para avisos de licença a vencer (30, 7 e 1 dia) e vencida, e lembrete de
+    cadastros pendentes há mais de 2 dias. Substitui o antigo `salvar-apuracao`, nunca implantado.
 
 ### 1.3 Hospedagem
 
@@ -150,25 +154,29 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
 
 - **Motor de cálculo:** protegido — as regras de classificação não ficam no HTML público, só
   chegam ao navegador depois de uma chamada autenticada à função.
-- **Salvamento de apuração:** hoje é feito **direto do navegador** (`PASEP_teste_jspdf.html`,
-  função `salvarApuracaoNoSistema`), com as checagens de status do município e validade da
-  licença feitas **só na tela** — um usuário com conhecimento técnico, chamando a API
-  diretamente, poderia contornar essas checagens (ver item 14 no §5).
-- **Tabela `apuracoes`:** permissão de `Create` aberta para `All users` (qualquer usuário
-  autenticado no sistema), porque o Appwrite exige API Key/Function para conceder permissão
-  por time específico, e isso não é algo que o navegador consegue fazer sozinho.
+- **Salvamento de apuração:** passa pela função `servidor` (`salvar_apuracao`), que confere
+  quem chama (membro do time do município ou administrador), se o município está `ativo` e se a
+  licença está vigente, valida os números e faz o upsert. As linhas novas dão ao time só `read`
+  e `delete` (sem `update`). As checagens na tela (`PASEP_teste_jspdf.html`) ficaram só para dar
+  mensagem rápida. **Limite que permanece:** a função não recalcula a apuração (o XML não é
+  guardado), então ela não consegue provar que os valores enviados batem com o XML.
+- **Autocadastro de município:** a linha de `municipios` passa a ser criada pela função
+  (`registrar_municipio`): sempre `pendente`, só leitura para o time, sem duplicar município
+  (comparação sem acentos e caixa), e só para quem é membro do time informado.
+- **Fechamento das brechas (passo no console, depois do merge):** enquanto as tabelas
+  `municipios` e `apuracoes` tiverem `Create` para `users`, um usuário técnico continua podendo
+  gravar direto pela API. Depois que o site novo estiver no ar, retirar `create("users")` das
+  duas tabelas.
+- **Convite de usuário pelo administrador:** pelo servidor o Appwrite não envia convite, a
+  pessoa entra no time na hora. Se a conta não existe, a função a cria (senha aleatória, e-mail
+  marcado como verificado pelo administrador) e `admin.html` pede o e-mail de definição de senha
+  (`account.createRecovery`). Os responsáveis (owners) dos municípios continuam usando o convite
+  nativo (`aceitar-convite.html`).
 - **Tabela `municipios`:** as linhas dão ao time do município **só leitura**. Até 29/09/2026 o
   time também tinha `update`, o que permitia ao próprio município mudar o `status` para
   `ativo` (se autoaprovar) ou trocar o `codigo_tce` pela API. A permissão foi retirada da linha
   existente (Piratininga) e do código de `cadastro.html`/`admin.html`. Alterações ficam com o
   `update` de nível de tabela do time `plataforma-admins`.
-- **Lacuna ainda aberta em `municipios`:** a tabela tem `Create` para `users`, necessário ao
-  autocadastro. Com isso, um usuário técnico ainda consegue criar pela API uma linha nova já
-  com `status: ativo`. O fechamento definitivo depende de mover a criação para uma Function
-  (mesma decisão de plano gratuito da `salvar-apuracao`).
-- **Checagem de duplicidade do cadastro é ineficaz:** como cada linha de `municipios` só é
-  legível pelo próprio time e pelos admins, o `listRows` por nome+UF feito em `cadastro.html`
-  nunca enxerga o município de outro time. A duplicidade só é pega na aprovação manual.
 - **Licenças ficam em dois lugares** (mudança de 30/09/2026):
   1. tabela `licencas`: o registro completo, uma linha por concessão, lido só pelo administrador
      (sem permissão por linha para o time do município);
@@ -231,15 +239,13 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
 12. Arquivos duplicados (nomes com espaço) removidos.
 
 ### Pendentes
-- **[Prioritário] Reforço no servidor do status/licença ao salvar apuração.** O código da
-  função `salvar-apuracao` já existe e foi testado (reprocessa o XML no servidor, confere
-  time/status/licença antes de gravar, usa chave dinâmica por escopo). **Falta só configurar
-  no Appwrite** (criar a função, habilitar escopos `rows.read`/`rows.write`/`teams.read`,
-  apontar `APPWRITE_FUNCTION_SALVAR_ID` no `PASEP_teste_jspdf.html`). Não foi implantada por
-  decisão consciente — consumiria a segunda e última vaga de função do plano gratuito, e o
-  risco foi avaliado como aceitável no curto prazo (usuários identificados, log de auditoria).
-- **Criação de município via Function** (fecha a lacuna de `Create` aberto em `municipios`,
-  ver §3) e checagem de duplicidade no servidor.
+- **Retirar `create("users")` de `municipios` e `apuracoes` no console** (ver §3), depois do
+  merge e do site novo no ar. É o que fecha de fato as brechas.
+- **E-mail:** o Appwrite do projeto não tem provedor de e-mail (Messaging) configurado. Sem ele,
+  a função funciona, mas não envia os avisos (a resposta traz o motivo e a tela do administrador
+  mostra "e-mail não enviado"). Configurar um provedor SMTP habilitado ativa os avisos.
+- **Função `servidor` aponta para o branch de testes:** após o merge, trocar a branch de produção
+  da função para `main` (Appwrite, função, Settings, Git).
 - **GEMMAP:** parser de balancete não implementado.
 - **OAuth (Google/Microsoft):** nunca testado de ponta a ponta.
 - **Backup do banco Appwrite:** nenhuma rotina configurada.
