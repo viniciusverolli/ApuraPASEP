@@ -122,6 +122,20 @@
   .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#151b2a; color:#fff; padding:11px 18px; border-radius:12px; font-size:13px; z-index:120; box-shadow:0 12px 30px rgba(0,0,0,.3); display:none; max-width:90vw; line-height:1.45; }
   .toast.aberto{ display:block; }
   .toast.alerta{ background:#92400e; }
+
+  /* ===== Histórico de versões ===== */
+  .secao-versoes{ margin-top:36px; }
+  .secao-versoes h2{ font-size:16px; font-weight:800; margin:0 0 4px; }
+  .secao-versoes > p{ font-size:13px; color:var(--muted); margin:0 0 12px; line-height:1.5; }
+  .versao{ display:flex; justify-content:space-between; align-items:flex-start; gap:12px; padding:12px 16px; border-bottom:1px solid var(--line); font-size:13px; }
+  .versao:last-child{ border-bottom:none; }
+  .versao .quando{ font-weight:600; }
+  .versao .sec{ font-size:11.5px; color:var(--muted); line-height:1.5; margin-top:2px; }
+  .versao .motivo{ font-size:12.5px; margin-top:4px; }
+  .selo-versao{ display:inline-block; font-size:10.5px; font-weight:700; padding:2px 8px; border-radius:20px; margin-left:8px; vertical-align:1px; background:#e2e8f0; color:#475569; }
+  .selo-versao.alteracao{ background:#dbeafe; color:#1e40af; }
+  .selo-versao.restauracao{ background:#dcfce7; color:#166534; }
+  .selo-versao.atual{ background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; }
 </style>
 </head>
 <body>
@@ -146,6 +160,13 @@
     </div>
 
     <div id="areaRegras"><div class="estado-carregando">Carregando…</div></div>
+
+    <section class="secao-versoes" aria-labelledby="titulo-versoes">
+      <h2 id="titulo-versoes">Histórico de versões</h2>
+      <p>Cada alteração guarda uma cópia completa das regras. Você pode ver o que mudaria e voltar a uma versão anterior: a restauração também fica registrada como uma nova versão e no log de auditoria. Apurações já salvas nunca são recalculadas.</p>
+      <div class="card" id="areaVersoes" style="padding:0"><div class="estado-carregando">Carregando…</div></div>
+      <div style="text-align:center; margin-top:12px"><button type="button" class="btn-acao" id="btnMaisVersoes" style="display:none">Mostrar mais versões</button></div>
+    </section>
   </main>
 </div>
 
@@ -230,6 +251,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script src="admin-util.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -311,6 +333,7 @@
     }
     document.getElementById('shellPrincipal').style.display = 'grid';
     await recarregarRegras();
+    await recarregarVersoes();
   }
 
   async function recarregarRegras(){
@@ -318,7 +341,7 @@
     try {
       resultado = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, queries: [Query.limit(200)] });
     } catch (e) {
-      document.getElementById('areaRegras').innerHTML = '<div class="estado-vazio">Não foi possível carregar as regras: ' + esc(e.message) + '</div>';
+      document.getElementById('areaRegras').innerHTML = '<div class="estado-vazio">Não foi possível carregar as regras. ' + esc(erroAmigavel(e)) + '</div>';
       return;
     }
     regras = resultado.rows;
@@ -425,7 +448,7 @@
   document.getElementById('modalFundo').addEventListener('click', function(e){ if (e.target === this) fecharModal(); });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharModal(); });
   document.getElementById('btnRevisar').addEventListener('click', revisar);
-  document.getElementById('btnConfirmar').addEventListener('click', confirmar);
+  document.getElementById('btnConfirmar').addEventListener('click', confirmarAlteracao);
 
   function revisar(){
     var cat = estado.cat, modo = estado.modo, regra = estado.regra;
@@ -528,13 +551,25 @@
     });
   }
 
-  async function confirmar(){
+  async function confirmarAlteracao(){
     if (estado.salvando) return;
     definirSalvando(true);
     document.getElementById('erroConfirmacao').style.display = 'none';
 
     var cat = estado.cat, regra = estado.regra, novo = estado.novo, modo = estado.modo, motivo = estado.motivo;
     var regraId, acao, rotuloAlvo, detalhes;
+
+    // Antes de mudar qualquer coisa, guarda o estado atual (se ainda não estiver guardado). Se não
+    // der para guardar, nada é alterado: assim sempre existe uma versão para a qual voltar.
+    try {
+      await garantirVersaoAtual('Estado das regras antes desta alteração');
+    } catch (err) {
+      var elv = document.getElementById('erroConfirmacao');
+      elv.textContent = 'Nada foi alterado: não foi possível guardar a versão atual das regras. ' + erroAmigavel(err);
+      elv.style.display = 'block';
+      definirSalvando(false);
+      return;
+    }
 
     try {
       if (modo === 'criar'){
@@ -561,7 +596,7 @@
       }
     } catch (err) {
       var el = document.getElementById('erroConfirmacao');
-      el.textContent = 'Não foi possível salvar a alteração: ' + err.message;
+      el.textContent = 'Não foi possível salvar a alteração. ' + erroAmigavel(err);
       el.style.display = 'block';
       definirSalvando(false);
       return;
@@ -576,13 +611,184 @@
     definirSalvando(false);
     fecharModal();
     await recarregarRegras();
+
+    // Guarda a versão resultante (cópia completa das regras depois da alteração).
+    var falhouVersao = false;
+    try { await salvarVersao('alteracao', motivo, detalhes); }
+    catch (e) { falhouVersao = true; }
+    await recarregarVersoes();
+
     mostrarToast(
       falhouAuditoria
         ? 'Regra salva, mas NÃO foi possível registrar no log de auditoria. Anote a alteração e avise o responsável técnico.'
-        : 'Regra salva e registrada no log de auditoria.',
-      falhouAuditoria
+        : (falhouVersao ? 'Regra salva e registrada no log, mas a nova versão NÃO foi guardada no histórico. Avise o responsável técnico.' : 'Regra salva, registrada no log de auditoria e guardada no histórico de versões.'),
+      falhouAuditoria || falhouVersao
     );
   }
+
+  // ---------------- Versões das regras ----------------
+  // Cada versão é uma cópia completa das regras (tabela regras_versoes, só leitura e criação: nada
+  // é alterado nem apagado depois). O motor continua lendo só regras_motor; restaurar uma versão
+  // reescreve regras_motor para ficar igual à cópia guardada.
+  var TABELA_VERSOES = 'regras_versoes';
+  var versoes = [];
+  var assinaturaUltimaVersao = null;
+  var versoesVisiveis = 15;
+  var ROTULOS_ORIGEM = { inicial: 'Inicial', alteracao: 'Alteração', restauracao: 'Restauração', externa: 'Alteração fora do sistema' };
+
+  function copiaDasRegras(lista){
+    return (lista || regras).map(function(r){
+      return { id: r.$id, categoria: r.categoria, label: r.label, prefixo: String(r.prefixo), bloco: (r.bloco == null ? null : r.bloco), ativo: estaAtiva(r) };
+    }).sort(function(a, b){ return a.id < b.id ? -1 : 1; });
+  }
+  function assinatura(copia){ return JSON.stringify(copia); }
+
+  async function salvarVersao(origem, motivo, resumo){
+    await tablesDB.createRow({
+      databaseId: DATABASE_ID, tableId: TABELA_VERSOES, rowId: ID.unique(),
+      data: { admin_email: usuarioAtual.email, origem: origem, motivo: motivo || '', resumo: resumo || '', snapshot: JSON.stringify(copiaDasRegras()) }
+    });
+  }
+
+  // Garante que o estado atual das regras esteja guardado como versão. Se a última versão já é
+  // igual às regras atuais, não faz nada. Se não há nenhuma, cria a "inicial". Se a última é
+  // diferente das regras atuais, alguém alterou fora do sistema: guarda o que foi encontrado.
+  async function garantirVersaoAtual(resumo){
+    var r = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: TABELA_VERSOES, queries: [Query.orderDesc('$createdAt'), Query.limit(1)] });
+    var ultima = r.rows[0];
+    var atual = assinatura(copiaDasRegras());
+    if (ultima && assinatura(JSON.parse(ultima.snapshot)) === atual) return;
+    await salvarVersao(ultima ? 'externa' : 'inicial', '', resumo + (ultima ? ' (as regras tinham sido alteradas fora do sistema)' : ' (primeira versão guardada)'));
+  }
+
+  async function recarregarVersoes(){
+    var area = document.getElementById('areaVersoes');
+    try {
+      versoes = await listarTodas(TABELA_VERSOES, [Query.select(['admin_email', 'origem', 'motivo', 'resumo']), Query.orderDesc('$createdAt')], 500);
+      assinaturaUltimaVersao = null;
+      if (versoes[0]){
+        var ultimaCompleta = await tablesDB.getRow({ databaseId: DATABASE_ID, tableId: TABELA_VERSOES, rowId: versoes[0].$id });
+        try { assinaturaUltimaVersao = assinatura(JSON.parse(ultimaCompleta.snapshot)); } catch (e2) { assinaturaUltimaVersao = null; }
+      }
+    } catch (e) {
+      area.innerHTML = '<div class="estado-vazio">Não foi possível carregar o histórico de versões. ' + esc(erroAmigavel(e)) + '</div>';
+      return;
+    }
+    renderVersoes();
+  }
+
+  function renderVersoes(){
+    var area = document.getElementById('areaVersoes'), mais = document.getElementById('btnMaisVersoes');
+    if (!versoes.length){
+      area.innerHTML = '<div class="estado-vazio">Nenhuma versão guardada ainda. A primeira é criada automaticamente antes da próxima alteração.</div>';
+      mais.style.display = 'none';
+      return;
+    }
+    var atual = assinatura(copiaDasRegras());
+    area.innerHTML = versoes.slice(0, versoesVisiveis).map(function(v, idx){
+      // Só a versão mais recente é comparada com as regras atuais (as demais vêm sem a cópia completa).
+      var eAtual = (idx === 0 && assinaturaUltimaVersao === atual);
+      var seloAtual = eAtual ? '<span class="selo-versao atual">regras atuais</span>' : '';
+      var q = new Date(v.$createdAt);
+      var botao = eAtual ? '' : '<button type="button" class="btn-acao" data-versao="' + esc(v.$id) + '">Ver diferenças / restaurar</button>';
+      return '<div class="versao"><div><div><span class="quando">' + esc(q.toLocaleDateString('pt-BR') + ' às ' + q.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'})) + '</span>' +
+        '<span class="selo-versao ' + esc(v.origem) + '">' + esc(ROTULOS_ORIGEM[v.origem] || v.origem) + '</span>' + seloAtual + '</div>' +
+        '<div class="sec">' + esc(v.admin_email) + '</div>' +
+        (v.motivo ? '<div class="motivo">Motivo: ' + esc(v.motivo) + '</div>' : '') +
+        (v.resumo ? '<div class="sec">' + esc(v.resumo) + '</div>' : '') + '</div><div>' + botao + '</div></div>';
+    }).join('');
+    var restantes = versoes.length - versoesVisiveis;
+    mais.style.display = restantes > 0 ? '' : 'none';
+    mais.textContent = 'Mostrar mais versões (' + restantes + ' restantes)';
+  }
+
+  // Diferenças entre uma versão guardada e as regras atuais: o que precisaria mudar para voltar a ela.
+  function diferencas(copiaVersao){
+    var atuais = copiaDasRegras(), porId = {};
+    atuais.forEach(function(r){ porId[r.id] = r; });
+    var ids = {};
+    var alterar = [], recriar = [], desativar = [];
+    copiaVersao.forEach(function(r){
+      ids[r.id] = true;
+      var c = porId[r.id];
+      if (!c) recriar.push(r);
+      else if (c.label !== r.label || c.prefixo !== r.prefixo || c.bloco !== r.bloco || c.ativo !== r.ativo) alterar.push({ de: c, para: r });
+    });
+    atuais.forEach(function(c){ if (!ids[c.id] && c.ativo) desativar.push(c); });
+    return { alterar: alterar, recriar: recriar, desativar: desativar };
+  }
+
+  function descricaoRegra(r){ return r.label + ' (' + r.prefixo + (r.bloco != null ? ', bloco ' + r.bloco : '') + (r.ativo ? '' : ', inativa') + ')'; }
+
+  function textoDiferencas(d){
+    var t = [];
+    if (d.alterar.length) t.push('Regras que voltam ao que eram (' + d.alterar.length + '):\n' + d.alterar.map(function(x){ return ' • ' + descricaoRegra(x.de) + '  →  ' + descricaoRegra(x.para); }).join('\n'));
+    if (d.recriar.length) t.push('Regras que serão recriadas (' + d.recriar.length + '):\n' + d.recriar.map(function(r){ return ' • ' + descricaoRegra(r); }).join('\n'));
+    if (d.desativar.length) t.push('Regras criadas depois dessa versão, que serão desativadas (' + d.desativar.length + '):\n' + d.desativar.map(function(r){ return ' • ' + descricaoRegra(r); }).join('\n'));
+    return t.join('\n\n');
+  }
+
+  async function verOuRestaurarVersao(versaoId){
+    var v = versoes.filter(function(x){ return x.$id === versaoId; })[0];
+    if (!v) return;
+    var copia;
+    try {
+      v = await tablesDB.getRow({ databaseId: DATABASE_ID, tableId: TABELA_VERSOES, rowId: versaoId });
+      copia = JSON.parse(v.snapshot);
+    } catch (e) { mostrarToast('Não foi possível ler esta versão: ' + erroAmigavel(e), true); return; }
+    var d = diferencas(copia);
+    var quando = new Date(v.$createdAt).toLocaleDateString('pt-BR') + ' às ' + new Date(v.$createdAt).toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+    if (!d.alterar.length && !d.recriar.length && !d.desativar.length){
+      await confirmar({ titulo: 'Versão de ' + quando, texto: 'Esta versão é igual às regras atuais. Não há nada a restaurar.', rotuloOk: 'Fechar', rotuloCancelar: 'Cancelar' });
+      return;
+    }
+    var motivo = await confirmar({
+      titulo: 'Restaurar a versão de ' + quando + '?',
+      texto: textoDiferencas(d),
+      alerta: 'A restauração vale imediatamente para as próximas apurações de todos os municípios. Apurações já salvas não são recalculadas.',
+      pedeMotivo: true, motivoObrigatorio: true, rotuloMotivo: 'Motivo da restauração',
+      rotuloOk: 'Restaurar esta versão', rotuloCancelar: 'Fechar sem restaurar'
+    });
+    if (!motivo) return;
+    await restaurarVersao(v, copia, String(motivo), quando);
+  }
+
+  async function restaurarVersao(v, copia, motivo, quando){
+    try {
+      await garantirVersaoAtual('Estado das regras antes da restauração');
+      var d = diferencas(copia);
+      for (var i = 0; i < d.alterar.length; i++){
+        var r = d.alterar[i].para, dados = { label: r.label, prefixo: r.prefixo, ativo: r.ativo };
+        if (r.bloco != null) dados.bloco = r.bloco;
+        await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, rowId: r.id, data: dados });
+      }
+      for (var j = 0; j < d.recriar.length; j++){
+        var n = d.recriar[j], novos = { categoria: n.categoria, label: n.label, prefixo: n.prefixo, ativo: n.ativo };
+        if (n.bloco != null) novos.bloco = n.bloco;
+        await tablesDB.createRow({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, rowId: ID.unique(), data: novos });
+      }
+      for (var k = 0; k < d.desativar.length; k++){
+        await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: TABELA_REGRAS, rowId: d.desativar[k].id, data: { ativo: false } });
+      }
+    } catch (e) {
+      mostrarToast('A restauração não foi concluída: ' + erroAmigavel(e) + ' Confira as regras antes de continuar.', true);
+      await recarregarRegras(); await recarregarVersoes();
+      return;
+    }
+    var resumo = 'Restaurada a versão de ' + quando + ' (' + (d.alterar.length + d.recriar.length + d.desativar.length) + ' regra(s) ajustada(s))';
+    await recarregarRegras();
+    var falhas = [];
+    try { await registrarAuditoriaRegra('regra_restaurar', v.$id, quando, resumo + ' | Motivo: ' + motivo); } catch (e) { falhas.push('log de auditoria'); }
+    try { await salvarVersao('restauracao', motivo, resumo); } catch (e) { falhas.push('histórico de versões'); }
+    await recarregarVersoes();
+    mostrarToast(falhas.length ? 'Versão restaurada, mas NÃO foi possível registrar em: ' + falhas.join(' e ') + '. Avise o responsável técnico.' : 'Versão de ' + quando + ' restaurada.', falhas.length > 0);
+  }
+
+  document.getElementById('areaVersoes').addEventListener('click', function(e){
+    var b = e.target.closest('[data-versao]');
+    if (b) verOuRestaurarVersao(b.getAttribute('data-versao'));
+  });
+  document.getElementById('btnMaisVersoes').addEventListener('click', function(){ versoesVisiveis += 15; renderVersoes(); });
 
   carregarPagina();
 </script>
