@@ -68,7 +68,7 @@ vencimento continua nas páginas.
 
 - **Project ID:** `6ab3fac90005f026ddb1` — endpoint `https://nyc.cloud.appwrite.io/v1`
 - **Database ID:** `apurapasep`
-- **Tabelas:** `municipios`, `licencas`, `apuracoes`, `regras_motor`, `auditoria_admin`
+- **Tabelas:** `municipios`, `licencas`, `apuracoes`, `regras_motor`, `regras_versoes`, `auditoria_admin`
 - **Team `plataforma-admins`:** `6ab476f0000e158fa770` — administradores da plataforma
 - **Cada município tem seu próprio Team** (campo `team_id` na tabela `municipios`), usado para
   permissão por linha (Row Security) — só o time do município lê/atualiza as próprias apurações
@@ -106,7 +106,17 @@ o diferencial da ferramenta) no código-fonte público.
 - As regras de classificação (quais prefixos de código caem em qual categoria) estão na tabela
   `regras_motor`, editável pela tela `admin-regras.html` — **qualquer alteração vale
   imediatamente para as próximas apurações de todos os municípios**, sem período de teste, e
-  fica registrada no log de auditoria
+  fica registrada no log de auditoria. Toda alteração exige motivo e passa por uma etapa de revisão
+  com o antes e o depois. **Versões (30/09/2026):** cada alteração guarda uma cópia completa das
+  regras na tabela `regras_versoes` (só leitura e criação para administradores: nada é alterado nem
+  apagado depois). A tela mostra o histórico, o que mudaria ao voltar a uma versão ("Ver diferenças
+  / restaurar") e restaura, com motivo obrigatório. A restauração reescreve `regras_motor` para ficar
+  igual à cópia (regras criadas depois são **desativadas**, não apagadas), vira uma nova versão e é
+  registrada no log (`regra_restaurar`). Antes de qualquer alteração ou restauração o estado atual é
+  guardado, e se isso falhar **nada é alterado**; se alguém mexeu nas regras fora do sistema, esse
+  estado é guardado como versão "alteração fora do sistema". Não há "rascunho" nem simulação: o motor
+  precisa do XML do município, que o sistema não guarda, então não dá para recalcular uma apuração
+  com regras ainda não publicadas
 
 ---
 
