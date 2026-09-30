@@ -14,24 +14,57 @@
     --red:#b91c1c; --red-soft:#fef2f2;
   }
   *{box-sizing:border-box}
-  html,body{margin:0; height:100%}
+  html{ margin:0; }
   body{
-    font-family:'Inter',sans-serif; color:var(--ink);
-    background:linear-gradient(135deg,#eef7f5,#f4f2fb);
-    display:flex; align-items:flex-start; justify-content:center; min-height:100vh;
-    padding: 40px 20px calc(40px + env(safe-area-inset-bottom,0px));
+    margin:0; font-family:'Inter',sans-serif; color:var(--ink);
+    background:linear-gradient(135deg,#151b2a,#1c2333);
+    display:grid; grid-template-columns: 1fr 560px; min-height:100vh;
   }
+  /* Mesma estrutura e as mesmas cores da tela de login: painel escuro à esquerda, cartão à direita. */
+  .marca-mobile{ display:none; align-items:center; gap:10px; background:rgba(21,27,42,.9); backdrop-filter:blur(20px); padding:20px 24px; color:#F2F0EA; }
+  .marca-mobile .t{ font-size:19px; font-weight:800; letter-spacing:-.02em; }
+  .marca-mobile .t span{ color:#5eead4; }
+
+  .lado-esq{
+    display:flex; flex-direction:column; justify-content:center;
+    padding: 60px 72px; color:#F2F0EA; position:sticky; top:0; height:100vh; align-self:start; overflow:hidden;
+  }
+  .lado-esq::before{
+    content:''; position:absolute; inset:0;
+    background:
+      radial-gradient(circle at 15% 20%, rgba(73,210,181,.18), transparent 40%),
+      radial-gradient(circle at 85% 85%, rgba(140,120,255,.14), transparent 45%);
+    pointer-events:none;
+  }
+  .marca{ display:flex; align-items:center; gap:14px; margin-bottom:28px; position:relative; }
+  .marca .t{ font-size:26px; font-weight:800; letter-spacing:-.02em; }
+  .marca .t span{ color:#5eead4; }
+  .lado-esq p.lead{ font-size:16px; line-height:1.7; color:#B9C0C4; max-width:440px; margin:0 0 40px; position:relative; }
+  .provas{ display:flex; flex-direction:column; gap:16px; position:relative; }
+  .prova{
+    display:flex; gap:14px; align-items:flex-start; padding:16px;
+    background:rgba(255,255,255,.06); border:1px solid rgba(255,255,255,.12);
+    border-radius:12px; backdrop-filter:blur(10px);
+  }
+  .prova .ic{
+    width:30px; height:30px; border-radius:8px; background:rgba(94,234,212,.16);
+    border:1px solid rgba(94,234,212,.4); flex:none;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; font-weight:800; color:#5eead4;
+  }
+  .prova strong{ display:block; font-size:14px; color:#F2F0EA; margin-bottom:2px; }
+  .prova span{ font-size:13px; color:#9BA3A6; line-height:1.5; }
+  .rodape-esq{ margin-top:40px; font-size:12px; color:#6B7378; position:relative; }
+
+  .lado-dir{ display:flex; align-items:flex-start; justify-content:center; padding:40px; background:rgba(255,255,255,.5); backdrop-filter:blur(6px); }
   .caixa{
-    width:100%; max-width:520px; background:rgba(255,255,255,.65); backdrop-filter:blur(16px);
-    border:1px solid rgba(255,255,255,.9); border-radius:18px; padding:36px 40px;
+    width:100%; max-width:440px; background:rgba(255,255,255,.65); backdrop-filter:blur(16px);
+    border:1px solid rgba(255,255,255,.9); border-radius:18px; padding:32px 32px;
     box-shadow:0 20px 50px rgba(62,75,110,.1);
   }
-  .voltar{ display:inline-flex; align-items:center; gap:6px; color:var(--muted); text-decoration:none; font-size:12.5px; margin-bottom:22px; }
-  .voltar:hover{ color:var(--primary); }
-  .marca{ display:flex; align-items:center; gap:10px; margin-bottom:24px; }
-  .marca .t{ font-size:20px; font-weight:800; color:var(--ink); letter-spacing:-.02em; }
-  .marca .t span{ color:var(--primary); }
-  h1{ font-size:21px; font-weight:800; margin:0 0 6px; color:var(--ink); }
+  .link-login{ display:block; text-align:center; margin-top:14px; color:var(--primary); text-decoration:none; font-size:13.5px; font-weight:600; }
+  .link-login:hover{ text-decoration:underline; }
+  h1{ font-size:22px; font-weight:800; margin:0 0 6px; color:var(--ink); }
   .sub{ font-size:13.5px; color:var(--muted); margin:0 0 28px; line-height:1.5; }
 
   label{ display:block; font-size:12.5px; color:var(--muted); margin-bottom:6px; }
@@ -61,10 +94,6 @@
   .opcao-sistema input{ margin-top:3px; accent-color:var(--primary); width:16px; height:16px; flex:none; }
   .opcao-sistema strong{ display:block; font-size:14px; }
   .opcao-sistema span.desc{ display:block; font-size:12.5px; color:var(--muted); margin-top:2px; }
-  .tag-construcao{
-    display:inline-block; background:rgba(94,234,212,.18); color:#0f766e; font-size:10.5px; font-weight:600;
-    padding:2px 8px; border-radius:20px; margin-left:8px; vertical-align:1px;
-  }
 
   .btn-cadastrar{
     width:100%; background:linear-gradient(135deg,var(--primary),var(--accent)); color:#fff; border:none; border-radius:12px;
@@ -88,20 +117,60 @@
 
   button:focus-visible, a:focus-visible, input:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
 
-  @media (max-width:560px){ .caixa{ padding:26px 22px; } }
+  @media (max-width:880px){
+    body{ grid-template-columns:1fr; }
+    .lado-esq{ display:none; }
+    .marca-mobile{ display:flex; }
+    .lado-dir{ padding:28px 16px calc(28px + env(safe-area-inset-bottom,0px)); }
+  }
+  @media (max-width:420px){
+    .marca-mobile{ padding:16px 20px; }
+    .caixa{ padding:26px 20px; }
+  }
 </style>
 </head>
 <body>
-<div class="caixa">
-  <a href="login.html" class="voltar">&larr; Voltar ao login</a>
-  <a href="painel.html" class="marca" style="text-decoration:none; color:inherit">
-    <svg width="30" height="30" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<a href="index.html" class="marca-mobile" style="text-decoration:none" aria-label="ApuraPASEP, ir para a página inicial">
+    <svg width="26" height="26" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
       <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
       <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
     </svg>
     <div class="t">Apura<span>PASEP</span></div>
-  </a>
+</a>
+
+<div class="lado-esq">
+    <a href="index.html" class="marca" style="text-decoration:none; color:inherit" aria-label="ApuraPASEP, ir para a página inicial">
+      <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
+      <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
+      <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+    </svg>
+      <div class="t">Apura<span>PASEP</span></div>
+    </a>
+    <p class="lead">Solicite o acesso do seu município. Depois da aprovação, a apuração do PASEP é automática, pela leitura do XML AUDESP, e a conferência é feita em planilha detalhada em Excel.</p>
+
+    <div class="provas">
+      <div class="prova">
+        <div class="ic" aria-hidden="true">1</div>
+        <div><strong>Preencha o cadastro</strong><span>Município, responsável e e-mail institucional.</span></div>
+      </div>
+      <div class="prova">
+        <div class="ic" aria-hidden="true">2</div>
+        <div><strong>Aprovação do administrador</strong><span>O cadastro é analisado e o acesso é liberado depois da aprovação.</span></div>
+      </div>
+      <div class="prova">
+        <div class="ic" aria-hidden="true">3</div>
+        <div><strong>Apuração automática pelo XML AUDESP</strong><span>Sem digitação manual. A conferência é feita em planilha detalhada em Excel.</span></div>
+      </div>
+    </div>
+
+    <div class="rodape-esq">© 2026 ApuraPASEP: apoio técnico à apuração, não substitui manifestação formal do órgão de contabilidade.<br><a href="termos-de-uso.html" style="color:inherit">Termos de Uso</a> · <a href="politica-de-privacidade.html" style="color:inherit">Política de Privacidade</a></div>
+</div>
+
+<main class="lado-dir">
+<div class="caixa">
+  <div data-voltar-link="login.html" data-voltar-rotulo="Voltar ao login"></div>
 
   <div id="blocoFormulario">
     <h1>Solicitar cadastro</h1>
@@ -803,6 +872,7 @@
       <div class="campo">
         <label for="email">E-mail</label>
         <input type="email" id="email" placeholder="usuario@municipio.sp.gov.br" required>
+        <div class="ajuda">Use o e-mail institucional do município. Ele ajuda o administrador a validar o cadastro.</div>
       </div>
 
       <div class="campo">
@@ -824,12 +894,13 @@
         <legend>Sistema de gestão utilizado</legend>
         <label class="opcao-sistema">
           <input type="radio" name="sistemaGestao" value="fiorilli" checked>
-          <span><strong>Fiorilli</strong><span class="desc">A apuração parte do XML AUDESP, sem depender do sistema de gestão.</span></span>
+          <span><strong>Fiorilli</strong></span>
         </label>
         <label class="opcao-sistema">
           <input type="radio" name="sistemaGestao" value="gemmap">
-          <span><strong>GEMMAP</strong><span class="desc">A apuração parte do XML AUDESP, sem depender do sistema de gestão.</span></span>
+          <span><strong>GEMMAP</strong></span>
         </label>
+        <div class="ajuda" style="margin-top:2px">Informação de cadastro. A apuração parte do XML AUDESP e não depende do sistema de gestão.</div>
       </fieldset>
 
       <button type="submit" class="btn-cadastrar">Enviar cadastro</button>
@@ -840,12 +911,14 @@
     <div class="ic" aria-hidden="true">✓</div>
     <h2 id="tituloSucesso">Cadastro enviado</h2>
     <p id="textoSucesso"></p>
-    <a href="login.html" class="voltar" style="justify-content:center; margin-top:10px">Ir para a tela de login</a>
+    <a href="login.html" class="link-login">Ir para a tela de login</a>
   </div>
 </div>
+</main>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
 <script src="concluir-cadastro.js"></script>
+<script src="menu-lateral.js" data-modo="voltar"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -965,7 +1038,7 @@
       try {
         await account.createVerification({ url: window.location.origin + '/verificar-email.html' });
       } catch (e) { /* se o envio falhar, o usuário ainda pode pedir reenvio depois, no painel */ }
-      await finalizarCadastro(nomeMunicipio, uf, sistemaGestao);
+      await finalizarCadastro(nomeMunicipio, uf, sistemaGestao, { nome: nomeResponsavel, email: email });
     } catch(err){
       caixaErro.textContent = 'Não foi possível criar sua conta: ' + err.message;
       caixaErro.classList.add('show');
@@ -975,9 +1048,9 @@
 
   // Os passos de criar o time e a linha do município ficam em concluir-cadastro.js, que também
   // é usado pelo painel para retomar um cadastro interrompido no meio.
-  async function finalizarCadastro(nomeMunicipio, uf, sistemaGestao){
+  async function finalizarCadastro(nomeMunicipio, uf, sistemaGestao, responsavel){
     try {
-      await concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao);
+      await concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao, responsavel);
       mostrarSucesso(
         'Cadastro enviado',
         'O cadastro de ' + nomeMunicipio + '/' + uf + ' foi registrado e está aguardando aprovação do administrador da plataforma. Você será avisado assim que o acesso for liberado.'

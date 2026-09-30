@@ -29,8 +29,8 @@
     border-bottom:1px solid var(--line);
   }
   .barra-topo{ display:flex; align-items:center; justify-content:space-between; padding:16px 0; }
-  .marca-topo{ display:flex; align-items:center; gap:9px; font-family:'Source Serif 4',serif; font-weight:700; font-size:18px; }
-  .marca-topo span{ color:var(--teal); }
+  .marca-topo{ display:flex; align-items:center; gap:9px; font-family:Inter,system-ui,sans-serif; font-weight:800; font-size:18px; letter-spacing:-.02em; color:#172033; text-decoration:none; }
+  .marca-topo span{ color:#218b78; }
   nav.nav-topo{ display:flex; align-items:center; gap:28px; }
   nav.nav-topo a.secao{ font-size:14px; color:var(--muted); text-decoration:none; }
   nav.nav-topo a.secao:hover{ color:var(--ink); }
@@ -135,14 +135,14 @@
 <header class="topo">
   <div class="container">
     <div class="barra-topo">
-      <div class="marca-topo">
+      <a href="painel.html" class="marca-topo" aria-label="ApuraPASEP, ir para o painel">
         <svg width="24" height="24" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
           <rect x="32" y="9" width="52" height="66" rx="9" fill="none" stroke="#2E7D6B" stroke-width="7"/>
           <rect x="16" y="25" width="52" height="66" rx="9" fill="#23262B" stroke="#F2F0EA" stroke-width="7"/>
           <path d="M 25 61 L 38 73 L 60 43" stroke="#F2F0EA" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
         </svg>
         Apura<span>PASEP</span>
-      </div>
+      </a>
       <nav class="nav-topo">
         <a class="secao" href="#solucao">Solução</a>
         <a class="secao" href="#como-funciona">Como funciona</a>

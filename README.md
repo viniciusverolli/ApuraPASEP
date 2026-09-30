@@ -23,7 +23,7 @@ funções serverless).
 |---|---|
 | `index.html` | Landing page pública (marketing) |
 | `login.html` | Login (e-mail/senha; Google/Microsoft OAuth previstos, nunca testados) |
-| `cadastro.html` | Autocadastro de município (fica `pendente` até aprovação do admin) |
+| `cadastro.html` | Autocadastro de município (fica `pendente` até aprovação do admin; grava nome e e-mail do responsável em `responsavel_nome` e `responsavel_email`). Mesma estrutura e cores do login |
 | `verificar-email.html` | Confirma o link de verificação de e-mail |
 | `aceitar-convite.html` | Aceita o convite do admin para o time de um município (e define a senha, se a conta foi criada pelo convite) |
 | `recuperar-senha.html` | Define senha nova a partir do link de recuperação |
@@ -53,7 +53,7 @@ usar o componente numa página nova: `<script src="menu-lateral.js"></script>` l
 apuração usa 1150 porque tem três colunas). Conteúdo específico da página pode ir dentro de
 `<div id="ml-extra-origem" hidden>`: o script move esse conteúdo para dentro do menu. Nas
 páginas públicas (`termos-de-uso.html`, `politica-de-privacidade.html`) o script roda com
-`data-modo="voltar"` e mostra só o botão, e apenas para quem está conectado. As páginas de
+`data-modo="voltar"` e mostra só o botão, e apenas para quem está conectado. Para quem ainda não entrou (cadastro), o mesmo botão aceita outro destino: `<div data-voltar-link="login.html" data-voltar-rotulo="Voltar ao login">`, sempre visível. As páginas de
 entrada (`index`, `home`, `login`, `cadastro`, `recuperar-senha`, `verificar-email`,
 `aceitar-convite`) não usam o menu, pois o usuário ainda não está no sistema. O item
 "Configurações" do menu aparece como "em breve": a tela não existe.

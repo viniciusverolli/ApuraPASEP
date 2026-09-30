@@ -56,7 +56,11 @@
     if (jaTem.rows.length === 0){
       await tablesDB.createRow({
         databaseId: DATABASE_ID, tableId: 'municipios', rowId: Appwrite.ID.unique(),
-        data: { nome: pendente.nome, uf: pendente.uf, sistema_gestao: pendente.sistema_gestao, status: 'pendente', team_id: teamId },
+        data: {
+          nome: pendente.nome, uf: pendente.uf, sistema_gestao: pendente.sistema_gestao, status: 'pendente', team_id: teamId,
+          // Quem pediu o cadastro: o administrador confere antes de aprovar (admin.html).
+          responsavel_nome: pendente.responsavel_nome || null, responsavel_email: pendente.responsavel_email || null
+        },
         // Só leitura para o time: alterar status, código TCE ou sistema de gestão é atribuição
         // do administrador (permissão de update no nível da tabela, time plataforma-admins).
         // Com update liberado ao time, o próprio município conseguiria se aprovar pela API.
@@ -70,9 +74,13 @@
   }
 
   // Chamada por cadastro.html logo depois de criar a conta e abrir a sessão.
-  window.concluirCadastroMunicipio = async function(nome, uf, sistemaGestao){
+  window.concluirCadastroMunicipio = async function(nome, uf, sistemaGestao, responsavel){
     var usuario = await account.get();
-    var pendente = { nome: nome, uf: uf, sistema_gestao: sistemaGestao, iniciado_em: new Date().toISOString() };
+    var pendente = {
+      nome: nome, uf: uf, sistema_gestao: sistemaGestao, iniciado_em: new Date().toISOString(),
+      responsavel_nome: (responsavel && responsavel.nome) || usuario.name || '',
+      responsavel_email: (responsavel && responsavel.email) || usuario.email || ''
+    };
     var prefs = await gravarPendente(usuario.prefs, pendente);
     return executar(pendente, prefs);
   };
