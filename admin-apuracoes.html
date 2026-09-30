@@ -184,6 +184,7 @@
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script src="admin-util.js"></script>
 <script src="revisar-lancamentos.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
@@ -291,7 +292,7 @@
       });
     } catch (e) {
       apuracoes = [];
-      areaEl.innerHTML = '<div class="estado-vazio">Não foi possível carregar as apurações: ' + esc(e.message) + '</div>';
+      areaEl.innerHTML = '<div class="estado-vazio">Não foi possível carregar as apurações. ' + esc(erroAmigavel(e)) + '</div>';
       return;
     }
 

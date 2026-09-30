@@ -106,6 +106,44 @@
   .toast{ position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#151b2a; color:#fff; padding:11px 18px; border-radius:12px; font-size:13px; z-index:120; box-shadow:0 12px 30px rgba(0,0,0,.3); display:none; max-width:90vw; line-height:1.45; }
   .toast.aberto{ display:block; }
   .toast.alerta{ background:#92400e; }
+
+  /* ===== Melhorias do painel ===== */
+  .banner-pendentes{ display:none; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; background:rgba(254,243,199,.85); border:1px solid #f5d98b; color:#78350f; border-radius:14px; padding:14px 18px; margin-bottom:16px; font-size:13.5px; }
+  .banner-pendentes.aberto{ display:flex; }
+  .banner-pendentes.banner-backup{ background:rgba(254,226,226,.7); border-color:#fca5a5; color:#7f1d1d; }
+  .card.clicavel{ cursor:pointer; transition:transform .12s ease, border-color .12s ease; }
+  .card.clicavel:hover{ border-color:var(--primary); transform:translateY(-1px); }
+  .card.clicavel:focus-visible{ outline:2px solid var(--primary); outline-offset:2px; }
+  .barra-tabela{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:12px; }
+  .barra-tabela input, .barra-tabela select{ font:inherit; font-size:13px; padding:8px 10px; border:1px solid var(--line); border-radius:9px; background:#fff; color:var(--ink); }
+  .barra-tabela input[type=search], .barra-tabela input[type=email], .barra-tabela input[type=text]{ flex:1 1 220px; min-width:170px; }
+  .barra-tabela .fil-data{ display:flex; align-items:center; gap:6px; font-size:12.5px; color:var(--muted); }
+  .contagem-lista{ font-size:12px; color:var(--muted); margin:0 0 8px; }
+  .secundario{ font-size:11.5px; color:var(--muted); }
+  .resp .nome{ font-weight:600; }
+  .resp .email{ font-size:11.5px; color:var(--muted); word-break:break-all; }
+  .aviso-dominio{ display:inline-block; font-size:10.5px; background:var(--amber-soft); color:var(--amber); border-radius:20px; padding:2px 8px; margin-top:3px; }
+  .badge.sem{ background:#e2e8f0; color:#475569; }
+  .col-acoes{ min-width:240px; }
+  .sep-acoes{ display:inline-block; width:10px; }
+  .hist-lic{ display:none; margin-top:10px; }
+  .hist-lic.aberto{ display:block; }
+  .tabela-simples{ width:100%; border-collapse:collapse; font-size:12.5px; }
+  .tabela-simples th{ text-align:left; font-size:11px; color:var(--muted); font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line); }
+  .tabela-simples td{ padding:7px 8px; border-bottom:1px solid var(--line); }
+  .sec-card{ padding:18px 20px; }
+  .ajuda-sec{ font-size:12px; color:var(--muted); line-height:1.5; margin-top:10px; }
+  .barra-sistema .preenchido.sit-ativa{ background:#16a34a; }
+  .barra-sistema .preenchido.sit-teste{ background:#7c6bb1; }
+  .barra-sistema .preenchido.sit-vence30{ background:#d97706; }
+  .barra-sistema .preenchido.sit-vencida, .barra-sistema .preenchido.sit-suspensa{ background:#dc2626; }
+  .barra-sistema .preenchido.sit-sem{ background:#94a3b8; }
+  .membro{ display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--line); font-size:12.5px; }
+  .membro:last-child{ border-bottom:none; }
+  .membro-acoes{ display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .btn-mini{ font:inherit; font-size:11.5px; padding:4px 9px; border-radius:7px; cursor:pointer; border:1px solid var(--line); background:#fff; color:var(--ink); }
+  .btn-mini:hover{ border-color:var(--primary); }
+  .btn-mini.perigo{ color:var(--red); border-color:#fca5a5; }
 </style>
 </head>
 <body>
@@ -120,26 +158,36 @@
       <p>Gerenciamento de todos os municípios cadastrados na plataforma.</p>
     </div>
 
+    <div class="banner-pendentes" id="bannerPendentes" role="status">
+      <span id="bannerPendentesTexto"></span>
+      <button type="button" class="btn-acao primario" id="btnVerPendentes">Ver cadastros pendentes</button>
+    </div>
+    <div class="banner-pendentes banner-backup" id="bannerBackup" role="status">
+      <span id="bannerBackupTexto"></span>
+      <button type="button" class="btn-acao primario" id="btnBackupBanner">Exportar backup agora</button>
+    </div>
+
     <div class="cards" id="cardsResumoAdmin">
       <div class="card"><div class="lab">Total de municípios</div><div class="val">—</div></div>
       <div class="card"><div class="lab">Ativos</div><div class="val">—</div></div>
-      <div class="card"><div class="lab">Pendentes de aprovação</div><div class="val">—</div></div>
-      <div class="card"><div class="lab">Suspensos</div><div class="val">—</div></div>
+      <div class="card clicavel" data-filtro="status=pendente" tabindex="0" role="button"><div class="lab">Pendentes de aprovação</div><div class="val">—</div></div>
+      <div class="card clicavel" data-filtro="status=suspenso" tabindex="0" role="button"><div class="lab">Suspensos</div><div class="val">—</div></div>
     </div>
 
-    <div class="cards" id="cardsResumoGestao" style="grid-template-columns:repeat(3,1fr)">
+    <div class="cards" id="cardsResumoGestao">
       <div class="card"><div class="lab">Apurações registradas (todos os clientes)</div><div class="val">—</div></div>
-      <div class="card" id="cardLicVencendo"><div class="lab">Licenças a vencer em 30 dias</div><div class="val">—</div></div>
+      <div class="card clicavel" id="cardLicVencendo" data-filtro="licenca=vence30" tabindex="0" role="button"><div class="lab">Licenças vencidas ou a vencer em 30 dias</div><div class="val">—</div></div>
       <div class="card"><div class="lab">Cadastros nos últimos 30 dias</div><div class="val">—</div></div>
+      <div class="card clicavel" data-filtro="uso=atrasados" tabindex="0" role="button"><div class="lab" id="rotuloCardAtraso">Sem apuração da competência de referência</div><div class="val">—</div></div>
     </div>
 
     <div class="painel-dashboard" style="display:grid; grid-template-columns:1fr 1fr; gap:20px; margin-bottom:32px">
       <div>
-        <div class="section-title">Municípios por sistema de gestão</div>
-        <div class="card" id="graficoSistemas" style="padding:20px 22px"><div class="estado-carregando" style="padding:10px">Carregando…</div></div>
+        <div class="section-title">Situação das licenças</div>
+        <div class="card" id="graficoLicencas" style="padding:20px 22px"><div class="estado-carregando" style="padding:10px">Carregando…</div></div>
       </div>
       <div>
-        <div class="section-title">Licenças a vencer em breve</div>
+        <div class="section-title">Licenças vencidas ou a vencer em breve</div>
         <div class="card" id="listaLicencasVencendo" style="padding:0"><div class="estado-carregando">Carregando…</div></div>
       </div>
     </div>
@@ -147,18 +195,69 @@
     <div class="section-title">Cadastros recentes</div>
     <div class="card" id="listaCadastrosRecentes" style="padding:0; margin-bottom:32px"><div class="estado-carregando">Carregando…</div></div>
 
-    <div class="cab-tabela-clientes"><div class="section-title" style="margin:0">Municípios cadastrados</div><button type="button" class="btn-acao primario" id="btnNovoMunicipio">+ Cadastrar município</button></div>
+    <div class="cab-tabela-clientes" id="secaoMunicipios">
+      <div class="section-title" style="margin:0">Municípios cadastrados</div>
+      <div>
+        <button type="button" class="btn-acao" id="btnExportarLista">Exportar lista (CSV para Excel)</button>
+        <button type="button" class="btn-acao primario" id="btnNovoMunicipio">+ Cadastrar município</button>
+      </div>
+    </div>
+    <div class="barra-tabela">
+      <input type="search" id="filtroBusca" placeholder="Buscar por município, código TCE ou responsável" aria-label="Buscar município">
+      <select id="filtroStatus" aria-label="Filtrar por status">
+        <option value="">Todos os status</option><option value="pendente">Pendentes</option><option value="ativo">Ativos</option><option value="suspenso">Suspensos</option>
+      </select>
+      <select id="filtroLicenca" aria-label="Filtrar por licença">
+        <option value="">Todas as licenças</option><option value="ativa">Ativas</option><option value="teste">Em teste</option><option value="vence30">Vencem em 30 dias</option><option value="vencida">Vencidas</option><option value="suspensa">Suspensas</option><option value="sem">Sem licença</option>
+      </select>
+      <select id="filtroUso" aria-label="Filtrar por uso">
+        <option value="">Uso: todos</option><option value="atrasados">Sem apuração da competência de referência</option><option value="emdia">Em dia</option>
+      </select>
+      <select id="ordemLista" aria-label="Ordenar">
+        <option value="padrao">Ordem: pendentes primeiro</option><option value="nome">Nome</option><option value="validade">Validade da licença (mais próxima)</option><option value="apuracao">Última apuração (mais antiga)</option><option value="cadastro">Cadastro (mais recente)</option>
+      </select>
+      <button type="button" class="btn-acao" id="btnLimparFiltros">Limpar filtros</button>
+    </div>
+    <p class="contagem-lista" id="contagemLista"></p>
     <div class="tabela-scroll"><table class="clientes">
       <thead>
-        <tr><th>Município</th><th>Sistema de gestão</th><th>Status</th><th>Licença</th><th>Ações</th></tr>
+        <tr><th>Município</th><th>Responsável</th><th>Status</th><th>Licença</th><th>Uso</th><th>Ações</th></tr>
       </thead>
       <tbody id="corpoTabelaClientes">
-        <tr><td colspan="5" class="estado-carregando">Carregando…</td></tr>
+        <tr><td colspan="6" class="estado-carregando">Carregando…</td></tr>
       </tbody>
     </table></div>
 
-    <div class="section-title" style="margin-top:32px">Log de auditoria — últimas 20 ações</div>
+    <div class="section-title" style="margin-top:32px">Administradores da plataforma</div>
+    <div class="card sec-card">
+      <div id="listaAdmins"><div class="estado-carregando" style="padding:10px">Carregando…</div></div>
+      <div class="barra-tabela" style="margin:14px 0 0">
+        <input type="email" id="admEmail" placeholder="E-mail do novo administrador" aria-label="E-mail do novo administrador">
+        <input type="text" id="admNome" placeholder="Nome (opcional)" aria-label="Nome do novo administrador">
+        <button type="button" class="btn-acao primario" id="btnConvidarAdmin">Convidar administrador</button>
+      </div>
+      <div class="ajuda-sec">Administradores têm acesso total: aprovam cadastros, alteram licenças e regras de cálculo e veem os dados de todos os municípios. Mantenha pelo menos dois, para não perder o acesso à plataforma.</div>
+    </div>
+
+    <div class="section-title" style="margin-top:32px">Backup e exportação</div>
+    <div class="card sec-card">
+      <p style="margin:0 0 12px; font-size:13.5px; line-height:1.55">Gera um arquivo com todos os dados das tabelas do sistema: municípios, licenças, apurações (com o detalhamento), regras de cálculo, versões das regras e log de auditoria. Não há backup automático do banco, então faça este backup com regularidade e guarde o arquivo em local seguro.</p>
+      <button type="button" class="btn-acao primario" id="btnBackup">Exportar backup completo (JSON)</button>
+      <span class="ajuda-sec" id="statusBackup" style="margin-left:10px"></span>
+      <div class="ajuda-sec">O arquivo contém dados pessoais dos responsáveis e as apurações dos municípios. Usuários, senhas e grupos (times) não entram: ficam no serviço de autenticação do Appwrite.</div>
+    </div>
+
+    <div class="section-title" style="margin-top:32px">Log de auditoria</div>
+    <div class="barra-tabela">
+      <input type="search" id="logBusca" placeholder="Buscar no log (município, administrador, detalhes)" aria-label="Buscar no log">
+      <select id="logAcao" aria-label="Filtrar por ação"><option value="">Todas as ações</option></select>
+      <label class="fil-data">De <input type="date" id="logDe"></label>
+      <label class="fil-data">Até <input type="date" id="logAte"></label>
+      <button type="button" class="btn-acao" id="btnExportarLog">Exportar CSV</button>
+    </div>
+    <p class="contagem-lista" id="contagemLog"></p>
     <div class="card" id="listaAuditoria" style="padding:0"><div class="estado-carregando">Carregando…</div></div>
+    <div style="text-align:center; margin-top:12px"><button type="button" class="btn-acao" id="btnMaisLog" style="display:none">Mostrar mais</button></div>
   </main>
 </div>
 
@@ -237,17 +336,19 @@
 <style>
   @media (max-width:900px){
     .painel-dashboard{ grid-template-columns:1fr !important; }
-    #cardsResumoGestao{ grid-template-columns:1fr !important; }
+    #cardsResumoGestao{ grid-template-columns:repeat(2,1fr) !important; }
     .shell{ grid-template-columns:1fr; }
 
     main{ padding:20px 16px 40px; }
   }
   @media (max-width:640px){
     table.clientes{ font-size:12px; }
+    #cardsResumoGestao{ grid-template-columns:1fr !important; }
   }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
+<script src="admin-util.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -270,6 +371,20 @@
   var mapaMunicipios = {};
   var estadoModalMun = { modo:null, id:null, salvando:false };
   var toastTimer = null;
+  var usuarioAtual = null;
+
+  // Tudo o que a tela mostra vem deste objeto, carregado por recarregarClientes() e recarregarAuditoria().
+  var estado = { municipios: [], licencas: [], licencaPorMun: {}, apuracoes: {}, totalApuracoes: 0, refAno: 0, refMes: 0, auditoria: [], logVisiveis: 25 };
+
+  var ROTULOS_ACAO = {
+    aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de', cadastrar: 'Cadastrou',
+    dados: 'Alterou dados de', consulta_apuracoes: 'Consultou apurações de', convidar_usuario: 'Convidou usuário para',
+    usuario_remover: 'Removeu usuário de', usuario_responsavel: 'Tornou responsável um usuário de', usuario_reenviar: 'Reenviou convite em',
+    exportar_municipio: 'Exportou os dados de', exportar_lista: 'Exportou a lista de municípios', backup: 'Exportou o backup completo',
+    admin_convidar: 'Convidou administrador', admin_remover: 'Removeu administrador',
+    regra_criar: 'Criou a regra', regra_editar: 'Editou a regra', regra_desativar: 'Desativou a regra', regra_reativar: 'Reativou a regra',
+    regra_restaurar: 'Restaurou as regras para a versão'
+  };
 
   // Todo texto que vem do banco é escapado antes de entrar em innerHTML: qualquer usuário logado
   // consegue gravar linhas na tabela de municípios, então esses campos não são confiáveis.
@@ -285,19 +400,69 @@
     clearTimeout(toastTimer);
     toastTimer = setTimeout(function(){ t.className = 'toast'; }, alerta ? 9000 : 5000);
   }
-
-  function brl(v){ return (v==null) ? '—' : Number(v).toLocaleString('pt-BR', {minimumFractionDigits:2, maximumFractionDigits:2}); }
   function dataBr(iso){
     if (!iso) return '—';
-    var p = iso.slice(0,10).split('-');
+    var p = String(iso).slice(0,10).split('-');
     return p[2] + '/' + p[1] + '/' + p[0];
   }
+  function dataHoraBr(iso){
+    var q = new Date(iso);
+    return q.toLocaleDateString('pt-BR') + ' às ' + q.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
+  }
+  // Para busca sem diferenciar maiúsculas e acentos.
+  function norm(s){ return String(s == null ? '' : s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase(); }
+  function valor(id){ return document.getElementById(id).value; }
+  function hojeIso(){ var d = new Date(); return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0'); }
+  function emDebounce(fn, ms){ var t; return function(){ clearTimeout(t); t = setTimeout(fn, ms); }; }
 
+  // ---------------- Regras de exibição ----------------
+  function licencaDe(m){
+    return estado.licencaPorMun[m.$id] || (window.licencaDoMunicipio ? window.licencaDoMunicipio(m) : null);
+  }
+  // A situação é calculada pela data, sem depender do status gravado: licença vencida aparece como
+  // vencida mesmo que ninguém tenha alterado o registro.
+  function situacaoLicenca(lic){
+    if (!lic) return { cod: 'sem', rotulo: 'sem licença', classe: 'sem' };
+    var agora = new Date(), validade = lic.data_validade ? new Date(lic.data_validade) : null;
+    if (lic.status === 'suspensa') return { cod: 'suspensa', rotulo: 'suspensa', classe: 'suspenso' };
+    if (validade && validade < agora) return { cod: 'vencida', rotulo: 'vencida', classe: 'expirada' };
+    var em30 = new Date(); em30.setDate(em30.getDate() + 30);
+    if (validade && validade <= em30) return { cod: 'vence30', rotulo: 'vence em breve', classe: 'pendente' };
+    if (lic.plano === 'trial') return { cod: 'teste', rotulo: 'teste', classe: 'trial' };
+    return { cod: 'ativa', rotulo: 'ativa', classe: 'ativo' };
+  }
+  var ROTULOS_SITUACAO = { ativa: 'Ativas', teste: 'Em teste', vence30: 'Vencem em 30 dias', vencida: 'Vencidas', suspensa: 'Suspensas', sem: 'Sem licença' };
 
+  // Competência de referência: o mês anterior ao atual (a apuração de um mês é feita no mês seguinte).
+  function chaveRef(){ return estado.refAno * 100 + estado.refMes; }
+  function textoCompetencia(chave){ return String(chave % 100).padStart(2,'0') + '/' + Math.floor(chave / 100); }
+  // true: apurou a competência de referência (ou uma mais nova); false: não apurou; null: não se aplica.
+  function emDia(m){
+    if (m.status !== 'ativo') return null;
+    var u = estado.apuracoes[m.$id];
+    return !!(u && u.ultima >= chaveRef());
+  }
+  function dominioInstitucional(email){ return /\.(gov|leg)\.br$/i.test(String(email || '').trim()); }
+
+  function respHtml(m){
+    if (!m.responsavel_nome && !m.responsavel_email) return '<span class="secundario">não informado</span>';
+    var aviso = (m.responsavel_email && !dominioInstitucional(m.responsavel_email)) ? '<br><span class="aviso-dominio">e-mail não institucional</span>' : '';
+    return '<div class="resp"><span class="nome">' + esc(m.responsavel_nome || '—') + '</span><br><span class="email">' + esc(m.responsavel_email || '') + '</span>' + aviso + '</div>';
+  }
+  function usoHtml(m){
+    var u = estado.apuracoes[m.$id];
+    if (!u) return '<span class="secundario">nenhuma apuração</span>' + (m.status === 'ativo' ? '<br><span class="badge pendente">sem ' + textoCompetencia(chaveRef()) + '</span>' : '');
+    var selo = '';
+    var ed = emDia(m);
+    if (ed === true) selo = '<br><span class="badge ativo">em dia</span>';
+    else if (ed === false) selo = '<br><span class="badge pendente">sem ' + textoCompetencia(chaveRef()) + '</span>';
+    return '<span>' + textoCompetencia(u.ultima) + '</span><br><span class="secundario">' + u.total + (u.total === 1 ? ' apuração' : ' apurações') + '</span>' + selo;
+  }
+
+  // ---------------- Carga e tela ----------------
   async function carregarAdmin(){
-    var usuario;
     try {
-      usuario = await account.get();
+      usuarioAtual = await account.get();
     } catch (e) {
       window.location.href = 'login.html';
       return;
@@ -314,96 +479,81 @@
 
     document.getElementById('shellPrincipal').style.display = 'grid';
 
-    await recarregarClientes();
-    await recarregarAuditoria();
+    await Promise.all([recarregarClientes(), recarregarAuditoria(), carregarAdmins()]);
   }
 
   async function recarregarClientes(){
-    var municipios, licencas, erroListagem = null;
-    try {
-      var resM = await tablesDB.listRows({
-        databaseId: DATABASE_ID, tableId: 'municipios', queries: [Query.limit(200)]
-      });
-      municipios = resM.rows;
-    } catch (e) { municipios = []; erroListagem = e.message; }
+    var municipios, licencas = [], apuracoes = [], erroListagem = null;
+    try { municipios = await listarTodas('municipios', []); } catch (e) { municipios = []; erroListagem = erroAmigavel(e); }
+    try { licencas = await listarTodas('licencas', [Query.orderDesc('$createdAt')]); } catch (e) { licencas = []; }
+    // Só os campos de que o painel precisa: o detalhamento de cada apuração é grande.
+    try { apuracoes = await listarTodas('apuracoes', [Query.select(['municipio_id', 'competencia_ano', 'competencia_mes'])]); } catch (e) { apuracoes = []; }
 
-    // Ordenação feita aqui (pendentes primeiro, depois por nome), sem depender de índice no banco.
-    var ORDEM_STATUS = { pendente: 0, ativo: 1, suspenso: 2 };
-    municipios.sort(function(a, b){
-      var oa = (a.status in ORDEM_STATUS) ? ORDEM_STATUS[a.status] : 9;
-      var ob = (b.status in ORDEM_STATUS) ? ORDEM_STATUS[b.status] : 9;
-      return (oa - ob) || String(a.nome).localeCompare(String(b.nome), 'pt-BR');
-    });
     mapaMunicipios = {};
     municipios.forEach(function(m){ mapaMunicipios[m.$id] = m; });
-
-    try {
-      var resL = await tablesDB.listRows({
-        databaseId: DATABASE_ID, tableId: 'licencas',
-        queries: [Query.orderDesc('$createdAt'), Query.limit(200)]
-      });
-      licencas = resL.rows;
-    } catch (e) { licencas = []; }
-
-    var licencaPorMunicipio = {};
+    estado.municipios = municipios;
+    estado.erroListagem = erroListagem;
+    estado.licencas = licencas;
+    estado.licencaPorMun = {};
     licencas.forEach(function(l){
-      if (!licencaPorMunicipio[l.municipio_id]) licencaPorMunicipio[l.municipio_id] = l; // a mais recente, já que veio ordenado desc
+      if (!estado.licencaPorMun[l.municipio_id]) estado.licencaPorMun[l.municipio_id] = l; // a mais recente (veio em ordem decrescente)
     });
+    estado.apuracoes = {};
+    estado.totalApuracoes = apuracoes.length;
+    apuracoes.forEach(function(a){
+      var u = estado.apuracoes[a.municipio_id] || (estado.apuracoes[a.municipio_id] = { total: 0, ultima: 0 });
+      u.total++;
+      var chave = a.competencia_ano * 100 + a.competencia_mes;
+      if (chave > u.ultima) u.ultima = chave;
+    });
+    var ref = new Date(); ref = new Date(ref.getFullYear(), ref.getMonth() - 1, 1);
+    estado.refAno = ref.getFullYear(); estado.refMes = ref.getMonth() + 1;
 
-    if (!municipios || municipios.length === 0){
-      document.getElementById('corpoTabelaClientes').innerHTML = '<tr><td colspan="5" class="estado-vazio">' +
-        (erroListagem ? 'Não foi possível carregar os municípios: ' + esc(erroListagem) : 'Nenhum município cadastrado ainda.') + '</td></tr>';
-      return;
-    }
+    renderResumo();
+    renderClientes();
+  }
 
-    var total = municipios.length;
-    var ativos = municipios.filter(function(m){ return m.status === 'ativo'; }).length;
-    var pendentes = municipios.filter(function(m){ return m.status === 'pendente'; }).length;
-    var suspensos = municipios.filter(function(m){ return m.status === 'suspenso'; }).length;
+  function renderResumo(){
+    var ms = estado.municipios;
+    var contar = function(f){ return ms.filter(f).length; };
+    var pendentes = contar(function(m){ return m.status === 'pendente'; });
     var cards = document.querySelectorAll('#cardsResumoAdmin .val');
-    cards[0].textContent = total; cards[1].textContent = ativos; cards[2].textContent = pendentes; cards[3].textContent = suspensos;
+    cards[0].textContent = ms.length;
+    cards[1].textContent = contar(function(m){ return m.status === 'ativo'; });
+    cards[2].textContent = pendentes;
+    cards[3].textContent = contar(function(m){ return m.status === 'suspenso'; });
 
-    // --- Total de apurações de todos os clientes (o campo "total" já vem no resultado da busca,
-    // mesmo pedindo só 1 linha — não precisa trazer todas as apurações só para contar) ---
-    var totalApuracoes = '—';
-    try {
-      var resA = await tablesDB.listRows({
-        databaseId: DATABASE_ID, tableId: 'apuracoes', queries: [Query.limit(1)]
-      });
-      totalApuracoes = resA.total;
-    } catch (e) {}
-    document.querySelectorAll('#cardsResumoGestao .val')[0].textContent = totalApuracoes;
+    // Aviso de cadastros aguardando aprovação
+    var banner = document.getElementById('bannerPendentes');
+    banner.classList.toggle('aberto', pendentes > 0);
+    document.getElementById('bannerPendentesTexto').innerHTML = '<strong>' + pendentes + (pendentes === 1 ? ' cadastro aguarda' : ' cadastros aguardam') + ' aprovação.</strong> Confira o responsável e o e-mail antes de aprovar.';
 
-    // --- Cadastros nos últimos 30 dias ---
     var limite30 = new Date(); limite30.setDate(limite30.getDate() - 30);
-    var cadastrosRecentes30 = municipios.filter(function(m){ return m.$createdAt && new Date(m.$createdAt) >= limite30; }).length;
-    document.querySelectorAll('#cardsResumoGestao .val')[2].textContent = cadastrosRecentes30;
+    var gestao = document.querySelectorAll('#cardsResumoGestao .val');
+    gestao[0].textContent = estado.totalApuracoes;
+    var sits = ms.map(function(m){ return situacaoLicenca(licencaDe(m)).cod; });
+    gestao[1].textContent = sits.filter(function(c){ return c === 'vence30' || c === 'vencida'; }).length;
+    gestao[2].textContent = contar(function(m){ return m.$createdAt && new Date(m.$createdAt) >= limite30; });
+    var atrasados = contar(function(m){ return emDia(m) === false; });
+    gestao[3].textContent = atrasados;
+    document.getElementById('rotuloCardAtraso').textContent = 'Sem apuração de ' + textoCompetencia(chaveRef());
 
-    // --- Municípios por sistema de gestão (barra simples, sem biblioteca externa) ---
-    var porSistema = {};
-    municipios.forEach(function(m){ porSistema[m.sistema_gestao] = (porSistema[m.sistema_gestao]||0) + 1; });
-    var maiorSistema = Math.max.apply(null, Object.keys(porSistema).map(function(k){ return porSistema[k]; }).concat([1]));
-    document.getElementById('graficoSistemas').innerHTML = Object.keys(porSistema).sort().map(function(sis){
-      var qtd = porSistema[sis];
-      var pct = Math.round((qtd / maiorSistema) * 100);
-      return '<div class="barra-sistema"><div class="rotulo"><span style="text-transform:capitalize">' + esc(sis) + '</span><span>' + qtd + '</span></div>' +
-        '<div class="trilho"><div class="preenchido" style="width:' + pct + '%"></div></div></div>';
-    }).join('') || '<div class="estado-vazio">Sem dados</div>';
+    // Situação das licenças (barras simples, sem biblioteca externa)
+    var porSit = {}; sits.forEach(function(c){ porSit[c] = (porSit[c] || 0) + 1; });
+    var maior = Math.max.apply(null, Object.keys(ROTULOS_SITUACAO).map(function(k){ return porSit[k] || 0; }).concat([1]));
+    document.getElementById('graficoLicencas').innerHTML = Object.keys(ROTULOS_SITUACAO).map(function(k){
+      var qtd = porSit[k] || 0, pct = Math.round((qtd / maior) * 100);
+      return '<div class="barra-sistema"><div class="rotulo"><span>' + ROTULOS_SITUACAO[k] + '</span><span>' + qtd + '</span></div>' +
+        '<div class="trilho"><div class="preenchido sit-' + k + '" style="width:' + pct + '%"></div></div></div>';
+    }).join('');
 
-    // --- Licenças a vencer nos próximos 30 dias (inclui já vencidas, para não passarem despercebidas) ---
-    var em30dias = new Date(); em30dias.setDate(em30dias.getDate() + 30);
+    // Licenças a vencer (inclui as já vencidas, para não passarem despercebidas)
     var vencendo = [];
-    Object.keys(licencaPorMunicipio).forEach(function(mid){
-      var lic = licencaPorMunicipio[mid];
-      if (!lic.data_validade) return;
-      var validade = new Date(lic.data_validade);
-      if (validade <= em30dias){
-        var m = municipios.find(function(x){ return x.$id === mid; });
-        vencendo.push({ nome: m ? m.nome : '—', validade: lic.data_validade, dataObj: validade, vencida: validade < new Date() });
-      }
+    ms.forEach(function(m){
+      var lic = licencaDe(m), sit = situacaoLicenca(lic);
+      if ((sit.cod === 'vence30' || sit.cod === 'vencida') && lic.data_validade) vencendo.push({ nome: m.nome, validade: lic.data_validade, vencida: sit.cod === 'vencida' });
     });
-    vencendo.sort(function(a,b){ return a.dataObj - b.dataObj; });
-    document.getElementById('cardLicVencendo').querySelector('.val').textContent = vencendo.length;
+    vencendo.sort(function(a, b){ return new Date(a.validade) - new Date(b.validade); });
     document.getElementById('listaLicencasVencendo').innerHTML = vencendo.length
       ? vencendo.map(function(v){
           return '<div class="item-lista"><span class="principal">' + esc(v.nome) + '</span>' +
@@ -412,20 +562,76 @@
         }).join('')
       : '<div class="estado-vazio">Nenhuma licença vencendo nos próximos 30 dias.</div>';
 
-    // --- Cadastros recentes (últimos 5, mais novo primeiro) ---
-    var recentes = municipios.slice().sort(function(a,b){ return new Date(b.$createdAt) - new Date(a.$createdAt); }).slice(0,5);
+    // Cadastros recentes (últimos 5)
+    var recentes = ms.slice().sort(function(a, b){ return new Date(b.$createdAt) - new Date(a.$createdAt); }).slice(0, 5);
     document.getElementById('listaCadastrosRecentes').innerHTML = recentes.map(function(m){
-      return '<div class="item-lista"><span><span class="principal">' + esc(m.nome) + '</span> — ' + esc(m.uf) +
-        '<br><span class="secundario">' + esc(m.sistema_gestao) + '</span></span>' +
+      var resp = m.responsavel_nome ? esc(m.responsavel_nome) : 'responsável não informado';
+      return '<div class="item-lista"><span><span class="principal">' + esc(m.nome) + '</span> · ' + esc(m.uf) +
+        '<br><span class="secundario">' + resp + '</span></span>' +
         '<span class="direita"><span class="badge ' + esc(m.status) + '">' + esc(m.status) + '</span><br><span class="secundario">' + dataBr(m.$createdAt) + '</span></span></div>';
     }).join('') || '<div class="estado-vazio">Nenhum cadastro ainda.</div>';
+  }
 
-    document.getElementById('corpoTabelaClientes').innerHTML = municipios.map(function(m){
-      var lic = licencaPorMunicipio[m.$id];
+  // ---------------- Lista de municípios: busca, filtros e ordenação ----------------
+  function municipiosFiltrados(){
+    var busca = norm(valor('filtroBusca')), fs = valor('filtroStatus'), fl = valor('filtroLicenca'), fu = valor('filtroUso'), ordem = valor('ordemLista');
+    var lista = estado.municipios.filter(function(m){
+      if (fs && m.status !== fs) return false;
+      if (fl && situacaoLicenca(licencaDe(m)).cod !== fl) return false;
+      if (fu === 'atrasados' && emDia(m) !== false) return false;
+      if (fu === 'emdia' && emDia(m) !== true) return false;
+      if (busca && norm([m.nome, m.uf, m.codigo_tce, m.responsavel_nome, m.responsavel_email].join(' ')).indexOf(busca) < 0) return false;
+      return true;
+    });
+    var ORDEM_STATUS = { pendente: 0, ativo: 1, suspenso: 2 };
+    var porNome = function(a, b){ return String(a.nome).localeCompare(String(b.nome), 'pt-BR'); };
+    var validade = function(m){ var l = licencaDe(m); return (l && l.data_validade) ? new Date(l.data_validade).getTime() : Infinity; };
+    var ultima = function(m){ var u = estado.apuracoes[m.$id]; return u ? u.ultima : 0; };
+    lista.sort(function(a, b){
+      if (ordem === 'nome') return porNome(a, b);
+      if (ordem === 'validade') return (validade(a) - validade(b)) || porNome(a, b);
+      if (ordem === 'apuracao') return (ultima(a) - ultima(b)) || porNome(a, b);
+      if (ordem === 'cadastro') return new Date(b.$createdAt) - new Date(a.$createdAt);
+      var oa = (a.status in ORDEM_STATUS) ? ORDEM_STATUS[a.status] : 9, ob = (b.status in ORDEM_STATUS) ? ORDEM_STATUS[b.status] : 9;
+      return (oa - ob) || porNome(a, b);
+    });
+    return lista;
+  }
+
+  function painelLicencaHtml(id){
+    return '<div class="painel-licenca" id="lic-' + id + '">' +
+      '<label>Plano</label>' +
+      '<select id="plano-' + id + '"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select>' +
+      '<label>Válida até</label>' +
+      '<input type="date" id="validade-' + id + '">' +
+      '<br><button type="button" class="btn-acao primario" data-acao="salvar-licenca" data-id="' + id + '">Salvar licença</button>' +
+      '<span class="sep-acoes"></span>' +
+      '<button type="button" class="btn-acao" data-acao="renovar-30" data-id="' + id + '">Renovar +30 dias</button>' +
+      '<button type="button" class="btn-acao" data-acao="renovar-365" data-id="' + id + '">Renovar +1 ano</button>' +
+      '<button type="button" class="btn-acao" data-acao="historico-licenca" data-id="' + id + '">Histórico</button>' +
+      '<div class="hist-lic" id="hist-' + id + '"></div>' +
+      '</div>';
+  }
+
+  function renderClientes(){
+    var corpo = document.getElementById('corpoTabelaClientes');
+    var total = estado.municipios.length;
+    if (!total){
+      corpo.innerHTML = '<tr><td colspan="6" class="estado-vazio">' + (estado.erroListagem ? 'Não foi possível carregar os municípios. ' + esc(estado.erroListagem) : 'Nenhum município cadastrado ainda.') + '</td></tr>';
+      document.getElementById('contagemLista').textContent = '';
+      return;
+    }
+    var lista = municipiosFiltrados();
+    document.getElementById('contagemLista').textContent = 'Mostrando ' + lista.length + ' de ' + total + (total === 1 ? ' município' : ' municípios');
+    if (!lista.length){
+      corpo.innerHTML = '<tr><td colspan="6" class="estado-vazio">Nenhum município encontrado com estes filtros.</td></tr>';
+      return;
+    }
+    corpo.innerHTML = lista.map(function(m){
+      var lic = licencaDe(m), sit = situacaoLicenca(lic);
       var licTexto = lic
-        ? '<span class="badge ' + esc(lic.status) + '">' + esc(lic.plano) + '</span><br><span style="font-size:11.5px;color:var(--muted)">até ' + esc(dataBr(lic.data_validade)) + '</span>'
-        : '<span style="color:var(--muted);font-size:12px">sem licença</span>';
-
+        ? '<span class="badge ' + sit.classe + '">' + esc(sit.rotulo) + '</span><br><span class="secundario">' + esc(lic.plano || '') + ' · até ' + esc(dataBr(lic.data_validade)) + '</span>'
+        : '<span class="badge sem">sem licença</span>';
       var id = esc(m.$id);
       var acoes = '';
       if (m.status === 'pendente') acoes += '<button type="button" class="btn-acao primario" data-acao="aprovar" data-id="' + id + '">Aprovar</button>';
@@ -434,34 +640,45 @@
       acoes += '<button type="button" class="btn-acao" data-acao="dados" data-id="' + id + '">Dados</button>';
       acoes += '<button type="button" class="btn-acao" data-acao="licenca" data-id="' + id + '">Licença</button>';
       acoes += '<button type="button" class="btn-acao" data-acao="convidar" data-id="' + id + '">Usuários</button>';
-      acoes += '<div class="painel-licenca" id="lic-' + id + '">' +
-        '<label>Plano</label>' +
-        '<select id="plano-' + id + '"><option value="trial">Trial</option><option value="mensal">Mensal</option><option value="anual">Anual</option></select>' +
-        '<label>Válida até</label>' +
-        '<input type="date" id="validade-' + id + '">' +
-        '<br><button type="button" class="btn-acao primario" data-acao="salvar-licenca" data-id="' + id + '">Salvar licença</button>' +
-        '</div>';
-
+      acoes += '<button type="button" class="btn-acao" data-acao="exportar" data-id="' + id + '">Exportar dados</button>';
+      acoes += painelLicencaHtml(id);
       var codigoTexto = m.codigo_tce
-        ? '<span style="font-size:11.5px;color:var(--muted)">Código TCE ' + esc(m.codigo_tce) + '</span>'
-        : '<span style="font-size:11.5px;color:var(--red)">sem código TCE</span>';
-
-      return '<tr><td><strong>' + esc(m.nome) + '</strong> / ' + esc(m.uf) + '<br>' + codigoTexto + '</td>' +
-        '<td>' + esc(m.sistema_gestao) + '</td>' +
+        ? '<span class="secundario">Código TCE ' + esc(m.codigo_tce) + '</span>'
+        : '<span class="secundario" style="color:var(--red)">sem código TCE</span>';
+      return '<tr><td><strong>' + esc(m.nome) + '</strong> / ' + esc(m.uf) + '<br>' + codigoTexto + '<br><span class="secundario">cadastro em ' + esc(dataBr(m.$createdAt)) + '</span></td>' +
+        '<td>' + respHtml(m) + '</td>' +
         '<td><span class="badge ' + esc(m.status) + '">' + esc(m.status) + '</span></td>' +
         '<td>' + licTexto + '</td>' +
-        '<td>' + acoes + '</td></tr>';
+        '<td>' + usoHtml(m) + '</td>' +
+        '<td class="col-acoes">' + acoes + '</td></tr>';
     }).join('');
   }
 
-  async function registrarAuditoria(acao, alvoId, alvoNome, detalhes){
+  // Aplica um filtro vindo de um cartão ("status=pendente", "licenca=vence30", "uso=atrasados").
+  function aplicarFiltroDoCartao(def){
+    var p = def.split('='), campo = { status: 'filtroStatus', licenca: 'filtroLicenca', uso: 'filtroUso' }[p[0]];
+    if (!campo) return;
+    limparFiltros(true);
+    document.getElementById(campo).value = p[1];
+    renderClientes();
+    document.getElementById('secaoMunicipios').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+  function limparFiltros(semRender){
+    ['filtroBusca'].forEach(function(id){ document.getElementById(id).value = ''; });
+    ['filtroStatus', 'filtroLicenca', 'filtroUso'].forEach(function(id){ document.getElementById(id).value = ''; });
+    document.getElementById('ordemLista').value = 'padrao';
+    if (!semRender) renderClientes();
+  }
+
+  // ---------------- Registro de ações e licenças ----------------
+  async function registrarAuditoria(acao, alvoId, alvoNome, detalhes, tipo){
     try {
-      var admin = await account.get();
+      var admin = usuarioAtual || await account.get();
       await tablesDB.createRow({
         databaseId: DATABASE_ID, tableId: 'auditoria_admin', rowId: ID.unique(),
         data: {
           admin_id: admin.$id, admin_email: admin.email, acao: acao,
-          alvo_tipo: 'municipio', alvo_id: alvoId || '', alvo_nome: String(alvoNome || '').slice(0, 150),
+          alvo_tipo: tipo || 'municipio', alvo_id: alvoId || '', alvo_nome: String(alvoNome || '').slice(0, 150),
           detalhes: String(detalhes || '').slice(0, 500)
         }
       });
@@ -492,7 +709,9 @@
         data: { licenca_plano: lic.plano, licenca_status: lic.status, licenca_inicio: lic.data_inicio, licenca_validade: lic.data_validade }
       });
     } catch (e) {
-      throw new Error('a licença foi registrada, mas não foi possível atualizá-la no cadastro do município (' + e.message + '). Tente salvar de novo');
+      var falha = new Error('espelho da licença não atualizado');
+      falha.mensagemAmigavel = 'A licença foi registrada, mas não foi possível atualizá-la no cadastro do município. ' + erroAmigavel(e) + ' Tente salvar de novo.';
+      throw falha;
     }
   }
 
@@ -503,40 +722,56 @@
       abrirModalMunicipio('editar', municipioId, 'Informe o código TCE antes de aprovar. Sem ele, a ferramenta não consegue associar os XML deste município ao cadastro e as apurações não são salvas. Depois de salvar, clique em Aprovar de novo.');
       return;
     }
+    var texto = 'Município: ' + m.nome + '/' + m.uf + '\nResponsável: ' + (m.responsavel_nome || 'não informado') + ' (' + (m.responsavel_email || 'sem e-mail') + ')\n\nA aprovação libera o acesso e cria uma licença de teste de 30 dias.';
+    var alerta = !m.responsavel_email ? 'Este cadastro não tem o e-mail do responsável registrado.'
+      : (!dominioInstitucional(m.responsavel_email) ? 'O e-mail do responsável (' + m.responsavel_email + ') não é de um domínio institucional (.gov.br). Confirme que a pessoa representa o município.' : '');
+    if (!(await confirmar({ titulo: 'Aprovar o cadastro?', texto: texto, alerta: alerta, rotuloOk: 'Aprovar' }))) return;
     try {
-      // Aprovação cria automaticamente uma licença trial de 30 dias; o administrador pode
-      // trocar o plano depois pelo botão "Licença". A licença vem ANTES de ativar o município:
-      // se ela falhar, nada muda (antes, o município ficava ativo, sem licença e sem registro
-      // no log de auditoria).
+      // A licença vem ANTES de ativar o município: se ela falhar, nada muda (antes, o município
+      // ficava ativo, sem licença e sem registro no log de auditoria).
       var validade = new Date(); validade.setDate(validade.getDate() + 30);
       await registrarLicenca(municipioId, {
         plano: 'trial', status: 'trial',
         data_inicio: new Date().toISOString(), data_validade: validade.toISOString()
       });
       await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: 'ativo' } });
-      await registrarAuditoria('aprovar', municipioId, m.nome, 'Licença trial de 30 dias criada automaticamente');
+      await registrarAuditoria('aprovar', municipioId, m.nome, 'Licença trial de 30 dias criada automaticamente. Responsável: ' + (m.responsavel_email || 'não informado'));
       await recarregarClientes();
       await recarregarAuditoria();
+      mostrarToast(m.nome + ' aprovado, com licença de teste de 30 dias.');
     } catch (err) {
-      alert('Não foi possível aprovar: ' + err.message);
+      mostrarToast('Não foi possível aprovar: ' + erroAmigavel(err), true);
     }
   }
 
   async function alterarStatus(municipioId, novoStatus){
     var m = mapaMunicipios[municipioId];
     if (!m) return;
+    if (novoStatus === 'suspenso' && !(await confirmar({
+      titulo: 'Suspender ' + m.nome + '?',
+      texto: 'Os usuários deste município perdem o acesso às apurações até você reativar. Nenhum dado é apagado.',
+      rotuloOk: 'Suspender', perigo: true
+    }))) return;
     try {
       await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: municipioId, data: { status: novoStatus } });
       await registrarAuditoria(novoStatus === 'suspenso' ? 'suspender' : 'reativar', municipioId, m.nome, 'Status alterado para ' + novoStatus);
       await recarregarClientes();
       await recarregarAuditoria();
+      mostrarToast(m.nome + (novoStatus === 'suspenso' ? ' suspenso.' : ' reativado.'));
     } catch (err) {
-      alert('Não foi possível alterar o status: ' + err.message);
+      mostrarToast('Não foi possível alterar o status: ' + erroAmigavel(err), true);
     }
   }
 
   function toggleLicenca(municipioId){
-    document.getElementById('lic-' + municipioId).classList.toggle('aberto');
+    var painel = document.getElementById('lic-' + municipioId);
+    var abrir = !painel.classList.contains('aberto');
+    painel.classList.toggle('aberto');
+    if (!abrir) return;
+    var lic = licencaDe(mapaMunicipios[municipioId]);
+    document.getElementById('plano-' + municipioId).value = (lic && lic.plano) ? lic.plano : 'mensal';
+    document.getElementById('validade-' + municipioId).value = (lic && lic.data_validade && new Date(lic.data_validade) > new Date())
+      ? String(lic.data_validade).slice(0, 10) : dataMaisDias(30);
   }
 
   async function salvarLicenca(municipioId){
@@ -544,18 +779,58 @@
     if (!m) return;
     var plano = document.getElementById('plano-' + municipioId).value;
     var validade = document.getElementById('validade-' + municipioId).value;
-    if (!validade){ alert('Escolha a data de validade da licença.'); return; }
+    if (!validade){ mostrarToast('Escolha a data de validade da licença.', true); return; }
     try {
       await registrarLicenca(municipioId, {
         plano: plano, status: 'ativa',
-        data_inicio: new Date().toISOString(), data_validade: new Date(validade).toISOString()
+        data_inicio: new Date().toISOString(), data_validade: new Date(validade + 'T23:59:59').toISOString()
       });
       await registrarAuditoria('licenca', municipioId, m.nome, 'Plano ' + plano + ', válida até ' + validade);
       await recarregarClientes();
       await recarregarAuditoria();
+      mostrarToast('Licença de ' + m.nome + ' salva.');
     } catch (err) {
-      alert('Não foi possível salvar a licença: ' + err.message);
+      mostrarToast('Não foi possível salvar a licença: ' + erroAmigavel(err), true);
     }
+  }
+
+  // Renovação em um clique: soma o período a partir da validade atual (se ainda vale) ou de hoje.
+  async function renovarLicenca(municipioId, dias){
+    var m = mapaMunicipios[municipioId];
+    if (!m) return;
+    var lic = licencaDe(m);
+    var base = new Date();
+    if (lic && lic.data_validade && new Date(lic.data_validade) > base) base = new Date(lic.data_validade);
+    var nova = new Date(base.getTime()); nova.setDate(nova.getDate() + dias);
+    var plano = dias >= 365 ? 'anual' : 'mensal';
+    var novaTexto = nova.getFullYear() + '-' + String(nova.getMonth() + 1).padStart(2, '0') + '-' + String(nova.getDate()).padStart(2, '0');
+    if (!(await confirmar({
+      titulo: 'Renovar a licença de ' + m.nome + '?',
+      texto: 'Plano ' + plano + ', válida até ' + dataBr(novaTexto) + (lic && lic.data_validade ? ' (a validade atual é ' + dataBr(lic.data_validade) + ').' : '.'),
+      rotuloOk: 'Renovar'
+    }))) return;
+    try {
+      await registrarLicenca(municipioId, { plano: plano, status: 'ativa', data_inicio: new Date().toISOString(), data_validade: new Date(novaTexto + 'T23:59:59').toISOString() });
+      await registrarAuditoria('licenca', municipioId, m.nome, 'Renovação: plano ' + plano + ', válida até ' + novaTexto);
+      await recarregarClientes();
+      await recarregarAuditoria();
+      mostrarToast('Licença de ' + m.nome + ' renovada até ' + dataBr(novaTexto) + '.');
+    } catch (err) {
+      mostrarToast('Não foi possível renovar a licença: ' + erroAmigavel(err), true);
+    }
+  }
+
+  function mostrarHistoricoLicencas(municipioId){
+    var alvo = document.getElementById('hist-' + municipioId);
+    if (alvo.classList.contains('aberto')){ alvo.classList.remove('aberto'); return; }
+    var linhas = estado.licencas.filter(function(l){ return l.municipio_id === municipioId; });
+    alvo.innerHTML = linhas.length
+      ? '<table class="tabela-simples"><tr><th>Registrada em</th><th>Plano</th><th>Início</th><th>Validade</th></tr>' +
+        linhas.map(function(l){
+          return '<tr><td>' + esc(dataHoraBr(l.$createdAt)) + '</td><td>' + esc(l.plano) + '</td><td>' + esc(dataBr(l.data_inicio)) + '</td><td>' + esc(dataBr(l.data_validade)) + '</td></tr>';
+        }).join('') + '</table>'
+      : '<span class="secundario">Nenhuma licença registrada na tabela de licenças.</span>';
+    alvo.classList.add('aberto');
   }
 
   // ---------------- Cadastro e edição de município ----------------
@@ -647,7 +922,7 @@
 
     var codigoTabela = Object.prototype.hasOwnProperty.call(MUNICIPIOS_SP, nome) ? MUNICIPIOS_SP[nome] : null;
     if (codigoTabela && codigoTabela !== codigo){
-      if (!confirm('O código informado (' + codigo + ') difere do que consta na tabela do TCE-SP para ' + nome + ' (' + codigoTabela + '). Manter o código informado mesmo assim?')) return;
+      if (!(await confirmar({ titulo: 'Código diferente da tabela do TCE-SP', texto: 'O código informado (' + codigo + ') difere do que consta na tabela do TCE-SP para ' + nome + ' (' + codigoTabela + '). Manter o código informado mesmo assim?', rotuloOk: 'Manter o código informado' }))) return;
     }
 
     estadoModalMun.salvando = true;
@@ -659,7 +934,7 @@
       try {
         await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: id, data: { codigo_tce: codigo, sistema_gestao: sistema } });
       } catch (e) {
-        erroModalMunicipio(['Não foi possível salvar: ' + e.message]);
+        erroModalMunicipio(['Não foi possível salvar. ' + erroAmigavel(e)]);
         estadoModalMun.salvando = false; btn.disabled = false; btn.textContent = 'Salvar dados';
         return;
       }
@@ -677,7 +952,7 @@
     try {
       time = await teams.create({ teamId: ID.unique(), name: nome + '/SP' });
     } catch (e) {
-      erroModalMunicipio(['Não foi possível criar o time do município: ' + e.message]);
+      erroModalMunicipio(['Não foi possível criar o grupo (time) do município. ' + erroAmigavel(e)]);
       estadoModalMun.salvando = false; btn.disabled = false; btn.textContent = 'Cadastrar município';
       return;
     }
@@ -691,7 +966,7 @@
       });
     } catch (e) {
       try { await teams.delete({ teamId: time.$id }); } catch (e2) { /* melhor esforço: evita time órfão */ }
-      erroModalMunicipio(['Não foi possível cadastrar o município: ' + e.message]);
+      erroModalMunicipio(['Não foi possível cadastrar o município. ' + erroAmigavel(e)]);
       estadoModalMun.salvando = false; btn.disabled = false; btn.textContent = 'Cadastrar município';
       return;
     }
@@ -714,13 +989,14 @@
       : nome + ' cadastrado, ativo e com licença.', licencaFalhou);
   }
 
-  // ===== Convite de usuário para o time de um município =====
-  // O convite é uma membership do Appwrite Teams: o Appwrite envia o e-mail com o link para
-  // aceitar-convite.html, que confirma a entrada no time (e, para quem ainda não tinha conta,
-  // pede a definição da senha). Só o owner do time pode convidar — o administrador é owner dos
-  // times que ele mesmo criou pelo "+ Cadastrar município"; nos times criados por autocadastro,
-  // o owner é o responsável que se cadastrou.
+
+  // ===== Usuários de um município (convidar, remover, trocar o responsável) =====
+  // Usa as memberships do Appwrite Teams. Só funciona quando o administrador participa do time do
+  // município (os que ele mesmo cadastrou). Nos municípios de autocadastro o time é do responsável
+  // que se cadastrou e o administrador não o enxerga: para esses casos seria preciso uma função no
+  // servidor, que ainda não existe (o plano gratuito tem uma vaga de função, já ocupada pelo motor).
   var conviteMunicipioId = null;
+  var membrosDoConvite = [];
 
   function erroConvite(texto){
     var el = document.getElementById('mcErro');
@@ -730,15 +1006,22 @@
 
   async function carregarMembrosConvite(m){
     var alvo = document.getElementById('mcMembros');
+    if (!m.team_id){ alvo.textContent = 'Este município não tem time associado.'; return; }
     try {
       var r = await teams.listMemberships({ teamId: m.team_id });
+      membrosDoConvite = r.memberships;
+      var eDono = function(mb){ return (mb.roles || []).indexOf('owner') !== -1; };
       alvo.innerHTML = r.memberships.length ? r.memberships.map(function(mb){
-        var situacao = mb.confirm ? 'ativo' : 'convite pendente';
-        var papel = (mb.roles || []).indexOf('owner') !== -1 ? ' · responsável (owner)' : '';
-        return '<div>' + esc(mb.userName || '—') + ' &lt;' + esc(mb.userEmail) + '&gt; — ' + situacao + papel + '</div>';
+        var botoes = '';
+        if (!eDono(mb)) botoes += '<button type="button" class="btn-mini" data-mb-acao="promover" data-mb="' + esc(mb.$id) + '">Tornar responsável</button>';
+        if (!mb.confirm) botoes += '<button type="button" class="btn-mini" data-mb-acao="reenviar" data-mb="' + esc(mb.$id) + '">Reenviar convite</button>';
+        botoes += '<button type="button" class="btn-mini perigo" data-mb-acao="remover" data-mb="' + esc(mb.$id) + '">Remover</button>';
+        return '<div class="membro"><div>' + esc(mb.userName || '—') + ' &lt;' + esc(mb.userEmail) + '&gt;<br><span class="secundario">' +
+          (mb.confirm ? 'ativo' : 'convite pendente') + (eDono(mb) ? ' · responsável (owner)' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
       }).join('') : 'Nenhum usuário.';
     } catch (e) {
-      alvo.textContent = 'Não foi possível listar os usuários deste município. Você não faz parte do time dele, provavelmente porque foi criado por autocadastro.';
+      membrosDoConvite = [];
+      alvo.innerHTML = 'Não foi possível listar os usuários deste município: você não faz parte do grupo dele. Isso acontece nos municípios que se cadastraram sozinhos. Para convidar, remover ou trocar o responsável nesses casos, é preciso uma função no servidor (ainda não implantada).';
     }
   }
 
@@ -754,8 +1037,7 @@
     var btn = document.getElementById('mcEnviar');
     btn.disabled = false; btn.textContent = 'Enviar convite';
     document.getElementById('modalConvite').classList.add('aberto');
-    if (m.team_id) carregarMembrosConvite(m);
-    else document.getElementById('mcMembros').textContent = 'Este município não tem time associado.';
+    carregarMembrosConvite(m);
     document.getElementById('mcEmail').focus();
   }
 
@@ -767,8 +1049,7 @@
   async function enviarConvite(){
     var m = mapaMunicipios[conviteMunicipioId];
     if (!m) return;
-    var email = document.getElementById('mcEmail').value.trim();
-    var nome = document.getElementById('mcNome').value.trim();
+    var email = valor('mcEmail').trim(), nome = valor('mcNome').trim();
     if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ erroConvite('Informe um e-mail válido.'); return; }
     if (!m.team_id){ erroConvite('Este município não tem time associado; não é possível convidar usuários.'); return; }
     erroConvite('');
@@ -779,11 +1060,9 @@
       if (nome) params.name = nome;
       await teams.createMembership(params);
     } catch (e) {
-      var msg = e.code === 401
-        ? 'Você não tem permissão para convidar usuários para este município: só o responsável (owner) do time pode convidar, e este time foi criado pelo próprio município no autocadastro.'
-        : e.code === 409 ? email + ' já faz parte deste município ou já tem um convite pendente.'
-        : 'Não foi possível enviar o convite: ' + e.message;
-      erroConvite(msg);
+      erroConvite(e.code === 401 || e.code === 403
+        ? 'Você não tem permissão para convidar usuários para este município: só o responsável (owner) do grupo pode convidar, e este grupo foi criado pelo próprio município no autocadastro.'
+        : erroAmigavel(e));
       btn.disabled = false; btn.textContent = 'Enviar convite';
       return;
     }
@@ -793,11 +1072,251 @@
     document.getElementById('mcNome').value = '';
     btn.disabled = false; btn.textContent = 'Enviar convite';
     carregarMembrosConvite(m);
+    recarregarAuditoria();
   }
 
+  async function acaoMembro(acao, membershipId){
+    var m = mapaMunicipios[conviteMunicipioId];
+    var mb = membrosDoConvite.filter(function(x){ return x.$id === membershipId; })[0];
+    if (!m || !mb) return;
+    var nomeUsuario = (mb.userName || mb.userEmail);
+    var donos = membrosDoConvite.filter(function(x){ return (x.roles || []).indexOf('owner') !== -1; }).length;
+    try {
+      if (acao === 'remover'){
+        if ((mb.roles || []).indexOf('owner') !== -1 && donos <= 1){ erroConvite('Este é o único responsável (owner) do município. Torne outro usuário responsável antes de removê-lo.'); return; }
+        if (!(await confirmar({ titulo: 'Remover ' + nomeUsuario + '?', texto: nomeUsuario + ' perde o acesso a ' + m.nome + '. Nenhuma apuração é apagada.', rotuloOk: 'Remover', perigo: true }))) return;
+        await teams.deleteMembership({ teamId: m.team_id, membershipId: membershipId });
+        await registrarAuditoria('usuario_remover', m.$id, m.nome, 'Removido: ' + mb.userEmail);
+        mostrarToast(nomeUsuario + ' removido.');
+      } else if (acao === 'promover'){
+        if (!(await confirmar({ titulo: 'Tornar ' + nomeUsuario + ' responsável?', texto: 'O responsável (owner) pode convidar e remover usuários do município.', rotuloOk: 'Tornar responsável' }))) return;
+        await teams.updateMembership({ teamId: m.team_id, membershipId: membershipId, roles: ['owner'] });
+        await registrarAuditoria('usuario_responsavel', m.$id, m.nome, 'Novo responsável: ' + mb.userEmail);
+        mostrarToast(nomeUsuario + ' agora é responsável.');
+      } else if (acao === 'reenviar'){
+        await teams.deleteMembership({ teamId: m.team_id, membershipId: membershipId });
+        var params = { teamId: m.team_id, roles: mb.roles && mb.roles.length ? mb.roles : ['member'], email: mb.userEmail, url: window.location.origin + '/aceitar-convite.html' };
+        if (mb.userName) params.name = mb.userName;
+        await teams.createMembership(params);
+        await registrarAuditoria('usuario_reenviar', m.$id, m.nome, 'Convite reenviado para ' + mb.userEmail);
+        mostrarToast('Convite reenviado para ' + mb.userEmail + '.');
+      }
+      erroConvite('');
+      carregarMembrosConvite(m);
+      recarregarAuditoria();
+    } catch (e) {
+      erroConvite(erroAmigavel(e));
+    }
+  }
+
+  // ===== Administradores da plataforma =====
+  async function carregarAdmins(){
+    var alvo = document.getElementById('listaAdmins');
+    try {
+      var r = await teams.listMemberships({ teamId: TEAM_ADMINS_ID });
+      estado.admins = r.memberships;
+      var ativos = r.memberships.filter(function(mb){ return mb.confirm; }).length;
+      alvo.innerHTML =
+        (ativos < 2 ? '<div class="aviso-modal" style="margin-bottom:12px">Só há ' + ativos + ' administrador ativo. Convide um segundo para não perder o acesso à plataforma se uma conta for perdida.</div>' : '') +
+        '<table class="tabela-simples"><tr><th>Nome</th><th>E-mail</th><th>Situação</th><th></th></tr>' +
+        r.memberships.map(function(mb){
+          var eu = usuarioAtual && mb.userId === usuarioAtual.$id;
+          return '<tr><td>' + esc(mb.userName || '—') + (eu ? ' <span class="secundario">(você)</span>' : '') + '</td><td>' + esc(mb.userEmail) + '</td><td>' + (mb.confirm ? 'ativo' : 'convite pendente') + '</td><td>' +
+            (eu ? '' : '<button type="button" class="btn-mini perigo" data-adm-acao="remover" data-mb="' + esc(mb.$id) + '">Remover</button>') + '</td></tr>';
+        }).join('') + '</table>';
+    } catch (e) {
+      alvo.innerHTML = '<div class="estado-vazio">Não foi possível listar os administradores. ' + esc(erroAmigavel(e)) + '</div>';
+    }
+  }
+
+  async function convidarAdmin(){
+    var email = valor('admEmail').trim(), nome = valor('admNome').trim();
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)){ mostrarToast('Informe um e-mail válido.', true); return; }
+    if (!(await confirmar({
+      titulo: 'Convidar administrador?',
+      texto: email + ' terá acesso total à plataforma.',
+      alerta: 'Administradores aprovam cadastros, alteram licenças e regras de cálculo e veem os dados de todos os municípios. Convide só quem tem esse papel.',
+      rotuloOk: 'Enviar convite'
+    }))) return;
+    try {
+      var params = { teamId: TEAM_ADMINS_ID, roles: ['owner'], email: email, url: window.location.origin + '/aceitar-convite.html' };
+      if (nome) params.name = nome;
+      await teams.createMembership(params);
+      await registrarAuditoria('admin_convidar', '', email, 'Convite de administrador enviado', 'plataforma');
+      document.getElementById('admEmail').value = ''; document.getElementById('admNome').value = '';
+      mostrarToast('Convite enviado para ' + email + '.');
+      carregarAdmins(); recarregarAuditoria();
+    } catch (e) {
+      mostrarToast('Não foi possível enviar o convite: ' + erroAmigavel(e), true);
+    }
+  }
+
+  async function removerAdmin(membershipId){
+    var mb = (estado.admins || []).filter(function(x){ return x.$id === membershipId; })[0];
+    if (!mb) return;
+    var outrosAtivos = (estado.admins || []).filter(function(x){ return x.$id !== membershipId && x.confirm; }).length;
+    if (mb.confirm && outrosAtivos < 1){ mostrarToast('Não é possível remover o único administrador ativo.', true); return; }
+    if (!(await confirmar({ titulo: 'Remover ' + (mb.userName || mb.userEmail) + ' dos administradores?', texto: 'Esta pessoa perde o acesso às telas de administração.', rotuloOk: 'Remover', perigo: true }))) return;
+    try {
+      await teams.deleteMembership({ teamId: TEAM_ADMINS_ID, membershipId: membershipId });
+      await registrarAuditoria('admin_remover', '', mb.userEmail, 'Administrador removido', 'plataforma');
+      mostrarToast('Administrador removido.');
+      carregarAdmins(); recarregarAuditoria();
+    } catch (e) {
+      mostrarToast('Não foi possível remover: ' + erroAmigavel(e), true);
+    }
+  }
+
+  // ===== Exportações e backup =====
+  function nomeArquivoSeguro(t){ return norm(t).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'municipio'; }
+
+  async function exportarLista(){
+    var lista = municipiosFiltrados();
+    var linhas = [csvLinha(['Município', 'UF', 'Código TCE', 'Status', 'Responsável', 'E-mail do responsável', 'Plano', 'Situação da licença', 'Validade da licença', 'Última apuração', 'Nº de apurações', 'Cadastro em'])];
+    lista.forEach(function(m){
+      var lic = licencaDe(m), sit = situacaoLicenca(lic), u = estado.apuracoes[m.$id];
+      linhas.push(csvLinha([m.nome, m.uf, m.codigo_tce || '', m.status, m.responsavel_nome || '', m.responsavel_email || '', lic ? (lic.plano || '') : '', sit.rotulo, lic ? dataBr(lic.data_validade) : '', u ? textoCompetencia(u.ultima) : '', u ? u.total : 0, dataBr(m.$createdAt)]));
+    });
+    baixarArquivo('municipios-' + hojeIso() + '.csv', CSV_BOM + linhas.join('\r\n'), 'text/csv;charset=utf-8');
+    await registrarAuditoria('exportar_lista', '', 'Lista de municípios', lista.length + ' municípios exportados', 'plataforma');
+    mostrarToast('Lista exportada (' + lista.length + ' municípios). Abra o arquivo no Excel.');
+    recarregarAuditoria();
+  }
+
+  // Pacote com tudo o que o sistema guarda de um município (portabilidade e encerramento de contrato).
+  async function exportarDadosMunicipio(municipioId){
+    var m = mapaMunicipios[municipioId];
+    if (!m) return;
+    try {
+      var licencas = await listarTodas('licencas', [Query.equal('municipio_id', municipioId)]);
+      var apuracoes = await listarTodas('apuracoes', [Query.equal('municipio_id', municipioId)]);
+      var pacote = { gerado_em: new Date().toISOString(), gerado_por: usuarioAtual.email, municipio: m, licencas: licencas, apuracoes: apuracoes,
+        observacao: 'Usuários e grupos (times) do município não entram neste arquivo: ficam no serviço de autenticação do Appwrite.' };
+      baixarArquivo('dados-' + nomeArquivoSeguro(m.nome) + '-' + hojeIso() + '.json', JSON.stringify(pacote, null, 1), 'application/json;charset=utf-8');
+      await registrarAuditoria('exportar_municipio', municipioId, m.nome, apuracoes.length + ' apurações e ' + licencas.length + ' licenças exportadas');
+      mostrarToast('Dados de ' + m.nome + ' exportados (' + apuracoes.length + ' apurações).');
+      recarregarAuditoria();
+    } catch (e) {
+      mostrarToast('Não foi possível exportar os dados: ' + erroAmigavel(e), true);
+    }
+  }
+
+  var TABELAS_BACKUP = ['municipios', 'licencas', 'apuracoes', 'regras_motor', 'regras_versoes', 'auditoria_admin'];
+
+  async function exportarBackup(){
+    var btn = document.getElementById('btnBackup');
+    var textoOriginal = btn.textContent;
+    btn.disabled = true;
+    var pacote = { versao: 1, gerado_em: new Date().toISOString(), gerado_por: usuarioAtual.email, tabelas: {},
+      observacao: 'Contém dados pessoais (responsáveis) e apurações: guarde em local seguro. Usuários, senhas e grupos (times) não entram: ficam no serviço de autenticação do Appwrite.' };
+    var resumo = [], falhas = 0;
+    try {
+      for (var i = 0; i < TABELAS_BACKUP.length; i++){
+        var t = TABELAS_BACKUP[i];
+        btn.textContent = 'Exportando ' + t + '…';
+        try {
+          var linhas = await listarTodas(t, [], 50000);
+          pacote.tabelas[t] = { total: linhas.length, linhas: linhas };
+          resumo.push(t + ': ' + linhas.length);
+        } catch (e) {
+          pacote.tabelas[t] = { erro: erroAmigavel(e) };
+          resumo.push(t + ': ERRO'); falhas++;
+        }
+      }
+      baixarArquivo('apurapasep-backup-' + hojeIso() + '.json', JSON.stringify(pacote, null, 1), 'application/json;charset=utf-8');
+      await registrarAuditoria('backup', '', 'Backup completo', resumo.join(' | '), 'plataforma');
+      document.getElementById('statusBackup').textContent = 'Último backup: agora (' + resumo.join(', ') + ').';
+      mostrarToast(falhas ? 'Backup gerado, mas ' + falhas + ' tabela(s) não puderam ser lidas. Veja o arquivo.' : 'Backup gerado. Guarde o arquivo em local seguro.', !!falhas);
+      recarregarAuditoria();
+    } catch (e) {
+      mostrarToast('Não foi possível gerar o backup: ' + erroAmigavel(e), true);
+    } finally {
+      btn.disabled = false; btn.textContent = textoOriginal;
+    }
+  }
+
+  function atualizarBannerBackup(){
+    var ultimo = estado.auditoria.filter(function(a){ return a.acao === 'backup'; })[0];
+    var dias = ultimo ? Math.floor((Date.now() - new Date(ultimo.$createdAt).getTime()) / 864e5) : null;
+    document.getElementById('statusBackup').textContent = ultimo ? 'Último backup: ' + dataHoraBr(ultimo.$createdAt) + ' (há ' + dias + (dias === 1 ? ' dia' : ' dias') + ').' : 'Nenhum backup registrado ainda.';
+    var precisa = estado.municipios.length > 0 && (dias === null || dias > 30);
+    document.getElementById('bannerBackup').classList.toggle('aberto', precisa);
+    document.getElementById('bannerBackupTexto').innerHTML = dias === null
+      ? '<strong>Nenhum backup foi feito ainda.</strong> O banco não tem rotina de backup automático.'
+      : '<strong>O último backup tem ' + dias + ' dias.</strong> O banco não tem rotina de backup automático.';
+  }
+
+  // ===== Log de auditoria =====
+  async function recarregarAuditoria(){
+    var container = document.getElementById('listaAuditoria');
+    try {
+      estado.auditoria = await listarTodas('auditoria_admin', [Query.orderDesc('$createdAt')], 3000);
+      estado.erroAuditoria = null;
+    } catch (e) {
+      estado.auditoria = []; estado.erroAuditoria = erroAmigavel(e);
+    }
+    var sel = document.getElementById('logAcao'), atual = sel.value;
+    var acoes = {}; estado.auditoria.forEach(function(a){ acoes[a.acao] = true; });
+    sel.innerHTML = '<option value="">Todas as ações</option>' + Object.keys(acoes).sort().map(function(k){ return '<option value="' + esc(k) + '">' + esc(ROTULOS_ACAO[k] || k) + '</option>'; }).join('');
+    sel.value = acoes[atual] ? atual : '';
+    estado.logVisiveis = 25;
+    if (!container) return;
+    renderAuditoria();
+    atualizarBannerBackup();
+  }
+
+  function auditoriaFiltrada(){
+    var busca = norm(valor('logBusca')), acao = valor('logAcao'), de = valor('logDe'), ate = valor('logAte');
+    var deData = de ? new Date(de + 'T00:00:00') : null, ateData = ate ? new Date(ate + 'T23:59:59') : null;
+    return estado.auditoria.filter(function(a){
+      if (acao && a.acao !== acao) return false;
+      var q = new Date(a.$createdAt);
+      if (deData && q < deData) return false;
+      if (ateData && q > ateData) return false;
+      if (busca && norm([a.alvo_nome, a.alvo_id, a.admin_email, a.detalhes, ROTULOS_ACAO[a.acao] || a.acao].join(' ')).indexOf(busca) < 0) return false;
+      return true;
+    });
+  }
+
+  function renderAuditoria(){
+    var container = document.getElementById('listaAuditoria');
+    if (estado.erroAuditoria){ container.innerHTML = '<div class="estado-vazio">Não foi possível carregar o log de auditoria. ' + esc(estado.erroAuditoria) + '</div>'; return; }
+    var lista = auditoriaFiltrada();
+    document.getElementById('contagemLog').textContent = estado.auditoria.length ? 'Mostrando ' + Math.min(estado.logVisiveis, lista.length) + ' de ' + lista.length + (lista.length !== estado.auditoria.length ? ' (filtrado, ' + estado.auditoria.length + ' no total)' : ' ações') : '';
+    if (!lista.length){
+      container.innerHTML = '<div class="estado-vazio">' + (estado.auditoria.length ? 'Nenhuma ação encontrada com estes filtros.' : 'Nenhuma ação registrada ainda.') + '</div>';
+      document.getElementById('btnMaisLog').style.display = 'none';
+      return;
+    }
+    container.innerHTML = lista.slice(0, estado.logVisiveis).map(function(item){
+      return '<div class="item-lista"><span><span class="principal">' + esc(ROTULOS_ACAO[item.acao] || item.acao) + ' ' + esc(item.alvo_nome || item.alvo_id) + '</span>' +
+        '<br><span class="secundario">' + esc(item.detalhes || '') + '</span></span>' +
+        '<span class="direita"><span class="secundario">' + esc(item.admin_email) + '</span><br><span class="secundario">' + esc(dataHoraBr(item.$createdAt)) + '</span></span></div>';
+    }).join('');
+    var restantes = lista.length - estado.logVisiveis;
+    var mais = document.getElementById('btnMaisLog');
+    mais.style.display = restantes > 0 ? '' : 'none';
+    mais.textContent = 'Mostrar mais (' + restantes + ' restantes)';
+  }
+
+  function exportarLog(){
+    var lista = auditoriaFiltrada();
+    var linhas = [csvLinha(['Data e hora', 'Administrador', 'Ação', 'Alvo', 'Detalhes'])];
+    lista.forEach(function(a){
+      linhas.push(csvLinha([dataHoraBr(a.$createdAt), a.admin_email, ROTULOS_ACAO[a.acao] || a.acao, a.alvo_nome || a.alvo_id || '', a.detalhes || '']));
+    });
+    baixarArquivo('log-auditoria-' + hojeIso() + '.csv', CSV_BOM + linhas.join('\r\n'), 'text/csv;charset=utf-8');
+    mostrarToast('Log exportado (' + lista.length + ' ações).');
+  }
+
+  // ===== Eventos =====
   document.getElementById('mcCancelar').addEventListener('click', fecharModalConvite);
   document.getElementById('mcEnviar').addEventListener('click', enviarConvite);
   document.getElementById('modalConvite').addEventListener('click', function(e){ if (e.target === this) fecharModalConvite(); });
+  document.getElementById('mcMembros').addEventListener('click', function(e){
+    var b = e.target.closest('[data-mb-acao]');
+    if (b) acaoMembro(b.getAttribute('data-mb-acao'), b.getAttribute('data-mb'));
+  });
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape') fecharModalConvite(); });
 
   document.getElementById('btnNovoMunicipio').addEventListener('click', function(){ abrirModalMunicipio('novo', null); });
@@ -823,7 +1342,7 @@
     document.getElementById('listaMunicipiosSP').appendChild(o);
   });
 
-  // Ações da tabela de municípios (delegação: os botões são recriados a cada recarga da lista).
+  // Ações da tabela de municípios (delegação: os botões são recriados a cada atualização da lista).
   document.getElementById('corpoTabelaClientes').addEventListener('click', function(e){
     var el = e.target.closest('[data-acao]');
     if (!el) return;
@@ -834,35 +1353,42 @@
     else if (acao === 'dados') abrirModalMunicipio('editar', id);
     else if (acao === 'licenca') toggleLicenca(id);
     else if (acao === 'salvar-licenca') salvarLicenca(id);
+    else if (acao === 'renovar-30') renovarLicenca(id, 30);
+    else if (acao === 'renovar-365') renovarLicenca(id, 365);
+    else if (acao === 'historico-licenca') mostrarHistoricoLicencas(id);
     else if (acao === 'convidar') abrirModalConvite(id);
+    else if (acao === 'exportar') exportarDadosMunicipio(id);
   });
 
-  async function recarregarAuditoria(){
-    var container = document.getElementById('listaAuditoria');
-    if (!container) return;
-    try {
-      var resultado = await tablesDB.listRows({
-        databaseId: DATABASE_ID, tableId: 'auditoria_admin',
-        queries: [Query.orderDesc('$createdAt'), Query.limit(20)]
-      });
-      var ROTULOS_ACAO = { aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de', cadastrar: 'Cadastrou', dados: 'Alterou dados de', consulta_apuracoes: 'Consultou apurações de', regra_criar: 'Criou a regra', regra_editar: 'Editou a regra', regra_desativar: 'Desativou a regra', regra_reativar: 'Reativou a regra' };
-      if (!resultado.rows.length){
-        container.innerHTML = '<div class="estado-vazio">Nenhuma ação registrada ainda.</div>';
-        return;
-      }
-      container.innerHTML = resultado.rows.map(function(item){
-        var quando = new Date(item.$createdAt);
-        var quandoTexto = quando.toLocaleDateString('pt-BR') + ' às ' + quando.toLocaleTimeString('pt-BR', {hour:'2-digit', minute:'2-digit'});
-        return '<div class="item-lista"><span><span class="principal">' + esc(ROTULOS_ACAO[item.acao] || item.acao) + ' ' + esc(item.alvo_nome || item.alvo_id) + '</span>' +
-          '<br><span class="secundario">' + esc(item.detalhes || '') + '</span></span>' +
-          '<span class="direita"><span class="secundario">' + esc(item.admin_email) + '</span><br><span class="secundario">' + quandoTexto + '</span></span></div>';
-      }).join('');
-    } catch (e) {
-      container.innerHTML = '<div class="estado-vazio">Não foi possível carregar o log de auditoria.</div>';
-    }
-  }
+  // Cartões clicáveis aplicam um filtro na lista.
+  document.querySelectorAll('.card.clicavel').forEach(function(c){
+    var abrir = function(){ aplicarFiltroDoCartao(c.getAttribute('data-filtro')); };
+    c.addEventListener('click', abrir);
+    c.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); abrir(); } });
+  });
+  document.getElementById('btnVerPendentes').addEventListener('click', function(){ aplicarFiltroDoCartao('status=pendente'); });
+
+  // Busca e filtros da lista de municípios
+  document.getElementById('filtroBusca').addEventListener('input', emDebounce(renderClientes, 150));
+  ['filtroStatus', 'filtroLicenca', 'filtroUso', 'ordemLista'].forEach(function(id){ document.getElementById(id).addEventListener('change', renderClientes); });
+  document.getElementById('btnLimparFiltros').addEventListener('click', function(){ limparFiltros(false); });
+  document.getElementById('btnExportarLista').addEventListener('click', exportarLista);
+
+  // Administradores, backup e log
+  document.getElementById('btnConvidarAdmin').addEventListener('click', convidarAdmin);
+  document.getElementById('listaAdmins').addEventListener('click', function(e){
+    var b = e.target.closest('[data-adm-acao]');
+    if (b) removerAdmin(b.getAttribute('data-mb'));
+  });
+  document.getElementById('btnBackup').addEventListener('click', exportarBackup);
+  document.getElementById('btnBackupBanner').addEventListener('click', exportarBackup);
+  document.getElementById('logBusca').addEventListener('input', emDebounce(function(){ estado.logVisiveis = 25; renderAuditoria(); }, 150));
+  ['logAcao', 'logDe', 'logAte'].forEach(function(id){ document.getElementById(id).addEventListener('change', function(){ estado.logVisiveis = 25; renderAuditoria(); }); });
+  document.getElementById('btnMaisLog').addEventListener('click', function(){ estado.logVisiveis += 25; renderAuditoria(); });
+  document.getElementById('btnExportarLog').addEventListener('click', exportarLog);
 
   carregarAdmin();
 </script>
+
 </body>
 </html>

@@ -78,6 +78,7 @@
     '.ml-nav a:hover{ color:#F2F0EA; }' +
     '.ml-nav .ml-desativado{ opacity:.55; cursor:default; }' +
     '.ml-nav .ml-embreve{ font-size:10.5px; border:1px solid rgba(148,163,184,.5); border-radius:20px; padding:1px 7px; margin-left:auto; }' +
+    '.ml-badge{ margin-left:auto; background:#fbbf24; color:#422006; font-size:11px; font-weight:800; min-width:20px; height:20px; padding:0 6px; border-radius:20px; display:inline-flex; align-items:center; justify-content:center; }' +
     '.ml-tag-admin{ font-size:10.5px; font-weight:700; letter-spacing:.12em; color:#5eead4; margin:18px 12px 6px; }' +
     '.ml-extra{ margin-top:14px; }' +
     '.ml-extra .who{ border-top:1px solid rgba(233,225,197,.18); padding-top:14px; font-size:12.5px; color:#B9B29B; line-height:1.6; }' +
@@ -335,7 +336,21 @@
     try { equipes = (await teams.list()).teams; } catch (e) { equipes = []; }
     var souAdmin = equipes.some(function(t){ return t.$id === TEAM_ADMINS_ID; });
     var equipeMun = equipes.find(function(t){ return t.$id !== TEAM_ADMINS_ID; });
-    if (souAdmin) document.getElementById('mlAdmin').style.display = '';
+    if (souAdmin){
+      document.getElementById('mlAdmin').style.display = '';
+      // Selo com o número de cadastros aguardando aprovação, para o administrador ver em qualquer página.
+      try {
+        var rp = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'municipios', queries: [Query.equal('status', 'pendente'), Query.limit(1)] });
+        var link = document.querySelector('#mlAdmin a[href="admin.html"]');
+        if (link && rp.total > 0){
+          var selo = document.createElement('span');
+          selo.className = 'ml-badge';
+          selo.textContent = rp.total;
+          selo.title = rp.total + (rp.total === 1 ? ' cadastro aguardando aprovação' : ' cadastros aguardando aprovação');
+          link.appendChild(selo);
+        }
+      } catch (e) { /* o selo é só um aviso; sem ele o menu funciona igual */ }
+    }
 
     var municipio = null, licenca = null, falhaLicenca = false;
     if (equipeMun){
