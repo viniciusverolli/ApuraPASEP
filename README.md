@@ -29,7 +29,7 @@ funções serverless).
 | `recuperar-senha.html` | Define senha nova a partir do link de recuperação |
 | `painel.html` | Painel do usuário do município — histórico de apurações, licença, "Revisar lançamentos" |
 | `PASEP_teste_jspdf.html` | A ferramenta em si: importa XML, calcula, gera relatórios, salva no sistema |
-| `admin.html` | Painel do administrador — municípios, licenças, log de auditoria |
+| `admin.html` | Painel do administrador: municípios (busca, filtros, responsável, licenças, uso), administradores, backup e log de auditoria (ver §9) |
 | `admin-regras.html` | Admin edita as regras de classificação do motor de cálculo |
 | `admin-apuracoes.html` | Admin consulta o histórico de apurações de qualquer município |
 | `repositorio_pasep_cosit.html` | Repositório de Soluções de Consulta Cosit |
@@ -43,6 +43,7 @@ código entre telas; nenhum contém regra de classificação):
 |---|---|---|
 | `revisar-lancamentos.js` | `painel.html`, `admin-apuracoes.html` | Modal "Revisar lançamentos" (lê `apuracoes.detalhamento`) |
 | `concluir-cadastro.js` | `cadastro.html`, `painel.html` | Cria time + município do autocadastro, com retomada se interrompido |
+| `admin-util.js` | `admin.html`, `admin-regras.html`, `admin-apuracoes.html` | Utilidades das telas de administração: `erroAmigavel` (erros do Appwrite em português claro), `listarTodas` (lê todas as linhas, paginando), `baixarArquivo`, `csvLinha` e `confirmar` (janela de confirmação dentro da página) |
 | `menu-lateral.js` | painel, ferramenta de apuração, repositório de normas, 3 telas de admin | **Menu lateral único** (fixo no computador, gaveta no celular), mostrador da licença, usuário, Sair, grupo Administração (só para `plataforma-admins`) e o botão "Voltar ao painel" |
 
 **Menu lateral e botão "Voltar ao painel".** Nenhuma página escreve mais o próprio menu. Para
@@ -289,3 +290,48 @@ ferramenta também deixou de consultar a API do TCESP ao abrir.
 - **Textos jurídicos ainda mencionam a consulta ao TCESP:** política de privacidade (§4.5 e a
   linha "TCESP" da tabela de terceiros) e termos de uso (§8.1). Não foram alterados por serem
   minutas em revisão; devem ser atualizados junto com o preenchimento dos campos (§6).
+
+---
+
+## 9. Painel de administração (`admin.html`)
+
+O que a tela faz (30/09/2026):
+
+- **Lista de municípios** com busca (nome, código TCE, responsável; sem diferenciar acentos), filtros por
+  status, situação da licença e uso, ordenação e exportação em CSV para o Excel. Lê **todas** as linhas,
+  paginando (antes só as 200 primeiras).
+- **Responsável pelo cadastro:** o autocadastro grava `responsavel_nome` e `responsavel_email` na linha do
+  município. O painel mostra os dois e avisa quando o e-mail não é de domínio `.gov.br` ou `.leg.br`; a
+  confirmação de aprovação repete o aviso. Um banner e o selo no menu lateral mostram quantos cadastros
+  aguardam aprovação. **Não há e-mail automático de aviso** (precisa de função no servidor).
+- **Licenças:** situação calculada pela data (ativa, em teste, vence em 30 dias, vencida, suspensa, sem
+  licença), renovação em um clique (+30 dias ou +1 ano, somando a partir da validade atual se ela ainda
+  vale) e histórico por município. O "Salvar licença" passou a gravar a validade até as 23h59 do dia
+  escolhido (antes gravava à meia-noite UTC, o que vencia a licença na noite do dia anterior).
+- **Uso:** última competência apurada, número de apurações e se o município apurou a competência de
+  referência (o mês anterior ao atual). Não há "último acesso" (precisa de função no servidor).
+- **Dados do município:** o botão "Exportar dados" baixa um JSON com o cadastro, as licenças e as
+  apurações (com o detalhamento). **A exclusão dos dados ao encerrar o contrato não é feita pela tela**:
+  é irreversível e exigiria permissão de exclusão na tabela `municipios` e a remoção do time. Fazer no
+  console do Appwrite: apurações e licenças do município, a linha do município e o time, nessa ordem,
+  depois de exportar e conferir o arquivo.
+- **Usuários do município:** convidar, remover, tornar responsável e reenviar convite. Só funciona nos
+  municípios em que o administrador participa do time (os que ele cadastrou). Nos de autocadastro o time é
+  do responsável que se cadastrou e o administrador não o enxerga: o painel explica isso. Resolver exige
+  uma função no servidor.
+- **Administradores:** lista, convite (papel `owner` no time `plataforma-admins`) e remoção. O painel avisa
+  quando há menos de dois administradores ativos e não deixa remover o único ativo nem a si mesmo.
+- **Backup:** "Exportar backup completo" baixa um JSON com as tabelas `municipios`, `licencas`, `apuracoes`,
+  `regras_motor`, `regras_versoes` e `auditoria_admin`. **Usuários, senhas e times não entram** (ficam no
+  Auth do Appwrite). O banco não tem backup automático: um banner avisa quando o último backup tem mais de
+  30 dias ou não existe. O arquivo contém dados pessoais, então deve ser guardado com cuidado.
+- **Log de auditoria:** carrega tudo (até 3.000 ações), com busca, filtro por ação e por período, paginação
+  de 25 em 25 e exportação em CSV. As tabelas permitem só criar e ler (não há como alterar nem apagar
+  registros do log pelo sistema).
+- **Mensagens de erro** em português claro (`erroAmigavel`); o erro original vai para o console do
+  navegador. As janelas do navegador (`alert` e `confirm`) foram trocadas por avisos e confirmações
+  dentro da página.
+
+**Depende de uma função no servidor (não implementado):** aviso por e-mail de novo cadastro, gestão de
+usuários nos municípios de autocadastro, "último acesso" dos usuários e o fechamento das brechas de
+segurança descritas no §3. O plano gratuito permite duas funções e uma já é o motor de cálculo.
