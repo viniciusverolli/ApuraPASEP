@@ -58,13 +58,13 @@
   var CSS =
     '.ml-voltar{ display:inline-flex; align-items:center; gap:7px; font:inherit; font-size:13px; font-weight:600; color:#172033; text-decoration:none; padding:8px 14px; border-radius:10px; background:rgba(255,255,255,.75); border:1px solid #cbd5e1; margin:0 0 18px; }' +
     '.ml-voltar:hover{ background:#fff; border-color:#218b78; color:#218b78; }' +
-    '.ml-voltar.escuro{ color:#EFE9D8; background:rgba(255,255,255,.08); border-color:rgba(239,233,216,.35); margin:0 0 12px; }' +
+    '.ml-voltar.escuro{ color:#F2F0EA; background:rgba(255,255,255,.08); border-color:rgba(239,233,216,.35); margin:0 0 12px; }' +
     '.ml-voltar.escuro:hover{ background:rgba(255,255,255,.16); color:#fff; border-color:#5eead4; }' +
     '.ml-voltar:focus-visible{ outline:2px solid #218b78; outline-offset:2px; }';
 
   if (MODO === 'menu'){
     CSS +=
-    '.ml-side{ background:rgba(21,27,42,.97); color:#EFE9D8; padding:24px 18px 18px; display:flex; flex-direction:column; width:250px; font-family:Inter,sans-serif; }' +
+    '.ml-side{ background:rgba(21,27,42,.97); color:#F2F0EA; padding:24px 18px 18px; display:flex; flex-direction:column; width:250px; font-family:Inter,sans-serif; }' +
     '.ml-side *{ box-sizing:border-box; }' +
     '.ml-brand{ display:flex; align-items:center; gap:10px; margin:0 0 28px; text-decoration:none; color:inherit; }' +
     '.ml-brand .t{ font-size:16px; font-weight:800; letter-spacing:-.02em; }' +
@@ -117,7 +117,7 @@
     '}' +
     '@media (max-width:' + QUEBRA + 'px){' +
       '.ml-topbar{ display:flex; align-items:center; justify-content:space-between; background:rgba(21,27,42,.97); color:#F2F0EA; padding:12px 16px; position:sticky; top:0; z-index:20; width:100%; flex:none; font-family:Inter,sans-serif; }' +
-      '.ml-topbar .ml-marca{ display:flex; align-items:center; gap:8px; font-weight:800; font-size:15px; letter-spacing:-.02em; text-decoration:none; color:inherit; }' +
+      '.ml-topbar .ml-marca{ display:flex; align-items:center; gap:10px; font-weight:800; font-size:19px; letter-spacing:-.02em; text-decoration:none; color:inherit; }' +
       '.ml-topbar .ml-marca .t span{ color:#5eead4; }' +
       '.ml-topbar .ml-btn-menu{ background:none; border:1px solid rgba(242,240,234,.3); border-radius:8px; color:#F2F0EA; width:38px; height:38px; display:flex; align-items:center; justify-content:center; cursor:pointer; }' +
       '.ml-side{ position:fixed; top:0; left:0; height:100%; width:82%; max-width:300px; z-index:60; overflow-y:auto; transform:translateX(-100%); transition:transform .2s ease; box-shadow:2px 0 18px rgba(0,0,0,.25); visibility:hidden; }' +
@@ -194,7 +194,7 @@
     var wrap = document.createElement('div');
     wrap.innerHTML =
       '<div class="ml-topbar">' +
-        '<a href="painel.html" class="ml-marca" aria-label="ApuraPASEP, ir para o painel">' + LOGO.replace(/width="28" height="28"/, 'width="20" height="20"') + '<div class="t">Apura<span>PASEP</span></div></a>' +
+        '<a href="painel.html" class="ml-marca" aria-label="ApuraPASEP, ir para o painel">' + LOGO.replace(/width="28" height="28"/, 'width="26" height="26"') + '<div class="t">Apura<span>PASEP</span></div></a>' +
         '<button type="button" class="ml-btn-menu" id="mlAbrir" aria-label="Abrir menu" aria-expanded="false" aria-controls="menuLateral">' +
           '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M3 6h18M3 12h18M3 18h18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>' +
         '</button>' +
