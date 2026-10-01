@@ -78,7 +78,7 @@
 
   // Conferência da dedução do FUNDEB com a conta 6.2.1.3.1.01 (guardada na apuração; só as novas a trazem).
   function avisoFundeb(c){
-    if (!c) return '';
+    if (!c) return '<p style="font-size:12px; color:#475569; background:#f1f5f9; border-radius:10px; padding:8px 12px; margin:10px 0 0">Conferência do FUNDEB com a conta 6.2.1.3.1.01 não disponível: esta apuração foi salva antes dessa verificação existir. Reprocesse o XML AUDESP desta competência na ferramenta de apuração e salve de novo para ver os alertas.</p>';
     var itens = (c.semRetencao || []).map(function(x){
       var nome = String(x.rubrica || '').replace(/^Cota-Parte\s+/i, '');
       var curto = nome.split(/\s+[—–-]\s+/)[0];
