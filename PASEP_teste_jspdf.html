@@ -70,6 +70,8 @@
   .flag .confirm{ display:flex; align-items:center; gap:8px; margin-top:7px; color:#0f4c42; }
 
   .alerta-fundeb{ background:#fffbeb; border:1px solid #fde68a; border-radius:10px; color:#92400e; padding:12px 14px; font-size:12.5px; line-height:1.55; margin:10px 0 0; }
+  .lista-fundeb{ margin:6px 0 0; padding-left:20px; }
+  .lista-fundeb li{ margin:4px 0; }
   .nota-fundeb{ font-size:11.5px; color:var(--muted); margin:8px 0 0; }
   .alerta-erro{ background:var(--red-soft); border:1px solid #fca5a5; border-radius:10px; color:var(--red); padding:12px 16px; font-size:13px; margin-bottom:14px; }
 
@@ -327,24 +329,47 @@
     return { excede: !!c.excede,
       titulo: c.excede ? 'Atenção: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01.' : 'Conferência com a conta 6.2.1.3.1.01: diferença de ' + brl(Math.abs(c.diferenca)) + ', dentro do limite de R$ 0,10.',
       corpo: c.excede ? 'Dedução calculada (20% das receitas do FUNDEB): ' + brl(c.calculada) + '. Retenção lançada na conta 6.2.1.3.1.01 (débito menos crédito): ' + brl(c.contabil) + '. Diferença: ' + brl(c.diferenca) + '. ' +
-        (c.rubricas && c.rubricas.length ? 'Diferença por rubrica: ' + c.rubricas.map(function(x){
-          return x.rubrica + ' (' + x.codigo + '): calculado ' + brl(x.calculada) + ', lançado na conta ' + brl(x.contabil) + (Math.abs(x.contabil) < 0.005 ? ' (sem retenção lançada)' : '') + ', diferença ' + brl(x.diferenca);
-        }).join('; ') + '. ' : '') +
-        'Confira os lançamentos do FUNDEB. A diferença pode vir, por exemplo, de estorno de receita (débito na 6.2.1.2) cuja retenção não foi ajustada no mesmo mês, de rubrica sem retenção lançada na conta, ou de ajuste ainda a lançar. A apuração usa os 20% calculados.' : '' };
+        'As receitas envolvidas estão indicadas nos avisos abaixo. A diferença pode vir, por exemplo, de estorno de receita (débito na 6.2.1.2) cuja retenção não foi ajustada no mesmo mês, de receita sem retenção lançada na conta, ou de ajuste ainda a lançar. A apuração usa os 20% calculados.' : '' };
   }
   // Rubricas do FUNDEB com receita e sem nenhuma retenção lançada na 6.2.1.3.1.01 (comum no IPI-Municípios).
-  function textosSemRetencao(d){
+  // Devolve uma lista de itens {curto, codigos, texto}; a tela, o PDF, a planilha e o "Revisar lançamentos"
+  // mostram todos juntos, numerados, num único aviso.
+  function itensSemRetencao(d){
     var c = d.conferenciaFundeb; if (!c || !c.semRetencao) return [];
     return c.semRetencao.map(function(x){
       var nome = String(x.rubrica || '').replace(/^Cota-Parte\s+/i, '');
+      var curto = nome.split(/\s+[—–-]\s+/)[0];
       var codigos = (x.codigos && x.codigos.length) ? x.codigos.join(', ') : x.codigo;
-      return 'Há lançamentos na Receita "' + nome + ' - código ' + codigos + '" sem retenção do FUNDEB, é recomendável verificar essa contabilização.';
+      return { curto: curto, codigos: codigos,
+        texto: 'Há lançamentos na Receita "' + nome + ' - código ' + codigos + '" sem retenção do FUNDEB, é recomendável verificar essa contabilização.' };
+    });
+  }
+  // Receitas com retenção lançada na 6.2.1.3.1.01, mas de valor diferente dos 20% da receita (diferença acima de R$ 0,10).
+  // As que não têm nenhuma retenção lançada ficam no aviso anterior.
+  function itensRetencaoDiferente(d){
+    var c = d.conferenciaFundeb; if (!c || !c.rubricas) return [];
+    return c.rubricas.filter(function(x){ return Math.abs(x.contabil) >= 0.005; }).map(function(x){
+      var nome = String(x.rubrica || '').replace(/^Cota-Parte\s+/i, '');
+      var curto = nome.split(/\s+[—–-]\s+/)[0];
+      var codigos = (x.codigos && x.codigos.length) ? x.codigos.join(', ') : x.codigo;
+      var texto = x.foraDasRubricas
+        ? 'Há retenção do FUNDEB lançada na conta 6.2.1.3.1.01 (' + brl(x.contabil) + ') para o código ' + codigos + ', que não consta entre as receitas do FUNDEB nas regras, é recomendável verificar essa contabilização.'
+        : 'A retenção do FUNDEB lançada para a Receita "' + nome + ' - código ' + codigos + '" (' + brl(x.contabil) + ') difere dos 20% da receita (' + brl(x.calculada) + ') em ' + brl(Math.abs(x.diferenca)) + ', é recomendável verificar essa contabilização.';
+      return { curto: x.foraDasRubricas ? 'Código ' + codigos : curto, codigos: codigos, texto: texto };
     });
   }
   function htmlConferenciaFundeb(d){
     var t = textoConferenciaFundeb(d); if (!t) return '';
     var html = t.excede ? '<div class="alerta-fundeb" role="alert"><b>' + t.titulo + '</b><br>' + t.corpo + '</div>' : '<div class="nota-fundeb">' + t.titulo + '</div>';
-    textosSemRetencao(d).forEach(function(x){ html += '<div class="alerta-fundeb" role="alert"><b>Atenção:</b> ' + x + '</div>'; });
+    var itens = itensSemRetencao(d), itens2 = itensRetencaoDiferente(d);
+    if (itens.length){
+      html += '<div class="alerta-fundeb" role="alert"><b>Atenção: receitas do FUNDEB sem retenção lançada na conta 6.2.1.3.1.01.</b><ol class="lista-fundeb">' +
+        itens.map(function(x){ return '<li><b>' + x.curto + '</b> (código ' + x.codigos + '): ' + x.texto + '</li>'; }).join('') + '</ol></div>';
+    }
+    if (itens2.length){
+      html += '<div class="alerta-fundeb" role="alert"><b>Atenção: retenção do FUNDEB diferente de 20% da receita (diferença acima de R$ 0,10).</b><ol class="lista-fundeb">' +
+        itens2.map(function(x){ return '<li><b>' + x.curto + '</b> (código ' + x.codigos + '): ' + x.texto + '</li>'; }).join('') + '</ol></div>';
+    }
     return html;
   }
 
@@ -798,9 +823,18 @@
     (function(){
       var t = textoConferenciaFundeb(d); if (!t) return;
       var blocosTexto = [{ txt: t.titulo + (t.corpo ? ' ' + t.corpo : ''), destaque: t.excede }];
-      textosSemRetencao(d).forEach(function(x){ blocosTexto.push({ txt: 'Atenção: ' + x, destaque: true }); });
+      var itensPdf = itensSemRetencao(d);
+      if (itensPdf.length){
+        blocosTexto.push({ txt: 'Atenção: receitas do FUNDEB sem retenção lançada na conta 6.2.1.3.1.01.', destaque: true });
+        itensPdf.forEach(function(x, n){ blocosTexto.push({ txt: (n+1) + '. ' + x.curto + ' (código ' + x.codigos + '): ' + x.texto, destaque: false, normal: true }); });
+      }
+      var itensPdf2 = itensRetencaoDiferente(d);
+      if (itensPdf2.length){
+        blocosTexto.push({ txt: 'Atenção: retenção do FUNDEB diferente de 20% da receita (diferença acima de R$ 0,10).', destaque: true });
+        itensPdf2.forEach(function(x, n){ blocosTexto.push({ txt: (n+1) + '. ' + x.curto + ' (código ' + x.codigos + '): ' + x.texto, destaque: false, normal: true }); });
+      }
       blocosTexto.forEach(function(b){
-        doc.setFont('helvetica', b.destaque ? 'bold' : 'italic'); doc.setFontSize(8); doc.setTextColor(b.destaque ? 146 : 107, b.destaque ? 64 : 102, b.destaque ? 14 : 86);
+        doc.setFont('helvetica', b.destaque ? 'bold' : (b.normal ? 'normal' : 'italic')); doc.setFontSize(8); doc.setTextColor((b.destaque || b.normal) ? 146 : 107, (b.destaque || b.normal) ? 64 : 102, (b.destaque || b.normal) ? 14 : 86);
         var linhasT = doc.splitTextToSize(b.txt, tableWidth);
         if (y + linhasT.length*3.6 > 280){ doc.addPage(); y = margin; }
         doc.text(linhasT, margin, y + 3); y += linhasT.length*3.6 + 3; doc.setTextColor(0,0,0);
@@ -1334,9 +1368,20 @@
       cAlerta.value = {formula:'IF(ABS(ROUND(B'+L_DIFFUNDEB+',2))>0.1,"ALERTA: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01 em mais de R$ 0,10","Conferência do FUNDEB: dentro do limite de R$ 0,10")', result: confF.excede ? 'ALERTA: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01 em mais de R$ 0,10' : 'Conferência do FUNDEB: dentro do limite de R$ 0,10'};
       cAlerta.font = { name:FONTE, size:10, bold:true, color:{argb: confF.excede ? 'FF92400E' : 'FF166534'} };
       r++;
-      textosSemRetencao(d).forEach(function(x){
-        var cSR = wsP.getCell(r,1); cSR.value = 'ALERTA: ' + x; cSR.font = { name:FONTE, size:10, bold:true, color:{argb:'FF92400E'} }; r++;
-      });
+      var itensPl = itensSemRetencao(d);
+      if (itensPl.length){
+        var cT = wsP.getCell(r,1); cT.value = 'ALERTA: receitas do FUNDEB sem retenção lançada na conta 6.2.1.3.1.01'; cT.font = { name:FONTE, size:10, bold:true, color:{argb:'FF92400E'} }; r++;
+        itensPl.forEach(function(x, n){
+          var cSR = wsP.getCell(r,1); cSR.value = (n+1) + '. ' + x.curto + ' (código ' + x.codigos + '): ' + x.texto; cSR.font = { name:FONTE, size:10, color:{argb:'FF92400E'} }; r++;
+        });
+      }
+      var itensPl2 = itensRetencaoDiferente(d);
+      if (itensPl2.length){
+        var cT2 = wsP.getCell(r,1); cT2.value = 'ALERTA: retenção do FUNDEB diferente de 20% da receita (diferença acima de R$ 0,10)'; cT2.font = { name:FONTE, size:10, bold:true, color:{argb:'FF92400E'} }; r++;
+        itensPl2.forEach(function(x, n){
+          var cS2 = wsP.getCell(r,1); cS2.value = (n+1) + '. ' + x.curto + ' (código ' + x.codigos + '): ' + x.texto; cS2.font = { name:FONTE, size:10, color:{argb:'FF92400E'} }; r++;
+        });
+      }
       r += 1;
 
       tituloBloco(wsP, r, 'BLOCO 3/4 — Finalidade definida (art. 2º, §7º), excluída por padrão'); r++;

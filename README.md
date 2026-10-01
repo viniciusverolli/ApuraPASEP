@@ -165,9 +165,10 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
   julho, por um estorno de R$ 185,57 de IPVA (débito na 6.2.1.2) sobre o qual a retenção da conta
   6.2.1.3.1.01 não foi ajustada no mesmo mês. Qual dos dois valores é o dedutível é decisão do
   responsável técnico.
-- **Alertas do FUNDEB, por rubrica (desde 01/10/2026):** além da diferença total acima de R$ 0,10, a tela,
-  o PDF, a planilha e o "Revisar lançamentos" indicam **em qual rubrica** a diferença se concentra e
-  avisam, para cada rubrica do FUNDEB com receita no mês e **nenhuma retenção lançada** na conta
+- **Alertas do FUNDEB, por rubrica (desde 01/10/2026):** além do alerta geral (total calculado, total lançado
+  e diferença, se acima de R$ 0,10), a tela, o PDF, a planilha e o "Revisar lançamentos" trazem duas listas
+  numeradas por receita: as que têm retenção lançada de **valor diferente dos 20%** (diferença acima de
+  R$ 0,10 na receita) e as que não têm retenção. O aviso das sem retenção diz, para cada rubrica do FUNDEB com receita no mês e **nenhuma retenção lançada** na conta
   6.2.1.3.1.01, que "há lançamentos na Receita (por exemplo IPI-Municípios, código 1.7.2.1.52.01) sem
   retenção do FUNDEB, é recomendável verificar essa contabilização". Caso real: Cabrália Paulista, jan a
   mai/2026, sem retenção do IPI-Municípios (R$ 755 a R$ 895 por mês); em Piratininga o IPI tem retenção.

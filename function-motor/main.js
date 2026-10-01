@@ -271,20 +271,23 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
             // Onde a diferença se concentra: por rubrica do FUNDEB (20% do valor da rubrica contra a retenção lançada
             // na 6.2.1.3.1.01 para os códigos da rubrica) e por código com retenção fora das rubricas. Só entram as
             // diferenças acima de R$ 0,10.
+            function formatarCodigo(c){ return c.length === 8 ? c.replace(/^(\d)(\d)(\d)(\d)(\d{2})(\d{2})$/, '$1.$2.$3.$4.$5.$6') : c; }
             var rubricas = [], usados = {};
             ctx.bloco4.forEach(function(rb){
               var cont = 0;
               Object.keys(ctx.fundebContabilPorCodigo).forEach(function(c){ if (c.substr(0,7) === rb.codigo){ cont += ctx.fundebContabilPorCodigo[c]; usados[c] = true; } });
               var calc = rb.valor * 0.2, d = cont - calc;
-              if (Math.round(Math.abs(d)*100) > 10) rubricas.push({ rubrica: rb.label, codigo: rb.codigo, calculada: calc, contabil: cont, diferenca: d });
+              if (Math.round(Math.abs(d)*100) > 10){
+                var codigosRb = ctx.codes.filter(function(c){ return c.substr(0,7) === rb.codigo && Math.abs(ctx.liquido(c)) > 0.005; }).sort().map(formatarCodigo);
+                rubricas.push({ rubrica: rb.label, codigo: rb.codigo, codigos: codigosRb, calculada: calc, contabil: cont, diferenca: d });
+              }
             });
             Object.keys(ctx.fundebContabilPorCodigo).forEach(function(c){
               var v = ctx.fundebContabilPorCodigo[c];
-              if (!usados[c] && Math.round(Math.abs(v)*100) > 10) rubricas.push({ rubrica: 'Retenção em código fora das rubricas do FUNDEB', codigo: c, calculada: 0, contabil: v, diferenca: v });
+              if (!usados[c] && Math.round(Math.abs(v)*100) > 10) rubricas.push({ rubrica: 'Retenção em código fora das rubricas do FUNDEB', codigo: c, codigos: [formatarCodigo(c)], foraDasRubricas: true, calculada: 0, contabil: v, diferenca: v });
             });
             // Rubricas do FUNDEB com receita no mês e nenhuma retenção lançada na 6.2.1.3.1.01 (caso comum: IPI-Municípios).
             // Aviso próprio, independente do limite de R$ 0,10 do total.
-            function formatarCodigo(c){ return c.length === 8 ? c.replace(/^(\d)(\d)(\d)(\d)(\d{2})(\d{2})$/, '$1.$2.$3.$4.$5.$6') : c; }
             var semRetencao = [];
             ctx.bloco4.forEach(function(rb){
               var cont = 0;
