@@ -296,6 +296,29 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
             });
             return { calculada: ctx.dedFundebFlat, contabil: ctx.dedFundebContabil, diferenca: dif, limite: 0.10, excede: Math.round(Math.abs(dif)*100) > 10, rubricas: rubricas, semRetencao: semRetencao };
           })(),
+          // Transferências (1.7 correntes e 2.4 de capital) que nenhuma regra classifica: ficam na base geral do PASEP.
+          // Só informativo, para o administrador decidir se alguma merece regra (retenção, FUNDEB ou finalidade definida).
+          semRegra: (function(){
+            function classificado(c){
+              var p7 = c.substr(0,7), p4 = c.substr(0,4);
+              return RUBRICAS_RETENCAO.some(function(r){ return r.prefix === p7; }) ||
+                RUBRICAS_FUNDEB.some(function(r){ return r.prefix === p7; }) ||
+                ALERTAS_FINALIDADE.some(function(r){ return r.prefix === p4; }) ||
+                (CFEM_UNIAO_PREFIX && p7 === CFEM_UNIAO_PREFIX) || (CFEM_ESTADO_PREFIX && p7 === CFEM_ESTADO_PREFIX);
+            }
+            var grupos = {};
+            ctx.codes.forEach(function(c){
+              if (c.substr(0,2) !== '17' && c.substr(0,2) !== '24') return;
+              if (classificado(c)) return;
+              var p7 = c.substr(0,7);
+              var g = grupos[p7] = grupos[p7] || { prefixo: p7, valor: 0, codigos: [] };
+              g.valor += ctx.liquido(c);
+              g.codigos.push(c);
+            });
+            return Object.keys(grupos).map(function(k){ return grupos[k]; })
+              .filter(function(g){ return Math.abs(g.valor) > 0.005; })
+              .sort(function(x, y){ return Math.abs(y.valor) - Math.abs(x.valor); });
+          })(),
           avisoExercicio: ctx.avisoExercicio || null,
           registros: ctx.extratoReceita.length
         };
