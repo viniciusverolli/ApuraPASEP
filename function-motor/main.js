@@ -16,6 +16,9 @@
 // → Environment variables → APPWRITE_API_KEY). Sem isso, usuários comuns (que não
 // têm permissão de leitura na tabela regras_motor) não conseguiriam calcular nada.
 //
+// Receita: desde 01/10/2026 vem só da conta 6.2.1.2 (crédito menos débito, todos os registros do arquivo).
+// Ver README, seção 2. A conta 6.2.1.3.1.01 só confere a dedução do FUNDEB (alerta se a diferença passar de R$ 0,10).
+//
 // A lógica de negócio abaixo (construirEtapasParse, parseAudesp, calcular) é
 // uma cópia fiel do motor original, linha por linha — nenhuma regra de cálculo
 // foi alterada nesta migração. Só a fonte do XML DOM mudou: em vez do DOMParser
@@ -112,113 +115,54 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
           ctx.avisoExercicio = 'Este XML é do exercício ' + ctx.ano + ', mas não há tabela de especificação de códigos da receita carregada para esse exercício (disponíveis: ' + EXERCICIOS_RECEITA_DISPONIVEIS.join(', ') + '). A apuração do PASEP não é afetada (não depende dessa tabela), mas a descrição por extenso de códigos nos relatórios usará a tabela de ' + maisRecente + ', que pode não corresponder à classificação vigente para ' + ctx.ano + '.';
         }
       }},
-      {rotulo:'Separando os registros da competência (descartando meses anteriores)', exec:function(){
-        ctx.receitaBlocks = findAllByLocal(ctx.doc, 'ReceitaArrecadar');
-        var previsaoAll = findAllByLocal(ctx.doc, 'PrevisaoReceitaOrcamentaria');
-        ctx.previsaoBlocks = previsaoAll.filter(function(b){ return childText(b,'Mes') === String(parseInt(ctx.mes,10)); });
-        ctx.descartadosOutroMes = previsaoAll.length - ctx.previsaoBlocks.length;
-        if (ctx.receitaBlocks.length === 0) throw new Error('Nenhum bloco de receita arrecadada encontrado neste arquivo.');
+      {rotulo:'Separando os registros da conta 6.2.1.2 (receita realizada)', exec:function(){
+        // Receita realizada = conta 6.2.1.2 (621200000), de natureza credora: os créditos são a receita e os
+        // débitos são estornos, devoluções e correções. A conta é lida em TODOS os registros do arquivo, inclusive
+        // os com "Mes" anterior à competência: eles trazem os ajustes de períodos anteriores que compõem o saldo
+        // do mês (conferido nas 8 competências de jan a ago/2026 de Piratininga: filtrar só o mês diverge).
+        // Nenhuma outra conta entra na receita (nem a 6.2.1.1, nem a 6.2.1.3.1.01, nem a 5.2.1.2.9).
+        ctx.receitaBlocks = findAllByLocal(ctx.doc, 'ReceitaArrecadar');      // conta 6.2.1.1, só informativa
+        ctx.previsaoBlocks = findAllByLocal(ctx.doc, 'PrevisaoReceitaOrcamentaria');
+        var temConta = ctx.previsaoBlocks.some(function(b){ return childText(b,'ContaContabil') === '621200000'; });
+        if (!temConta) throw new Error('Não foram encontrados registros da conta 6.2.1.2 (receita realizada) neste arquivo.');
       }},
-      {rotulo:'Extraindo os lançamentos de arrecadação', exec:function(){
-        ctx.lancamentosPorCodigo = {}; ctx.bruto = {}; ctx.extratoReceita = [];
-        ctx.receitaBlocks.forEach(function(b){
-          var conta = childText(b,'ContaContabil');
-          var code = childText(b,'ClassificacaoEconomicaReceita');
+      {rotulo:'Extraindo a receita realizada (crédito menos débito da 6.2.1.2)', exec:function(){
+        ctx.lancamentosPorCodigo = {}; ctx.bruto = {}; ctx.devol = {}; ctx.devolPorFicha = {}; ctx.devolucoesPorCodigo = {};
+        ctx.extratoReceita = []; ctx.extratoApoio = []; ctx.dedFundebContabil = 0;
+        function lerBloco(b){
           var mov = childByLocal(b,'MovimentoContabil');
-          var fonte = childText(b,'FonteRecursos');
-          var aplicacao = childText(b,'CodigoAplicacao');
-          var cred = mov ? num(childText(mov,'MovimentoCredito')) : 0;
-          var deb = mov ? num(childText(mov,'MovimentoDebito')) : 0;
-          var natIni = mov ? childText(mov,'NatInicial') : '';
-          var natFim = mov ? childText(mov,'NatFinal') : '';
-          ctx.extratoReceita.push({codigo:code, conta:conta, fonte:fonte, aplicacao:aplicacao,
-            saldoInicial: mov ? num(childText(mov,'SaldoInicial')) : 0, natInicial: natIni,
-            credito: cred, debito: deb,
-            saldoFinal: mov ? num(childText(mov,'SaldoFinal')) : 0, natFinal: natFim});
-          if (conta !== '621100000') return;
-          // Códigos das famílias de finalidade definida (convênios) usam débito líquido de crédito,
-          // já que aqui crédito e débito no mesmo lançamento tendem a ser correção, não reforço orçamentário.
-          // Só se aplica quando a conta permanece credora do início ao fim do período: quando a natureza
-          // inicial é devedora (ex.: 1.7.17.99.01 em maio/2026), a correção já é capturada separadamente
-          // pela devolução (conta 621200000), e descontar aqui de novo duplicaria o efeito.
-          // Fora dessas famílias (impostos, cotas constitucionais), o crédito pode ser reforço orçamentário
-          // legítimo (ex.: ICMS em janeiro/2026 teve R$ 12,7 milhões de crédito) e não deve ser descontado.
-          var pref4 = code.substr(0,4);
-          var ehFamiliaFinalidade = ALERTAS_FINALIDADE.some(function(a){ return a.prefix === pref4; });
-          var permaneceCredora = (natIni === 'C' && natFim === 'C');
-          // Só tratamos como correção (a descontar) quando crédito E débito estão presentes no mesmo
-          // lançamento: crédito isolado, sem débito, é reforço orçamentário genuíno (ex.: janeiro/2026
-          // lança o orçado do convênio 1.7.24.51.01 assim, com R$ 950.000,00 e R$ 1.400.000,00 de crédito
-          // e nenhum débito, sem qualquer arrecadação ainda).
-          // E, quando crédito e débito são EXATAMENTE iguais (diferença líquida zero), não tratamos como
-          // correção: isso representa reconhecimento e arrecadação completos dentro do mesmo mês (ex.:
-          // 2.4.14.99.01 em agosto/2026, R$ 840.000,00 de crédito e R$ 840.000,00 de débito, confirmado
-          // pelo balancete como arrecadação integral do período), não uma reclassificação a descontar.
-          // Nesse caso, usamos o débito cheio, como no padrão geral.
-          var jaCorrigido = ehFamiliaFinalidade && permaneceCredora && Math.abs(cred) > 0.005 && Math.abs(deb) > 0.005 && Math.abs(deb - cred) > 0.005;
-          var valorLancamento = jaCorrigido ? (deb - cred) : deb;
-          ctx.bruto[code] = (ctx.bruto[code]||0) + valorLancamento;
-          if (!ctx.lancamentosPorCodigo[code]) ctx.lancamentosPorCodigo[code] = [];
-          ctx.lancamentosPorCodigo[code].push({fonte:fonte, aplicacao:aplicacao, valor:valorLancamento});
-          if (jaCorrigido){
-            // Registra esta ficha (código+fonte+aplicação) como já corrigida no próprio lançamento,
-            // para não descontar de novo se a conta 621200000 trouxer o mesmo ajuste espelhado
-            // (visto em maio/2026: o mesmo convênio aparece com crédito/débito invertidos nas duas contas).
-            if (!ctx.fichasJaCorrigidas) ctx.fichasJaCorrigidas = {};
-            ctx.fichasJaCorrigidas[code+'|'+fonte+'|'+aplicacao] = true;
-          }
-        });
-      }},
-      {rotulo:'Aplicando devoluções, estornos e ajustes contábeis', exec:function(){
-        ctx.devol = {}; ctx.devolPorFicha = {}; ctx.fundebContabil = {}; ctx.devolucoesPorCodigo = {}; ctx.reestimativaPorCodigo = {}; ctx.extratoPrevisao = [];
-        ctx.previsaoBlocks.forEach(function(b){
-          var conta = childText(b,'ContaContabil');
-          var code = childText(b,'ClassificacaoEconomicaReceita');
-          var fonte = childText(b,'FonteRecursos');
-          var aplicacao = childText(b,'CodigoAplicacao');
-          var chaveFichaAtual = code+'|'+fonte+'|'+aplicacao;
-          var mov = childByLocal(b,'MovimentoContabil');
-          var cred = mov ? num(childText(mov,'MovimentoCredito')) : 0;
-          var deb = mov ? num(childText(mov,'MovimentoDebito')) : 0;
-          ctx.extratoPrevisao.push({codigo:code, conta:conta, fonte:fonte, aplicacao:aplicacao,
+          return {
+            conta: childText(b,'ContaContabil'), codigo: childText(b,'ClassificacaoEconomicaReceita'),
+            fonte: childText(b,'FonteRecursos'), aplicacao: childText(b,'CodigoAplicacao'), mes: childText(b,'Mes'),
             saldoInicial: mov ? num(childText(mov,'SaldoInicial')) : 0, natInicial: mov ? childText(mov,'NatInicial') : '',
-            credito:cred, debito:deb,
-            saldoFinal: mov ? num(childText(mov,'SaldoFinal')) : 0, natFinal: mov ? childText(mov,'NatFinal') : ''});
-          if (conta === '621200000' && Math.abs(deb) > 0.005){
-            var chaveFicha = code+'|'+fonte+'|'+aplicacao;
-            if (ctx.fichasJaCorrigidas && ctx.fichasJaCorrigidas[chaveFicha]){
-              // Mesmo ajuste já aplicado diretamente no lançamento de arrecadação (ver etapa anterior);
-              // contabilizar aqui de novo duplicaria a correção.
-            } else {
-              ctx.devol[code] = (ctx.devol[code]||0) + deb;
-              ctx.devolPorFicha[chaveFichaAtual] = (ctx.devolPorFicha[chaveFichaAtual]||0) + deb;
-              (ctx.devolucoesPorCodigo[code] = ctx.devolucoesPorCodigo[code]||[]).push({fonte:fonte, aplicacao:aplicacao, valor:deb, origem:'Devolução/estorno'});
+            credito: mov ? num(childText(mov,'MovimentoCredito')) : 0, debito: mov ? num(childText(mov,'MovimentoDebito')) : 0,
+            saldoFinal: mov ? num(childText(mov,'SaldoFinal')) : 0, natFinal: mov ? childText(mov,'NatFinal') : ''
+          };
+        }
+        ctx.previsaoBlocks.forEach(function(b){
+          var l = lerBloco(b);
+          if (l.conta === '621200000'){
+            ctx.extratoReceita.push(l);
+            var ficha = l.codigo+'|'+l.fonte+'|'+l.aplicacao;
+            ctx.bruto[l.codigo] = (ctx.bruto[l.codigo]||0) + l.credito;
+            ctx.devol[l.codigo] = (ctx.devol[l.codigo]||0) + l.debito;
+            ctx.devolPorFicha[ficha] = (ctx.devolPorFicha[ficha]||0) + l.debito;
+            if (Math.abs(l.credito) > 0.005){
+              (ctx.lancamentosPorCodigo[l.codigo] = ctx.lancamentosPorCodigo[l.codigo]||[]).push({fonte:l.fonte, aplicacao:l.aplicacao, valor:l.credito, mes:l.mes});
             }
-          }
-          if (conta === '621310100'){
-            ctx.fundebContabil[code] = (ctx.fundebContabil[code]||0) + deb - cred;
-            if (Math.abs(cred) > 0.005){
-              ctx.devol[code] = (ctx.devol[code]||0) + cred;
-              ctx.devolPorFicha[chaveFichaAtual] = (ctx.devolPorFicha[chaveFichaAtual]||0) + cred;
-              (ctx.devolucoesPorCodigo[code] = ctx.devolucoesPorCodigo[code]||[]).push({fonte:fonte, aplicacao:aplicacao, valor:cred, origem:'Ajuste (conta FUNDEB)'});
+            if (Math.abs(l.debito) > 0.005){
+              (ctx.devolucoesPorCodigo[l.codigo] = ctx.devolucoesPorCodigo[l.codigo]||[]).push({fonte:l.fonte, aplicacao:l.aplicacao, valor:l.debito, mes:l.mes, origem:'Estorno/correção (débito da 6.2.1.2)'});
             }
-          }
-          // Reestimativa da receita orçada (conta 521290000): é um ajuste puramente orçamentário — não
-          // representa dinheiro arrecadado. Descoberto em agosto/2026 (16 lançamentos somando exatamente
-          // R$ 4.223.302,00, valor que inflava indevidamente a Receita Corrente Arrecadada frente ao
-          // balancete). Tratado à parte da devolução/estorno, para manter a origem rastreável.
-          // Rastreado também por ficha exata (código+fonte+aplicação): esses lançamentos já trazem sua
-          // própria fonte/aplicação, então não há ambiguidade sobre a qual ficha atribuí-los, mesmo
-          // quando o código tem mais de uma ficha aberta na competência (ex.: agosto/2026, código
-          // 1.7.24.51.01, fichas de fonte/aplicação 2000002 e 2000003 — a atribuição por código apenas
-          // ficava bloqueada pela trava de ambiguidade, mesmo a reestimativa já dizendo a qual ficha
-          // pertencia, causando divergência de R$ 1,00 contra o balancete).
-          if (conta === '521290000' && Math.abs(cred) > 0.005){
-            ctx.devol[code] = (ctx.devol[code]||0) + cred;
-            ctx.devolPorFicha[chaveFichaAtual] = (ctx.devolPorFicha[chaveFichaAtual]||0) + cred;
-            (ctx.reestimativaPorCodigo[code] = ctx.reestimativaPorCodigo[code]||[]).push({fonte:fonte, aplicacao:aplicacao, valor:cred, origem:'Reestimativa da receita orçada'});
+          } else if (l.conta === '621310100'){
+            // Conta 6.2.1.3.1.01 (deduções do FUNDEB), de natureza devedora: a retenção é o débito. Só serve de
+            // conferência da dedução de 20% (não altera a receita nem a base).
+            ctx.dedFundebContabil += l.debito - l.credito;
+            ctx.extratoApoio.push(l);
+          } else if (l.conta === '521290000'){
+            ctx.extratoApoio.push(l);   // reestimativa orçamentária: só informativa
           }
         });
+        ctx.receitaBlocks.forEach(function(b){ var l = lerBloco(b); ctx.extratoApoio.push(l); });   // 6.2.1.1: só informativa
         var allCodes = {};
         Object.keys(ctx.bruto).forEach(function(c){ allCodes[c]=true; });
         Object.keys(ctx.devol).forEach(function(c){ allCodes[c]=true; });
@@ -275,7 +219,6 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
         });
         ctx.totalFundeb = ctx.bloco4.reduce(function(s,l){return s+l.valor;},0);
         ctx.dedFundebFlat = ctx.totalFundeb*0.2;
-        ctx.dedFundebContabil = Object.keys(ctx.fundebContabil).reduce(function(s,c){return s+ctx.fundebContabil[c];},0);
         ctx.itr = ctx.somaPorPrefixo('1711520',7);
       }},
       {rotulo:'Identificando receitas com finalidade definida (art. 2º, §7º)', exec:function(){
@@ -288,7 +231,7 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
               var chave=c+'|'+l.fonte+'|'+l.aplicacao;
               grupos[chave]=(grupos[chave]||0)+l.valor;
             });
-            // Desconta devolução/ajuste FUNDEB/reestimativa exatamente da ficha (código+fonte+aplicação)
+            // Desconta o débito (estorno/correção) da 6.2.1.2 exatamente da ficha (código+fonte+aplicação)
             // a que pertencem — esses lançamentos já trazem sua própria fonte/aplicação no XML, então a
             // atribuição é exata mesmo quando o código tem mais de uma ficha aberta na competência.
             Object.keys(grupos).forEach(function(chave){
@@ -319,14 +262,15 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
           bloco4: ctx.bloco4, totalFundeb: ctx.totalFundeb, dedFundebFlat: ctx.dedFundebFlat, dedFundebContabil: ctx.dedFundebContabil,
           itr: ctx.itr, alertas: ctx.alertas,
           somaPorPrefixo6: mapa,
-          extratoReceita: ctx.extratoReceita, extratoPrevisao: ctx.extratoPrevisao,
-          descartadosOutroMes: ctx.descartadosOutroMes,
-          reestimativaPorCodigo: ctx.reestimativaPorCodigo,
-          reestimativaTotal: Object.values(ctx.reestimativaPorCodigo || {}).reduce(function(soma, lista){
-            return soma + lista.reduce(function(s, l){ return s + l.valor; }, 0);
-          }, 0),
+          extratoReceita: ctx.extratoReceita, extratoApoio: ctx.extratoApoio,
+          // Conferência da dedução do FUNDEB: os 20% calculados contra a retenção lançada na conta 6.2.1.3.1.01
+          // (débito menos crédito). Diferença acima de R$ 0,10 gera alerta ao usuário. Não altera o cálculo.
+          conferenciaFundeb: (function(){
+            var dif = ctx.dedFundebContabil - ctx.dedFundebFlat;
+            return { calculada: ctx.dedFundebFlat, contabil: ctx.dedFundebContabil, diferenca: dif, limite: 0.10, excede: Math.round(Math.abs(dif)*100) > 10 };
+          })(),
           avisoExercicio: ctx.avisoExercicio || null,
-          registros: ctx.receitaBlocks.length + ctx.previsaoBlocks.length
+          registros: ctx.extratoReceita.length
         };
       }}
     ];

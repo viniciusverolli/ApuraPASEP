@@ -157,14 +157,27 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
   Estado em vez do código da União (regra geral), essa receita ainda compõe a base de retenção
   do PASEP na fonte, nos mesmos efeitos da CFEM-União. É um tratamento por equivalência de
   natureza econômica, não uma leitura literal do código.
-- **Dedução do FUNDEB:** usa percentual **flat de 20%** sobre a base apurada (CF, art. 212-A),
-  não o valor contábil de dedução que eventualmente conste do próprio XML.
+- **Dedução do FUNDEB:** usa percentual **flat de 20%** sobre as receitas do FUNDEB (CF, art. 212-A).
+  O saldo da conta 6.2.1.3.1.01 do XML (devedora; a retenção é o débito, menos o crédito) não é
+  usado no cálculo, só na **conferência**: se a diferença para os 20% passar de **R$ 0,10**, a
+  tela, o PDF, a planilha e o detalhamento salvo trazem um alerta ao usuário. Em Piratininga
+  (jan a ago/2026) a diferença ficou entre R$ 0,04 e R$ 0,07 em sete meses e foi de R$ 37,04 em
+  julho, por um estorno de R$ 185,57 de IPVA (débito na 6.2.1.2) sobre o qual a retenção da conta
+  6.2.1.3.1.01 não foi ajustada no mesmo mês. Qual dos dois valores é o dedutível é decisão do
+  responsável técnico.
+- **Receita pela conta 6.2.1.2 (desde 01/10/2026):** a receita arrecadada de cada código/ficha é
+  o **crédito menos o débito** da conta 6.2.1.2 (621200000, credora: estornos e correções são
+  débitos), somando **todos** os registros da conta no arquivo, inclusive os de `Mes` anterior à
+  competência. Nenhuma outra conta entra na receita: nem a 6.2.1.1 (que continua sendo lida só
+  para exibição), nem a 6.2.1.3.1.01, nem a 5.2.1.2.9 (reestimativa). Substituiu as regras
+  especiais anteriores (débito da 6.2.1.1, ficha "já corrigida", desconto de devolução,
+  de ajuste FUNDEB e de reestimativa, filtro por mês). Conferido contra o motor antigo e contra
+  os valores salvos em 8 competências de Piratininga (jan a ago/2026), com diferença zero em
+  receita, base, retido, valor a pagar e fichas de finalidade definida. **Ainda não validado
+  com outro município nem outro sistema de gestão (Cabrália Paulista é o próximo teste).**
 - **Finalidade definida (Lei 9.715/98, art. 2º, §7º):** valores desses códigos ficam
   **excluídos da base por padrão**. Só entram na base mediante confirmação expressa do usuário
   (checkbox "incluir" na tela) — nunca automaticamente.
-- **Correção/estorno vs. devolução real:** lançamentos de crédito e débito de mesmo valor na
-  conta de devolução do XML AUDESP representam reclassificação (mudança de Fonte de Recursos
-  ou Código de Aplicação), não devolução de receita — não devem reduzir a receita líquida.
 - **Ajuste do ITR:** a STN já remete o ITR líquido dos 20% do FUNDEB no repasse, então o valor
   retido na fonte é ajustado para não descontar esse percentual de novo (o código do ITR é
   tratado à parte no motor, não é uma regra editável em `admin-regras.html`).

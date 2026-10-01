@@ -76,6 +76,14 @@
       linhas + '<tr class="rl-total"><td colspan="2">' + esc(rotuloTotal) + '</td><td class="num">' + num(total) + '</td><td></td></tr></table></div>';
   }
 
+  // Conferência da dedução do FUNDEB com a conta 6.2.1.3.1.01 (guardada na apuração; só as novas a trazem).
+  function avisoFundeb(c){
+    if (!c) return '';
+    if (!c.excede) return '<p style="font-size:12px; color:#475569; margin:8px 0 0">Conferência com a conta 6.2.1.3.1.01: diferença de R$ ' + num(Math.abs(c.diferenca)) + ', dentro do limite de R$ 0,10.</p>';
+    return '<p style="font-size:12.5px; line-height:1.5; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; color:#92400e; padding:10px 12px; margin:10px 0 0"><b>Atenção:</b> a dedução calculada (R$ ' + num(c.calculada) +
+      ') difere da retenção lançada na conta 6.2.1.3.1.01 (R$ ' + num(c.contabil) + ') em R$ ' + num(c.diferenca) + ', acima do limite de R$ 0,10. Confira os lançamentos do FUNDEB.</p>';
+  }
+
   function tabelaAlertas(alertas){
     if (!alertas || alertas.length === 0) return '<p style="font-size:13px; color:#475569; margin:0">Nenhuma receita de finalidade definida nesta competência.</p>';
     return '<div class="rl-scroll"><table class="rl-tab"><tr><th>Receita</th><th>Código / ficha</th><th class="num">Valor (R$)</th><th>Na base?</th></tr>' +
@@ -134,6 +142,7 @@
         '<h3>Retenção na fonte — Bloco 2 (art. 2º, §6º)</h3>' + tabelaRubricas(det.bloco2, det.totalBloco2, 'Total da base de retenção', 'rl-b2-') +
         (det.itr ? '<p class="rl-rodape" style="margin-top:6px">ITR no período: R$ ' + num(det.itr) + ' — retido já ajustado, pois a STN repassa o ITR líquido dos 20% do FUNDEB.</p>' : '') +
         '<h3>FUNDEB — Bloco 4</h3>' + tabelaRubricas(det.bloco4, det.totalFundeb, 'Total FUNDEB (dedução de 20%: R$ ' + num(det.dedFundebFlat) + ')', 'rl-b4-') +
+        avisoFundeb(det.conferenciaFundeb) +
         '<h3>Receitas com finalidade definida (art. 2º, §7º)</h3>' + tabelaAlertas(det.alertas);
     }
 
