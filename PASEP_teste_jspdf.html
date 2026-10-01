@@ -69,6 +69,8 @@
   .flag{ background:var(--gold-soft); border:1px solid rgba(33,139,120,.3); border-radius:10px; padding:12px 14px; margin-bottom:8px; font-size:12.5px; color:#115e59; }
   .flag .confirm{ display:flex; align-items:center; gap:8px; margin-top:7px; color:#0f4c42; }
 
+  .alerta-fundeb{ background:#fffbeb; border:1px solid #fde68a; border-radius:10px; color:#92400e; padding:12px 14px; font-size:12.5px; line-height:1.55; margin:10px 0 0; }
+  .nota-fundeb{ font-size:11.5px; color:var(--muted); margin:8px 0 0; }
   .alerta-erro{ background:var(--red-soft); border:1px solid #fca5a5; border-radius:10px; color:var(--red); padding:12px 16px; font-size:13px; margin-bottom:14px; }
 
   .actions-final{ display:flex; gap:12px; margin-top:24px; }
@@ -199,12 +201,30 @@
   // Só administradores da plataforma recebem, na planilha em Excel, a aba "Classificação"
   // (que revela as regras de classificação). Verificado uma vez ao carregar a página.
   var souAdmin = false;
-  (async function(){
+  // Município do cadastro do usuário (não administrador). A ferramenta só aceita XML desse município:
+  // {admin:true} libera qualquer um (suporte e testes); {municipio:null} = sem vínculo; {erro:true} = não foi
+  // possível confirmar (nesse caso não aceita XML, por segurança).
+  var perfilMunicipio = { erro: true };
+  var perfilPronto = (async function(){
     if (!appwriteTeams) return;
     try {
       var minhasEquipes = await appwriteTeams.list();
       souAdmin = minhasEquipes.teams.some(function(t){ return t.$id === TEAM_ADMINS_ID; });
-    } catch (e) { souAdmin = false; }
+      if (souAdmin){ perfilMunicipio = { admin: true }; return; }
+      var equipe = minhasEquipes.teams.filter(function(t){ return t.$id !== TEAM_ADMINS_ID; })[0];
+      var linha = null;
+      if (equipe){
+        var rm = await appwriteTablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'municipios', queries: [AppwriteQuery.equal('team_id', equipe.$id), AppwriteQuery.limit(1)] });
+        linha = rm.rows[0] || null;
+      }
+      perfilMunicipio = { admin: false, municipio: linha };
+      if (linha && linha.codigo_tce){
+        // Município autorizado desde o início: o nome já aparece no menu e o arquivo de outro município é recusado.
+        municipioAutorizado = { codigo: String(linha.codigo_tce), nome: linha.nome + '/' + linha.uf };
+        document.getElementById('nome-ente').value = linha.nome + '/' + linha.uf;
+        document.getElementById('municipio-trava').innerHTML = 'Município do seu cadastro: <b>' + linha.nome + '/' + linha.uf + '</b> (código TCE ' + linha.codigo_tce + '). Só são aceitos XML deste município.';
+      }
+    } catch (e) { souAdmin = false; perfilMunicipio = { erro: true }; }
   })();
 
   var appwriteFunctions = appwriteClient ? new Appwrite.Functions(appwriteClient) : null;
@@ -300,6 +320,34 @@
     });
   }
 
+  // Conferência da dedução do FUNDEB (20% calculados) contra a retenção lançada na conta 6.2.1.3.1.01,
+  // de natureza devedora (débito menos crédito). Diferença acima de R$ 0,10 gera alerta; o cálculo não muda.
+  function textoConferenciaFundeb(d){
+    var c = d.conferenciaFundeb; if (!c) return null;
+    return { excede: !!c.excede,
+      titulo: c.excede ? 'Atenção: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01.' : 'Conferência com a conta 6.2.1.3.1.01: diferença de ' + brl(Math.abs(c.diferenca)) + ', dentro do limite de R$ 0,10.',
+      corpo: c.excede ? 'Dedução calculada (20% das receitas do FUNDEB): ' + brl(c.calculada) + '. Retenção lançada na conta 6.2.1.3.1.01 (débito menos crédito): ' + brl(c.contabil) + '. Diferença: ' + brl(c.diferenca) + '. ' +
+        (c.rubricas && c.rubricas.length ? 'Diferença por rubrica: ' + c.rubricas.map(function(x){
+          return x.rubrica + ' (' + x.codigo + '): calculado ' + brl(x.calculada) + ', lançado na conta ' + brl(x.contabil) + (Math.abs(x.contabil) < 0.005 ? ' (sem retenção lançada)' : '') + ', diferença ' + brl(x.diferenca);
+        }).join('; ') + '. ' : '') +
+        'Confira os lançamentos do FUNDEB. A diferença pode vir, por exemplo, de estorno de receita (débito na 6.2.1.2) cuja retenção não foi ajustada no mesmo mês, de rubrica sem retenção lançada na conta, ou de ajuste ainda a lançar. A apuração usa os 20% calculados.' : '' };
+  }
+  // Rubricas do FUNDEB com receita e sem nenhuma retenção lançada na 6.2.1.3.1.01 (comum no IPI-Municípios).
+  function textosSemRetencao(d){
+    var c = d.conferenciaFundeb; if (!c || !c.semRetencao) return [];
+    return c.semRetencao.map(function(x){
+      var nome = String(x.rubrica || '').replace(/^Cota-Parte\s+/i, '');
+      var codigos = (x.codigos && x.codigos.length) ? x.codigos.join(', ') : x.codigo;
+      return 'Há lançamentos na Receita "' + nome + ' - código ' + codigos + '" sem retenção do FUNDEB, é recomendável verificar essa contabilização.';
+    });
+  }
+  function htmlConferenciaFundeb(d){
+    var t = textoConferenciaFundeb(d); if (!t) return '';
+    var html = t.excede ? '<div class="alerta-fundeb" role="alert"><b>' + t.titulo + '</b><br>' + t.corpo + '</div>' : '<div class="nota-fundeb">' + t.titulo + '</div>';
+    textosSemRetencao(d).forEach(function(x){ html += '<div class="alerta-fundeb" role="alert"><b>Atenção:</b> ' + x + '</div>'; });
+    return html;
+  }
+
   function renderDetalhe(chave){
     selecionado = chave;
     etapa3.salvou = false; etapa3.baixou = false;
@@ -359,6 +407,7 @@
     d.bloco4.forEach(function(l){ html += '<tr><td>'+l.label+'</td><td class="num">'+numFmt(l.valor)+'</td></tr>'; });
     html += '<tr class="subtotal"><td>Total FUNDEB</td><td class="num">'+numFmt(d.totalFundeb)+'</td></tr>';
     html += '<tr><td>Dedução (20%)</td><td class="num">'+numFmt(d.dedFundebFlat)+'</td></tr></table>';
+    html += htmlConferenciaFundeb(d);
 
     document.getElementById('area-detalhe').innerHTML = html;
     document.querySelectorAll('.chk-alerta').forEach(function(chk){
@@ -370,7 +419,7 @@
 
     var resumo = document.getElementById('painel-resumo');
     resumo.innerHTML = '<h4>Memória de cálculo — '+MESES[d.mes]+'/'+d.ano+'</h4>'+
-      '<div class="sline"><span data-ajuda="Total das receitas correntes arrecadadas na competência, lido do XML AUDESP (registros de Receita Arrecadada)." data-ajuda-titulo="Receita Corrente Arrecadada" data-ajuda-norma="cosit-278-2017">Receita Corrente Arrecadada</span><b>'+numFmt(d.receitaCorrente)+'</b></div>'+
+      '<div class="sline"><span data-ajuda="Total das receitas correntes arrecadadas na competência, lida do XML AUDESP pela conta 6.2.1.2 (receita realizada): créditos menos débitos (estornos e correções)." data-ajuda-titulo="Receita Corrente Arrecadada" data-ajuda-norma="cosit-278-2017">Receita Corrente Arrecadada</span><b>'+numFmt(d.receitaCorrente)+'</b></div>'+
       '<div class="sline"><span data-ajuda="Receitas que formam o FUNDEB (Solução de Consulta Cosit nº 278/2017). A dedução corresponde a 20% do total dessas receitas." data-ajuda-titulo="(-) Dedução FUNDEB (20%)" data-ajuda-norma="cosit-278-2017,cosit-99016-2018,disit-srrf09-9014-2018">(-) Dedução FUNDEB (20%)</span><b>'+numFmt(d.dedFundebFlat)+'</b></div>'+
       '<div class="sline"><span data-ajuda="Transferências correntes com destinação vinculada saem da base. Os lançamentos que você decidir manter na base ou fora ficam registrados na apuração, e o sistema pede sua confirmação antes de salvar." data-ajuda-titulo="(-) Transferências Correntes (com Finalidade Definida)" data-ajuda-norma="cosit-99073-2017,disit-srrf06-6031-2017,cosit-99071-2017">(-) Transferências Correntes (com Finalidade Definida)</span><b>'+numFmt(r.totalFinalidadeCorrente)+'</b></div>'+
       '<div class="sline"><span data-ajuda="Transferências de capital ficam fora da base por padrão (Lei nº 9.715/98, art. 2º, §6º, conforme o bloco 4 desta tela). Só entram se você marcar a inclusão." data-ajuda-titulo="(+) Transferências de Capital (sem Finalidade Definida)" data-ajuda-norma="cosit-278-2017">(+) Transferências de Capital (sem Finalidade Definida)</span><b>'+numFmt(r.totalCapitalIncluido)+'</b></div>'+
@@ -416,13 +465,14 @@
       [/Não foram encontrados registros de receita|Nenhum bloco de receita/i, 'O arquivo não traz registros de receita arrecadada.', 'Confira se é o XML da competência inteira (com Receita Arrecadada) e não de outro módulo, como despesa ou folha.'],
       [/competência \(mês\/ano\)/i, 'Não foi possível identificar o mês e o ano do arquivo.', 'O descritor do XML precisa informar a competência. Gere o arquivo de novo e confira se ele não foi editado.'],
       [/Leiaute não reconhecido/i, 'Este leiaute do AUDESP ainda não é lido pela ferramenta.', 'Envie o leiaute "Contas Correntes". Outros leiautes ainda não são aceitos.'],
+      [/mas o seu cadastro é de|ainda não está vinculado|código do TCE do seu município/i, null, 'Seu usuário só apura o município do seu cadastro. Envie o XML do seu município (ou, se o cadastro estiver incompleto, fale com o administrador).'],
       [/pertence a .* mas esta sessão/i, 'O arquivo é de outro município.', 'Cada sessão trabalha com um município. Envie apenas arquivos do seu município.'],
       [/excede o limite de envio/i, 'O arquivo é grande demais mesmo depois de reduzido.', 'Avise o suporte informando o município e a competência.'],
       [/Não foi possível carregar a conexão|Failed to fetch|Network/i, 'Sem conexão com o servidor de apuração.', 'Confira a internet e tente de novo.'],
       [/Faça login|Sessão|401/i, 'Sua sessão expirou.', 'Entre de novo no sistema e repita o envio.']
     ];
     for (var i = 0; i < casos.length; i++){
-      if (casos[i][0].test(m)) return { titulo: casos[i][1], dica: casos[i][2], detalhe: m };
+      if (casos[i][0].test(m)) return { titulo: casos[i][1] || m, dica: casos[i][2], detalhe: casos[i][1] ? m : '' };
     }
     return { titulo: 'Não foi possível processar este arquivo.', dica: 'Tente de novo. Se o erro continuar, avise o suporte informando o município, a competência e o texto abaixo.', detalhe: m };
   }
@@ -433,7 +483,7 @@
     el.innerHTML = '<div class="alerta-erro" role="alert"><button type="button" class="fechar-erro" aria-label="Fechar aviso">&times;</button>' +
       '<strong>' + (nomeArquivo ? '"' + nomeArquivo + '": ' : '') + ex.titulo + '</strong>' +
       '<div class="dica">' + ex.dica + '</div>' +
-      '<div class="dica" style="opacity:.8">Detalhe técnico: ' + ex.detalhe + '</div></div>';
+      (ex.detalhe ? '<div class="dica" style="opacity:.8">Detalhe técnico: ' + ex.detalhe + '</div>' : '') + '</div>';
     el.querySelector('.fechar-erro').addEventListener('click', function(){ el.innerHTML = ''; });
     setTimeout(function(){ if (el.firstChild && el.querySelector('.fechar-erro')) el.innerHTML = ''; }, 30000);
   }
@@ -508,7 +558,8 @@
     partes.sort(function(a, b){ return a.pos - b.pos; });
 
     var corpo = partes.map(function(p){ return p.txt.replace(/>\s+</g, '><'); }).join('\n');
-    return { xml: '<?xml version="1.0"?>\n' + abertura + '\n' + corpo + '\n</' + nomeRaiz + '>', contagem: contagem };
+    var mMun = /<(?:[A-Za-z_][\w.-]*:)?Municipio>\s*(\d+)\s*</.exec((partes.filter(function(p){ return /^<(?:[A-Za-z_][\w.-]*:)?Descritor[\s>]/.test(p.txt); })[0] || { txt: '' }).txt);
+    return { xml: '<?xml version="1.0"?>\n' + abertura + '\n' + corpo + '\n</' + nomeRaiz + '>', contagem: contagem, municipio: mMun ? mMun[1] : null };
   }
 
   function tamanhoLegivel(n){
@@ -539,8 +590,20 @@
 
           var reduzido = reduzirXml(e.target.result);
           if (reduzido.erro) throw new Error(reduzido.erro);
+          // Só aceita XML do município do cadastro do usuário (administradores podem importar qualquer um).
+          await perfilPronto;
+          if (!perfilMunicipio.admin){
+            if (perfilMunicipio.erro) throw new Error('Não foi possível confirmar o município do seu cadastro agora. Recarregue a página e tente de novo.');
+            if (!perfilMunicipio.municipio) throw new Error('Seu usuário ainda não está vinculado a um município. Fale com o administrador da plataforma.');
+            if (!perfilMunicipio.municipio.codigo_tce) throw new Error('O código do TCE do seu município ainda não foi cadastrado. Fale com o administrador da plataforma.');
+            var codigoXml = reduzido.municipio;
+            if (codigoXml && codigoXml !== String(perfilMunicipio.municipio.codigo_tce)){
+              var infoXml = MUNICIPIOS_TCE[codigoXml];
+              throw new Error('O XML é de ' + (infoXml ? infoXml[1] : 'outro município') + ' (código ' + codigoXml + '), mas o seu cadastro é de ' + perfilMunicipio.municipio.nome + '/' + perfilMunicipio.municipio.uf + ' (código ' + perfilMunicipio.municipio.codigo_tce + '). O arquivo não foi importado.');
+            }
+          }
           if (!reduzido.contagem.Descritor) throw new Error('Este arquivo não parece um XML AUDESP de Contas Correntes: o Descritor não foi encontrado.');
-          if (!reduzido.contagem.ReceitaArrecadar && !reduzido.contagem.PrevisaoReceitaOrcamentaria) throw new Error('Não foram encontrados registros de receita neste arquivo. Confira se é o XML de Contas Correntes do mês.');
+          if (!reduzido.contagem.PrevisaoReceitaOrcamentaria) throw new Error('Não foram encontrados registros da conta 6.2.1.2 (receita realizada) neste arquivo. Confira se é o XML de Contas Correntes do mês.');
 
           var corpoEnvio = JSON.stringify({ xmlText: reduzido.xml });
           if (corpoEnvio.length > LIMITE_CORPO_ENVIO) throw new Error('Mesmo separando apenas as receitas, o conteúdo (' + tamanhoLegivel(corpoEnvio.length) + ') excede o limite de envio. Avise o suporte informando o município e a competência.');
@@ -731,7 +794,19 @@
       footStyles:{fillColor:[227,239,236], textColor:[35,38,43], fontStyle:'bold', fontSize:8},
       columnStyles:{2:{halign:'right'}}
     });
-    y = doc.lastAutoTable.finalY + 6;
+    y = doc.lastAutoTable.finalY + 4;
+    (function(){
+      var t = textoConferenciaFundeb(d); if (!t) return;
+      var blocosTexto = [{ txt: t.titulo + (t.corpo ? ' ' + t.corpo : ''), destaque: t.excede }];
+      textosSemRetencao(d).forEach(function(x){ blocosTexto.push({ txt: 'Atenção: ' + x, destaque: true }); });
+      blocosTexto.forEach(function(b){
+        doc.setFont('helvetica', b.destaque ? 'bold' : 'italic'); doc.setFontSize(8); doc.setTextColor(b.destaque ? 146 : 107, b.destaque ? 64 : 102, b.destaque ? 14 : 86);
+        var linhasT = doc.splitTextToSize(b.txt, tableWidth);
+        if (y + linhasT.length*3.6 > 280){ doc.addPage(); y = margin; }
+        doc.text(linhasT, margin, y + 3); y += linhasT.length*3.6 + 3; doc.setTextColor(0,0,0);
+      });
+    })();
+    y += 2;
 
     // Memoria de calculo consolidada
     tituloSecao('Memória de cálculo consolidada');
@@ -804,17 +879,17 @@
     });
     var totalDebReceita = extratoReceitaOrdenado.reduce(function(s,l){return s+l.debito;},0);
     var totalCredReceita = extratoReceitaOrdenado.reduce(function(s,l){return s+l.credito;},0);
-    tabelaExtrato('ReceitaArrecadar — ' + extratoReceitaOrdenado.length + ' lançamentos', linhasReceita, totalDebReceita, totalCredReceita);
+    tabelaExtrato('Conta 6.2.1.2 (receita realizada), base da apuração — ' + extratoReceitaOrdenado.length + ' lançamentos', linhasReceita, totalDebReceita, totalCredReceita);
 
     if (y > 170){ doc.addPage('a4','landscape'); y = margin; }
 
-    var extratoPrevisaoOrdenado = d.extratoPrevisao.slice().sort(function(a,b){ return a.codigo.localeCompare(b.codigo); });
+    var extratoPrevisaoOrdenado = d.extratoApoio.slice().sort(function(a,b){ return a.codigo.localeCompare(b.codigo); });
     var linhasPrevisao = extratoPrevisaoOrdenado.map(function(l){
       return [l.codigo, especificacaoReceita(l.codigo, d.ano) || '(código não localizado na tabela AUDESP/STN)', l.conta, l.fonte, l.aplicacao, numFmt(l.saldoInicial), l.natInicial, numFmt(l.credito), numFmt(l.debito), numFmt(l.saldoFinal), l.natFinal];
     });
     var totalDebPrevisao = extratoPrevisaoOrdenado.reduce(function(s,l){return s+l.debito;},0);
     var totalCredPrevisao = extratoPrevisaoOrdenado.reduce(function(s,l){return s+l.credito;},0);
-    tabelaExtrato('PrevisaoReceitaOrcamentaria (devoluções e ajustes) — ' + extratoPrevisaoOrdenado.length + ' lançamentos', linhasPrevisao, totalDebPrevisao, totalCredPrevisao);
+    tabelaExtrato('Contas de apoio (6.2.1.1, 6.2.1.3.1.01 e 5.2.1.2.9), só informativas, não entram na receita — ' + extratoPrevisaoOrdenado.length + ' lançamentos', linhasPrevisao, totalDebPrevisao, totalCredPrevisao);
 
     doc.setFont('helvetica','italic'); doc.setFontSize(7.5); doc.setTextColor(107,102,86);
     doc.text('Este extrato reproduz integralmente os lançamentos do arquivo XML AUDESP (leiaute Contas Correntes) desta competência, sem qualquer filtro por rubrica. Não substitui o relatório de memória de cálculo.', margin, y);
@@ -844,6 +919,7 @@
       bloco2: rubricas(d.bloco2), totalBloco2: d.totalBloco2,
       bloco4: rubricas(d.bloco4), totalFundeb: d.totalFundeb, dedFundebFlat: d.dedFundebFlat,
       itr: d.itr,
+      conferenciaFundeb: d.conferenciaFundeb || null,
       alertas: (d.alertas || []).map(function(a){
         return { label: a.label, bloco: a.bloco, codigo: a.codigo, fonte: a.fonte, aplicacao: a.aplicacao, valor: a.valor, incluir: !!a.incluir };
       }),
@@ -1024,9 +1100,10 @@
         'do XML) e podem ser conferidas linha a linha contra o arquivo de origem.',
         'As células em VERDE são vínculos entre abas.', '',
         'Abas:',
-        '  Lançamentos XML       — todo lançamento de arrecadação (conta 621100000), um por linha',
-        '  Ajustes XML           — devoluções, ajustes do FUNDEB e reestimativas (contas 621200000,',
-        '                          621310100 e 521290000), um por linha',
+        '  Lançamentos XML       — todo lançamento da conta 6.2.1.2 (621200000, receita realizada), um por',
+        '                          linha. Valor considerado = crédito menos débito (estornos e correções)',
+        '  Contas de apoio       — lançamentos das contas 6.2.1.1, 6.2.1.3.1.01 e 5.2.1.2.9. Só informativos:',
+        '                          não entram na receita. A 6.2.1.3.1.01 serve à conferência do FUNDEB',
         // A aba Classificação só existe na planilha do administrador (ver mais abaixo).
         souAdmin ? '  Classificação         — a qual grupo (retenção, FUNDEB, finalidade definida) cada código pertence' : null,
         '  Apuração              — a memória de cálculo completa, com fórmulas',
@@ -1049,9 +1126,9 @@
       var wsP = wb.addWorksheet('Apuração');
       // ============ ABA 2 — LANÇAMENTOS XML ============
       var wsR = wb.addWorksheet('Lançamentos XML');
-      wsR.getCell('A1').value = 'Lançamentos de arrecadação — conta contábil 621100000 (ReceitaArrecadar), competência ' + MESES[d.mes] + '/' + d.ano;
+      wsR.getCell('A1').value = 'Receita realizada — conta contábil 621200000 (6.2.1.2), todos os registros do arquivo, competência ' + MESES[d.mes] + '/' + d.ano;
       wsR.getCell('A1').font = { name:FONTE, size:11, bold:true };
-      cabecalho(wsR, 3, ['Código','Fonte','Aplicação','Conta Contábil','Saldo Inicial','Nat. Inicial','Crédito','Débito','Saldo Final','Nat. Final','Prefixo (4 díg.)','Valor líquido considerado','Grupo do cálculo'], 13);
+      cabecalho(wsR, 3, ['Código','Fonte','Aplicação','Conta Contábil','Saldo Inicial','Nat. Inicial','Crédito','Débito','Saldo Final','Nat. Final','Prefixo (4 díg.)','Valor líquido considerado (crédito menos débito)','Grupo do cálculo','Mês do registro'], 14);
       wsR.getColumn(1).width = 12; wsR.getColumn(12).width = 20; wsR.getColumn(13).width = 30;
 
       var alertasPrefixos = {}; ALERTAS_FINALIDADE.forEach(function(a){ alertasPrefixos[a.prefix]=true; });
@@ -1076,14 +1153,12 @@
         wsR.getCell(linha,10).value = l.natFinal; wsR.getCell(linha,10).font = AZUL;
         var c11=wsR.getCell(linha,11); c11.value={formula:'LEFT(A'+linha+',4)'}; c11.font=PRETO;
 
-        var pref4 = codigo.substr(0,4);
-        var ehFinalidade = !!alertasPrefixos[pref4];
-        var permaneceCredora = (l.natInicial==='C' && l.natFinal==='C');
-        var jaCorrigido = ehFinalidade && permaneceCredora && Math.abs(cred)>0.005 && Math.abs(deb)>0.005 && Math.abs(deb-cred)>0.005;
         var c12 = wsR.getCell(linha,12);
-        c12.value = jaCorrigido ? {formula:'H'+linha+'-G'+linha} : {formula:'H'+linha};
+        c12.value = {formula:'G'+linha+'-H'+linha};
         c12.font = PRETO; c12.numFmt = NUMFMT;
+        var c14 = wsR.getCell(linha,14); c14.value = l.mes ? +l.mes : null; c14.font = AZUL;
 
+        var pref4 = codigo.substr(0,4);
         var ret = prefixosRetencao.indexOf(codigo.substr(0,7)) !== -1;
         var fun = prefixosFundeb.indexOf(codigo.substr(0,7)) !== -1;
         var fd3 = prefixosFD3.indexOf(pref4) !== -1;
@@ -1098,40 +1173,38 @@
 
         if (CORES_GRUPO[grupo]){
           var fill = {type:'pattern', pattern:'solid', fgColor:{argb:CORES_GRUPO[grupo]}};
-          for (var col=1; col<=13; col++) wsR.getCell(linha,col).fill = fill;
+          for (var col=1; col<=14; col++) wsR.getCell(linha,col).fill = fill;
         }
         linha++;
       });
       var ultimaLinhaLanc = linha-1;
-      wsR.autoFilter = { from:{row:3,column:1}, to:{row:ultimaLinhaLanc,column:13} };
+      wsR.autoFilter = { from:{row:3,column:1}, to:{row:ultimaLinhaLanc,column:14} };
       wsR.views = [{state:'frozen', ySplit:3}];
 
-      // ============ ABA 3 — AJUSTES XML ============
-      var wsA = wb.addWorksheet('Ajustes XML');
-      wsA.getCell('A1').value = 'Devoluções, ajustes do FUNDEB e reestimativas — contas 621200000, 621310100 e 521290000';
+      // ============ ABA 3 — CONTAS DE APOIO ============
+      // Lançamentos das contas 6.2.1.1, 6.2.1.3.1.01 e 5.2.1.2.9: só informativos (a receita vem da 6.2.1.2).
+      // A 6.2.1.3.1.01 (devedora) alimenta a conferência da dedução do FUNDEB na aba Apuração.
+      var wsA = wb.addWorksheet('Contas de apoio');
+      wsA.getCell('A1').value = 'Contas de apoio: 6.2.1.1 (621100000), 6.2.1.3.1.01 (621310100) e 5.2.1.2.9 (521290000)';
       wsA.getCell('A1').font = { name:FONTE, size:11, bold:true };
-      wsA.getCell('A2').value = 'Já filtrado para a competência ' + MESES[d.mes] + '/' + d.ano + ' — a exportação original descarta o histórico de outros meses antes deste ponto.';
+      wsA.getCell('A2').value = 'Informativas: não entram na receita. A conta 621310100 (devedora) serve à conferência da dedução do FUNDEB (débito menos crédito).';
       wsA.getCell('A2').font = { name:FONTE, size:9, italic:true, color:{argb:'FF6B6656'} };
-      cabecalho(wsA, 4, ['Código','Fonte','Aplicação','Conta Contábil','Crédito','Débito','Tipo de ajuste','Valor do ajuste (a descontar do bruto)'], 14);
-      wsA.getColumn(1).width = 12; wsA.getColumn(7).width = 24; wsA.getColumn(8).width = 24;
-
+      cabecalho(wsA, 4, ['Código','Fonte','Aplicação','Conta Contábil','Mês do registro','Crédito','Débito','Descrição da conta'], 14);
+      wsA.getColumn(1).width = 12; wsA.getColumn(8).width = 40;
+      var DESC_CONTA = {'621100000':'6.2.1.1 Receita a realizar (execução)','621310100':'6.2.1.3.1.01 Deduções FUNDEB (devedora)','521290000':'5.2.1.2.9 Reestimativa orçamentária'};
       var linhaAj = 5;
-      d.extratoPrevisao.forEach(function(l){
+      d.extratoApoio.forEach(function(l){
         wsA.getCell(linhaAj,1).value = l.codigo; wsA.getCell(linhaAj,1).font = AZUL;
         wsA.getCell(linhaAj,2).value = l.fonte; wsA.getCell(linhaAj,2).font = AZUL;
         wsA.getCell(linhaAj,3).value = l.aplicacao; wsA.getCell(linhaAj,3).font = AZUL;
         wsA.getCell(linhaAj,4).value = l.conta; wsA.getCell(linhaAj,4).font = AZUL;
-        var c5=wsA.getCell(linhaAj,5); c5.value=l.credito; c5.font=AZUL; c5.numFmt=NUMFMT;
-        var c6=wsA.getCell(linhaAj,6); c6.value=l.debito; c6.font=AZUL; c6.numFmt=NUMFMT;
-        var c7=wsA.getCell(linhaAj,7);
-        c7.value = {formula:'IF(D'+linhaAj+'="621200000","Devolução/estorno",IF(D'+linhaAj+'="621310100","Ajuste FUNDEB",IF(D'+linhaAj+'="521290000","Reestimativa","(outra)")))'};
-        c7.font = PRETO;
-        var c8=wsA.getCell(linhaAj,8);
-        c8.value = {formula:'IF(D'+linhaAj+'="621200000",F'+linhaAj+',IF(OR(D'+linhaAj+'="621310100",D'+linhaAj+'="521290000"),E'+linhaAj+',0))'};
-        c8.font = PRETO; c8.numFmt = NUMFMT;
+        wsA.getCell(linhaAj,5).value = l.mes ? +l.mes : null; wsA.getCell(linhaAj,5).font = AZUL;
+        var c6=wsA.getCell(linhaAj,6); c6.value=l.credito; c6.font=AZUL; c6.numFmt=NUMFMT;
+        var c7=wsA.getCell(linhaAj,7); c7.value=l.debito; c7.font=AZUL; c7.numFmt=NUMFMT;
+        var c8=wsA.getCell(linhaAj,8); c8.value=DESC_CONTA[l.conta] || l.conta; c8.font=PRETO;
         linhaAj++;
       });
-      var ultimaLinhaAj = linhaAj-1;
+      var ultimaLinhaAj = Math.max(linhaAj-1, 5);
       wsA.autoFilter = { from:{row:4,column:1}, to:{row:ultimaLinhaAj,column:8} };
       wsA.views = [{state:'frozen', ySplit:4}];
 
@@ -1176,12 +1249,13 @@
       // fórmulas com "undefined" no lugar dos intervalos.
       var LANC_COD = "'Lançamentos XML'!$A$4:$A$"+ultimaLinhaLanc;
       var LANC_VAL = "'Lançamentos XML'!$L$4:$L$"+ultimaLinhaLanc;
-      var AJ_COD = "'Ajustes XML'!$A$5:$A$"+ultimaLinhaAj;
-      var AJ_VAL = "'Ajustes XML'!$H$5:$H$"+ultimaLinhaAj;
+      var AP_CONTA = "'Contas de apoio'!$D$5:$D$"+ultimaLinhaAj;
+      var AP_CRED = "'Contas de apoio'!$F$5:$F$"+ultimaLinhaAj;
+      var AP_DEB = "'Contas de apoio'!$G$5:$G$"+ultimaLinhaAj;
 
       // O preenchimento da aba Apuração (criada logo acima, para ficar em segundo lugar
       // visualmente) foi movido pra cá de propósito: as fórmulas abaixo referenciam
-      // 'Lançamentos XML' e 'Ajustes XML' por nome de célula (ultimaLinhaLanc/ultimaLinhaAj),
+      // 'Lançamentos XML' e 'Contas de apoio' por nome de célula (ultimaLinhaLanc/ultimaLinhaAj),
       // que só existem depois que essas duas abas são escritas — mesmo a aba Apuração
       // aparecendo antes na ordem visual do arquivo.
       wsP.getColumn(1).width = 46; wsP.getColumn(2).width = 18; wsP.getColumn(3).width = 60;
@@ -1216,11 +1290,11 @@
       var r = 4;
       tituloBloco(wsP, r, 'BLOCO 1 — Total de Receitas'); r++;
       linhaItem(wsP, r, 'Receita Corrente Arrecadada',
-        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="1")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="1")*'+AJ_VAL+')',
-        false, 'Todos os códigos iniciados em "1", líquidos de devolução/ajuste FUNDEB/reestimativa', d.receitaCorrente);
+        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="1")*'+LANC_VAL+')',
+        false, 'Todos os códigos iniciados em "1", pela conta 6.2.1.2 (crédito menos débito)', d.receitaCorrente);
       var L_CORRENTE = r; r++;
       linhaItem(wsP, r, 'Receita de Capital Arrecadada',
-        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="2")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',1)="2")*'+AJ_VAL+')',
+        '=SUMPRODUCT((LEFT('+LANC_COD+',1)="2")*'+LANC_VAL+')',
         false, 'Referência informativa — não integra a base diretamente', d.receitaCapital);
       r += 2;
 
@@ -1231,24 +1305,39 @@
       // fórmula que dependeria de uma aba que este usuário não recebe.
       linhaItem(wsP, r, 'Total Bloco 2 (retenção na fonte)',
         souAdmin
-          ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+AJ_VAL+')'
+          ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$5:$A$'+linhaFimRetencao+',0))*'+LANC_VAL+')'
           : d.totalBloco2,
         false, 'FPM, ITR, IOF-Ouro, CFEM (União e Estado), FEP, Bônus, LC 176/2020, CIDE, Royalties', d.totalBloco2);
       var L_BLOCO2 = r; r++;
       linhaItem(wsP, r, 'Cota-Parte ITR (para o ajuste da retenção)',
-        '=SUMPRODUCT((LEFT('+LANC_COD+',7)="1711520")*'+LANC_VAL+')-SUMPRODUCT((LEFT('+AJ_COD+',7)="1711520")*'+AJ_VAL+')',
+        '=SUMPRODUCT((LEFT('+LANC_COD+',7)="1711520")*'+LANC_VAL+')',
         false, 'A STN já remete o ITR líquido dos 20% do FUNDEB', d.itr);
       var L_ITR = r; r += 2;
 
       tituloBloco(wsP, r, 'BASE DO FUNDEB (CF, art. 212-A)'); r++;
       linhaItem(wsP, r, 'Total das receitas que compõem o FUNDEB',
         souAdmin
-          ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+LANC_VAL+')-SUMPRODUCT(ISNUMBER(MATCH(LEFT('+AJ_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+AJ_VAL+')'
+          ? '=SUMPRODUCT(ISNUMBER(MATCH(LEFT('+LANC_COD+',7),Classificação!$A$'+linhaInicioFundeb+':$A$'+linhaFimFundeb+',0))*'+LANC_VAL+')'
           : d.totalFundeb,
         false, 'FPM-Cota Mensal + ITR + ICMS + IPVA + IPI-Municípios', d.totalFundeb);
       var L_TOTALFUNDEB = r; r++;
       linhaItem(wsP, r, '(=) Dedução do FUNDEB (20%)', '=B'+L_TOTALFUNDEB+'*0.2', true, null, d.dedFundebFlat);
-      var L_DEDFUNDEB = r; r += 2;
+      var L_DEDFUNDEB = r; r++;
+      var confF = d.conferenciaFundeb || { contabil: 0, diferenca: 0 };
+      linhaItem(wsP, r, 'Retenção lançada na conta 6.2.1.3.1.01 (débito menos crédito)',
+        '=SUMPRODUCT(('+AP_CONTA+'="621310100")*('+AP_DEB+'-'+AP_CRED+'))', false, 'Conferência da dedução do FUNDEB (conta devedora). Não altera o cálculo.', confF.contabil);
+      var L_FUNDEBCONTAB = r; r++;
+      linhaItem(wsP, r, 'Diferença: conta 6.2.1.3.1.01 menos dedução calculada', '=B'+L_FUNDEBCONTAB+'-B'+L_DEDFUNDEB, false,
+        confF.excede ? 'ALERTA: diferença acima de R$ 0,10. Confira os lançamentos do FUNDEB.' : 'Dentro do limite de R$ 0,10.', confF.diferenca);
+      var L_DIFFUNDEB = r; r++;
+      var cAlerta = wsP.getCell(r,1);
+      cAlerta.value = {formula:'IF(ABS(ROUND(B'+L_DIFFUNDEB+',2))>0.1,"ALERTA: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01 em mais de R$ 0,10","Conferência do FUNDEB: dentro do limite de R$ 0,10")', result: confF.excede ? 'ALERTA: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01 em mais de R$ 0,10' : 'Conferência do FUNDEB: dentro do limite de R$ 0,10'};
+      cAlerta.font = { name:FONTE, size:10, bold:true, color:{argb: confF.excede ? 'FF92400E' : 'FF166534'} };
+      r++;
+      textosSemRetencao(d).forEach(function(x){
+        var cSR = wsP.getCell(r,1); cSR.value = 'ALERTA: ' + x; cSR.font = { name:FONTE, size:10, bold:true, color:{argb:'FF92400E'} }; r++;
+      });
+      r += 1;
 
       tituloBloco(wsP, r, 'BLOCO 3/4 — Finalidade definida (art. 2º, §7º), excluída por padrão'); r++;
       function somaPrefixos(rangeCod, rangeVal, prefixos){
@@ -1256,11 +1345,11 @@
         return 'SUMPRODUCT(('+termos+')*'+rangeVal+')';
       }
       linhaItem(wsP, r, 'Total finalidade definida — receitas correntes (bloco 3)',
-        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD3)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD3),
+        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD3),
         false, 'Convênios da União, Estados/DF, Municípios e Instituições Privadas (corrente)', resultado.totalFinalidadeCorrente);
       var L_FD3 = r; r++;
       linhaItem(wsP, r, 'Total finalidade definida — capital (bloco 5, referência)',
-        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD5)+'-'+somaPrefixos(AJ_COD,AJ_VAL,prefixosFD5),
+        '='+somaPrefixos(LANC_COD,LANC_VAL,prefixosFD5),
         false, 'Excluída por padrão; incluída na base apenas mediante decisão expressa do responsável técnico', resultado.totalCapitalIncluido);
       r += 2;
 
