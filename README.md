@@ -171,6 +171,15 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
   6.2.1.3.1.01, que "há lançamentos na Receita (por exemplo IPI-Municípios, código 1.7.2.1.52.01) sem
   retenção do FUNDEB, é recomendável verificar essa contabilização". Caso real: Cabrália Paulista, jan a
   mai/2026, sem retenção do IPI-Municípios (R$ 755 a R$ 895 por mês); em Piratininga o IPI tem retenção.
+- **Exercício sem tabela é bloqueado (desde 01/10/2026):** a ferramenta só importa XML de exercício cuja
+  Tabela de Escrituração Contábil (Anexo II, Classificação da Receita) está carregada: hoje 2024, 2025,
+  2026 e 2027. O navegador lê o `AnoExercicio` do Descritor e recusa o arquivo antes de enviá-lo, com
+  aviso ao usuário; o motor repete a checagem no servidor. Para liberar outro exercício, carregar a
+  tabela dele em `TABELAS_RECEITA` e em `EXERCICIOS_RECEITA_DISPONIVEIS` (site e `function-motor`).
+- **Aviso de competência já salva (desde 01/10/2026):** ao importar o XML, a ferramenta consulta se o
+  município já tem apuração salva para aquele mês/ano. Se tiver, mostra a data da última gravação e o
+  valor a pagar e pergunta se o usuário prossegue (salvar de novo sobrepõe o cálculo) ou cancela
+  (a apuração salva é mantida). Se a consulta falhar, o aviso é omitido e o servidor segue decidindo.
 - **Upload só do município do cadastro (desde 01/10/2026):** a ferramenta lê o município do cadastro do
   usuário (código TCE) e recusa, **antes de enviar ao motor**, XML cujo código de município seja outro,
   com mensagem que cita os dois municípios. Usuário sem município, ou com município sem código TCE, também
@@ -344,6 +353,9 @@ Pendências principais:
   "Classificação da Receita - 2025" (2.088 códigos valorizáveis, internalizados em 01/10/2026).
   Os códigos usados pelas regras do motor têm a mesma especificação de 2026. A tabela só descreve
   os códigos nos relatórios; não altera o cálculo, que não foi validado com XMLs de 2025.
+- Anexo II — Tabelas de Escrituração Contábil - Auxiliares 2024, versão v_08, aba "Classificação da
+  Receita - 2024" (2.037 códigos valorizáveis, internalizados em 01/10/2026). O cálculo não foi
+  validado com XMLs de 2024.
 
 ---
 
