@@ -86,6 +86,12 @@ vencimento continua nas páginas.
     `admin_remover_membro`, `admin_definir_papel`, `admin_notificar`. Tem execução agendada
     diária (11h UTC) para avisos de licença a vencer (30, 7 e 1 dia) e vencida, e lembrete de
     cadastros pendentes há mais de 2 dias. Substitui o antigo `salvar-apuracao`, nunca implantado.
+    Também: limite de **3 usuários por município** (checado em `admin_convidar`, antes de criar
+    qualquer conta; um responsável que convidasse direto pela API do Appwrite não passaria por
+    essa trava) e vínculo automático do **código TCE** no autocadastro, pela tabela
+    `function-servidor/municipios-tce.json` (644 municípios; a mesma tabela está em `admin.html`).
+    Em 01/10/2026 foi retirado o `create` de `users` das tabelas `municipios` (agora só o time de
+    administradores cria) e `apuracoes` (só a função grava).
 
 ### 1.3 Hospedagem
 

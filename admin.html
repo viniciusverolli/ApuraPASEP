@@ -86,6 +86,9 @@
   /* ===== Cadastro de município (modal) ===== */
   .tabela-scroll{ overflow-x:auto; border-radius:14px; }
   .cab-tabela-clientes{ display:flex; justify-content:space-between; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap; }
+  .detalhes-cad{ display:grid; grid-template-columns:130px 1fr; gap:6px 12px; font-size:13px; margin:0 0 18px; padding:12px 14px; border:1px solid var(--line); border-radius:12px; background:rgba(255,255,255,.6); }
+  .detalhes-cad dt{ color:var(--muted); } .detalhes-cad dd{ margin:0; word-break:break-word; }
+  .detalhes-cad .miudo{ color:var(--muted); font-size:11.5px; }
   .modal-fundo{ display:none; position:fixed; inset:0; background:rgba(15,20,32,.55); backdrop-filter:blur(4px); z-index:100; align-items:center; justify-content:center; padding:16px; }
   .modal-fundo.aberto{ display:flex; }
   .modal{ background:rgba(255,255,255,.96); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.9); border-radius:18px; box-shadow:0 30px 70px rgba(15,20,32,.35); width:100%; max-width:540px; max-height:92vh; overflow-y:auto; padding:26px 26px 22px; }
@@ -268,16 +271,19 @@
     <p class="modal-sub" id="mmSub"></p>
     <div class="aviso-modal" id="mmAviso" style="display:none"></div>
 
+    <div id="mmDetalhes" style="display:none"></div>
+
     <div class="campo-form" id="mmCampoNome">
       <label for="mmNome">Município (SP)</label>
       <input type="text" id="mmNome" list="listaMunicipiosSP" autocomplete="off" placeholder="Digite para buscar">
       <datalist id="listaMunicipiosSP"></datalist>
-      <div class="ajuda">Apenas municípios de São Paulo, pois a apuração automática parte do XML AUDESP, leiaute padronizado pelo TCE-SP.</div>
+      <div class="ajuda">Apenas municípios de São Paulo, pois a apuração automática parte do XML AUDESP, leiaute padronizado pelo TCE-SP. A lista filtra conforme você digita.</div>
     </div>
     <div class="campo-form">
       <label for="mmCodigo">Código TCE</label>
-      <input type="text" id="mmCodigo" inputmode="numeric" maxlength="4" autocomplete="off">
-      <div class="ajuda" id="mmAjudaCodigo">4 dígitos. É o valor da tag Municipio dos XML AUDESP deste município.</div>
+      <input type="text" id="mmCodigo" inputmode="numeric" maxlength="4" autocomplete="off" list="listaCodigosTCE" placeholder="Digite o código ou o nome">
+      <datalist id="listaCodigosTCE"></datalist>
+      <div class="ajuda" id="mmAjudaCodigo">4 dígitos. É o valor da tag Municipio dos XML AUDESP deste município. Ao digitar o código, o município é preenchido (e o contrário).</div>
     </div>
     <div class="campo-form">
       <label for="mmSistema">Sistema de gestão</label>
@@ -313,7 +319,7 @@
     </div>
     <div class="erro-form" id="mcErro" role="alert" style="display:none"></div>
     <div class="campo-form">
-      <label>Usuários com acesso a este município</label>
+      <label>Usuários com acesso a este município <span id="mcContagem" class="ajuda" style="font-weight:400"></span></label>
       <div id="mcMembros" class="ajuda" style="font-size:12.5px">Carregando…</div>
     </div>
     <div class="modal-acoes">
@@ -872,6 +878,45 @@
     return d.getFullYear() + '-' + mm + '-' + dd;
   }
 
+  var MAX_USUARIOS_MUNICIPIO = 3;
+
+  // Todas as informações do cadastro do município, para conferência (usadas no botão "Dados").
+  function detalhesMunicipioHtml(m){
+    var lic = licencaDe(m), sit = situacaoLicenca(lic), u = estado.apuracoes[m.$id];
+    var linha = function(r, v){ return '<dt>' + r + '</dt><dd>' + v + '</dd>'; };
+    var vazio = '<span class="miudo">não informado</span>';
+    var licHtml = lic ? esc(({ trial: 'Período de teste', mensal: 'Plano mensal', anual: 'Plano anual' })[lic.plano] || lic.plano || 'Licença') + ', ' + esc(sit.rotulo) +
+      (lic.data_validade ? '<br><span class="miudo">válida até ' + dataBr(lic.data_validade) + (lic.data_inicio ? ' (desde ' + dataBr(lic.data_inicio) + ')' : '') + '</span>' : '') : '<span class="miudo">sem licença</span>';
+    return '<dl class="detalhes-cad">' +
+      linha('Situação', '<span class="badge ' + esc(m.status) + '">' + esc(m.status) + '</span>') +
+      linha('Responsável', m.responsavel_nome || m.responsavel_email ? esc(m.responsavel_nome || '—') + '<br><span class="miudo">' + esc(m.responsavel_email || '') + '</span>' : vazio) +
+      linha('Cadastrado em', m.$createdAt ? dataHoraBr(m.$createdAt) : vazio) +
+      linha('Município', esc(m.nome) + '/' + esc(m.uf)) +
+      linha('Código TCE', m.codigo_tce ? esc(m.codigo_tce) : '<span class="badge pendente">falta preencher</span>') +
+      linha('Sistema de gestão', esc(m.sistema_gestao || '—')) +
+      linha('Licença', licHtml) +
+      linha('Apurações', u ? u.total + (u.total === 1 ? ' apuração' : ' apurações') + ', a última de ' + textoCompetencia(u.ultima) : '<span class="miudo">nenhuma</span>') +
+      linha('Último acesso', m.ultimo_acesso ? dataHoraBr(m.ultimo_acesso) + '<br><span class="miudo">' + esc(m.ultimo_acesso_email || '') + '</span>' : '<span class="miudo">ainda sem registro</span>') +
+      linha('Usuários', '<span id="mmUsuarios">Carregando…</span>') +
+      linha('Identificação', '<span class="miudo">município ' + esc(m.$id) + '<br>grupo ' + esc(m.team_id || '—') + '</span>') +
+      '</dl>';
+  }
+
+  async function carregarUsuariosDoMunicipio(m){
+    var alvo = document.getElementById('mmUsuarios');
+    if (!alvo) return;
+    if (!m.team_id){ alvo.innerHTML = '<span class="miudo">sem grupo associado</span>'; return; }
+    try {
+      var r = await chamarServidor(client, 'admin_membros', { teamId: m.team_id });
+      var lista = r.membros.map(function(x){
+        return esc(x.nome || '—') + ' &lt;' + esc(x.email) + '&gt;' + ((x.papeis || []).indexOf('owner') !== -1 ? ' (responsável)' : '') + (x.confirmado ? '' : ' (convite pendente)');
+      });
+      if (document.getElementById('mmUsuarios') === alvo) alvo.innerHTML = '<b>' + r.membros.length + ' de ' + MAX_USUARIOS_MUNICIPIO + '</b>' + (lista.length ? '<br>' + lista.join('<br>') : '');
+    } catch (e) {
+      alvo.innerHTML = '<span class="miudo">não foi possível listar (' + esc(erroAmigavel(e)) + ')</span>';
+    }
+  }
+
   function abrirModalMunicipio(modo, id, aviso){
     var m = id ? mapaMunicipios[id] : null;
     estadoModalMun = { modo: modo, id: id || null, salvando: false };
@@ -884,9 +929,12 @@
     var av = document.getElementById('mmAviso');
     av.textContent = aviso || ''; av.style.display = aviso ? 'block' : 'none';
 
-    document.getElementById('mmCampoNome').style.display = novo ? '' : 'none';
+    document.getElementById('mmCampoNome').style.display = '';
     document.getElementById('mmBlocoLicenca').style.display = novo ? '' : 'none';
-    document.getElementById('mmNome').value = '';
+    document.getElementById('mmNome').value = (!novo && m) ? m.nome : '';
+    var det = document.getElementById('mmDetalhes');
+    if (novo || !m){ det.style.display = 'none'; det.innerHTML = ''; }
+    else { det.style.display = ''; det.innerHTML = detalhesMunicipioHtml(m); carregarUsuariosDoMunicipio(m); }
     document.getElementById('mmCodigo').value = (m && m.codigo_tce) ? m.codigo_tce : '';
     document.getElementById('mmSistema').value = (m && m.sistema_gestao) ? m.sistema_gestao : 'fiorilli';
     document.getElementById('mmPlano').value = 'trial';
@@ -940,7 +988,12 @@
       if (!validadeStr) erros.push('Informe a data de validade da licença.');
       else if (new Date(validadeStr + 'T23:59:59') <= new Date()) erros.push('A validade da licença deve ser uma data futura.');
     } else {
-      nome = mapaMunicipios[id] ? mapaMunicipios[id].nome : null;
+      nome = document.getElementById('mmNome').value.trim();
+      var atual = mapaMunicipios[id];
+      if (atual && nome !== atual.nome){
+        if (!Object.prototype.hasOwnProperty.call(MUNICIPIOS_SP, nome)) erros.push('Escolha o município na lista (digite para buscar).');
+        else if (Object.keys(mapaMunicipios).some(function(k){ return k !== id && mapaMunicipios[k].nome === nome && mapaMunicipios[k].uf === 'SP'; })) erros.push(nome + '/SP já está cadastrado.');
+      }
     }
 
     if (!/^[0-9]{4}$/.test(codigo)){
@@ -964,13 +1017,13 @@
     if (modo === 'editar'){
       var antes = mapaMunicipios[id];
       try {
-        await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: id, data: { codigo_tce: codigo, sistema_gestao: sistema } });
+        await tablesDB.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: id, data: { nome: nome, codigo_tce: codigo, sistema_gestao: sistema } });
       } catch (e) {
         erroModalMunicipio(['Não foi possível salvar. ' + erroAmigavel(e)]);
         estadoModalMun.salvando = false; btn.disabled = false; btn.textContent = 'Salvar dados';
         return;
       }
-      await registrarAuditoria('dados', id, nome, 'Código TCE: ' + (antes.codigo_tce || '(vazio)') + ' para ' + codigo + ' | Sistema: ' + antes.sistema_gestao + ' para ' + sistema);
+      await registrarAuditoria('dados', id, nome, (nome !== antes.nome ? 'Município: ' + antes.nome + ' para ' + nome + ' | ' : '') + 'Código TCE: ' + (antes.codigo_tce || '(vazio)') + ' para ' + codigo + ' | Sistema: ' + antes.sistema_gestao + ' para ' + sistema);
       estadoModalMun.salvando = false;
       fecharModalMunicipio();
       await recarregarClientes();
@@ -1051,6 +1104,9 @@
         return '<div class="membro"><div>' + esc(mb.nome || '—') + ' &lt;' + esc(mb.email) + '&gt;<br><span class="secundario">' +
           (mb.confirmado ? 'ativo' : 'convite antigo pendente') + (eDono(mb) ? ' · responsável (owner)' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
       }).join('') : 'Nenhum usuário.';
+      var cheio = r.membros.length >= MAX_USUARIOS_MUNICIPIO;
+      document.getElementById('mcContagem').textContent = r.membros.length + ' de ' + MAX_USUARIOS_MUNICIPIO + ' usuários' + (cheio ? '. Limite atingido: remova um usuário para adicionar outro.' : '.');
+      document.getElementById('mcEnviar').disabled = cheio;
     } catch (e) {
       membrosDoConvite = [];
       alvo.textContent = 'Não foi possível listar os usuários deste município: ' + erroAmigavel(e);
@@ -1406,6 +1462,19 @@
       document.getElementById('mmCodigo').value = MUNICIPIOS_SP[nome];
       document.getElementById('mmAjudaCodigo').textContent = 'Código sugerido pela tabela do TCE-SP para ' + nome + '. Confira antes de salvar.';
     }
+  });
+  // Digitar o código também preenche o município.
+  document.getElementById('mmCodigo').addEventListener('input', function(){
+    var cod = this.value.trim();
+    var nomeDoCodigo = Object.keys(MUNICIPIOS_SP).filter(function(n){ return MUNICIPIOS_SP[n] === cod; })[0];
+    if (nomeDoCodigo){
+      document.getElementById('mmNome').value = nomeDoCodigo;
+      document.getElementById('mmAjudaCodigo').textContent = 'Código de ' + nomeDoCodigo + ' conforme a tabela do TCE-SP.';
+    }
+  });
+  Object.keys(MUNICIPIOS_SP).sort(function(a, b){ return MUNICIPIOS_SP[a].localeCompare(MUNICIPIOS_SP[b]); }).forEach(function(n){
+    var o = document.createElement('option'); o.value = MUNICIPIOS_SP[n]; o.label = n; o.textContent = n;
+    document.getElementById('listaCodigosTCE').appendChild(o);
   });
   document.getElementById('mmPlano').addEventListener('change', function(){
     document.getElementById('mmValidade').value = dataMaisDias(this.value === 'anual' ? 365 : 30);
