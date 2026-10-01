@@ -122,12 +122,12 @@
         <div class="sub">Carregando…</div>
       </div>
       <div class="card">
-        <div class="lab" data-ajuda="Receitas sobre as quais incide o PASEP, depois das deduções (FUNDEB, transferências com finalidade definida). Alíquota de 1% (art. 8º, III, Lei nº 9.715/98)." data-ajuda-titulo="Base de cálculo">Base de cálculo</div>
+        <div class="lab" data-ajuda="Receitas sobre as quais incide o PASEP, depois das deduções (FUNDEB, transferências com finalidade definida). Alíquota de 1% (art. 8º, III, Lei nº 9.715/98)." data-ajuda-titulo="Base de cálculo" data-ajuda-norma="cosit-278-2017">Base de cálculo</div>
         <div class="val">—</div>
         <div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div>
       </div>
       <div class="card">
-        <div class="lab" data-ajuda="PASEP já retido nas transferências recebidas, abatido do valor devido (art. 2º, §6º)." data-ajuda-titulo="Retido na fonte">Retido na fonte</div>
+        <div class="lab" data-ajuda="PASEP já retido nas transferências recebidas, abatido do valor devido (art. 2º, §6º)." data-ajuda-titulo="Retido na fonte" data-ajuda-norma="cosit-278-2017">Retido na fonte</div>
         <div class="val">—</div>
         <div class="sub">Art. 2º, §6º</div>
       </div>
@@ -380,8 +380,8 @@
       document.getElementById('infoExercicio').innerHTML = 'Nenhuma apuração registrada ainda';
       document.getElementById('cardsResumo').innerHTML =
         '<div class="card destaque"><div class="lab" data-ajuda="1% da base de cálculo menos o PASEP retido na fonte." data-ajuda-titulo="Valor a pagar">Valor a pagar</div><div class="val">—</div><div class="sub">Nenhuma apuração registrada</div></div>' +
-        '<div class="card"><div class="lab" data-ajuda="Receitas sobre as quais incide o PASEP, depois das deduções (FUNDEB, transferências com finalidade definida). Alíquota de 1% (art. 8º, III, Lei nº 9.715/98)." data-ajuda-titulo="Base de cálculo">Base de cálculo</div><div class="val">—</div><div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div></div>' +
-        '<div class="card"><div class="lab" data-ajuda="PASEP já retido nas transferências recebidas, abatido do valor devido (art. 2º, §6º)." data-ajuda-titulo="Retido na fonte">Retido na fonte</div><div class="val">—</div><div class="sub">Art. 2º, §6º</div></div>';
+        '<div class="card"><div class="lab" data-ajuda="Receitas sobre as quais incide o PASEP, depois das deduções (FUNDEB, transferências com finalidade definida). Alíquota de 1% (art. 8º, III, Lei nº 9.715/98)." data-ajuda-titulo="Base de cálculo" data-ajuda-norma="cosit-278-2017">Base de cálculo</div><div class="val">—</div><div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div></div>' +
+        '<div class="card"><div class="lab" data-ajuda="PASEP já retido nas transferências recebidas, abatido do valor devido (art. 2º, §6º)." data-ajuda-titulo="Retido na fonte" data-ajuda-norma="cosit-278-2017">Retido na fonte</div><div class="val">—</div><div class="sub">Art. 2º, §6º</div></div>';
       window.iniciarAjuda && window.iniciarAjuda(document.getElementById('cardsResumo'));
       mostrarContinuar([], municipio);
       document.getElementById('corpoTabelaHist').innerHTML =
@@ -400,8 +400,8 @@
       apuracaoSelecionada = ap;
       document.getElementById('cardsResumo').innerHTML =
         '<div class="card destaque"><div class="lab" data-ajuda="1% da base de cálculo menos o PASEP retido na fonte." data-ajuda-titulo="Valor a pagar">Valor a pagar — ' + MESES[ap.competencia_mes] + '/' + ap.competencia_ano + '</div><div class="val">R$ ' + brl(ap.valor_pagar) + '</div><div class="sub">' + (ap.status === 'pendente' ? 'Pendência de revisão' : 'Guia ainda não emitida') + '</div></div>' +
-        '<div class="card"><div class="lab" data-ajuda="Receitas sobre as quais incide o PASEP, depois das deduções (FUNDEB, transferências com finalidade definida). Alíquota de 1% (art. 8º, III, Lei nº 9.715/98)." data-ajuda-titulo="Base de cálculo">Base de cálculo</div><div class="val">R$ ' + brl(ap.base_calculo) + '</div><div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div></div>' +
-        '<div class="card"><div class="lab" data-ajuda="PASEP já retido nas transferências recebidas, abatido do valor devido (art. 2º, §6º)." data-ajuda-titulo="Retido na fonte">Retido na fonte</div><div class="val">R$ ' + brl(ap.pasep_retido) + '</div><div class="sub">Art. 2º, §6º</div></div>';
+        '<div class="card"><div class="lab" data-ajuda="Receitas sobre as quais incide o PASEP, depois das deduções (FUNDEB, transferências com finalidade definida). Alíquota de 1% (art. 8º, III, Lei nº 9.715/98)." data-ajuda-titulo="Base de cálculo" data-ajuda-norma="cosit-278-2017">Base de cálculo</div><div class="val">R$ ' + brl(ap.base_calculo) + '</div><div class="sub">Alíquota de 1% — art. 8º, III, Lei 9.715/98</div></div>' +
+        '<div class="card"><div class="lab" data-ajuda="PASEP já retido nas transferências recebidas, abatido do valor devido (art. 2º, §6º)." data-ajuda-titulo="Retido na fonte" data-ajuda-norma="cosit-278-2017">Retido na fonte</div><div class="val">R$ ' + brl(ap.pasep_retido) + '</div><div class="sub">Art. 2º, §6º</div></div>';
 
       if (window.iniciarAjuda) window.iniciarAjuda(document.getElementById('cardsResumo'));
 
