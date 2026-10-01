@@ -405,7 +405,19 @@ async function adminDefinirPapel(s, c){
   var papeis = (c.papeis || []).filter(function(p){ return ['owner', 'member'].indexOf(p) >= 0; });
   if (!papeis.length) falhar('Papel inválido.');
   await s.teams.updateMembership({ teamId: c.teamId, membershipId: c.membershipId, roles: papeis });
-  return { ok: true };
+  // "Responsável" aparece em dois lugares: o papel no time (owner) e os campos responsavel_* do município,
+  // que o painel de administração mostra. Ao tornar alguém responsável, os dois passam a dizer a mesma coisa.
+  var sincronizado = false;
+  if (papeis.indexOf('owner') >= 0){
+    var membro = (await membrosDoTime(s.teams, c.teamId)).filter(function(m){ return m.$id === c.membershipId; })[0];
+    var linhas = await s.db.listRows({ databaseId: DATABASE_ID, tableId: 'municipios', queries: [Query.equal('team_id', c.teamId), Query.limit(1)] });
+    if (membro && linhas.rows[0]){
+      await s.db.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: linhas.rows[0].$id,
+        data: { responsavel_nome: membro.userName || null, responsavel_email: membro.userEmail || null } });
+      sincronizado = true;
+    }
+  }
+  return { ok: true, responsavelAtualizado: sincronizado };
 }
 
 async function adminNotificar(s, c){

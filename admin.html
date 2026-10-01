@@ -1227,7 +1227,8 @@
         if (!(await confirmar({ titulo: 'Tornar ' + nomeUsuario + ' responsável?', texto: 'O responsável (owner) pode convidar e remover usuários do município.', rotuloOk: 'Tornar responsável' }))) return;
         await chamarServidor(client, 'admin_definir_papel', { teamId: m.team_id, membershipId: membershipId, papeis: ['owner'] });
         await registrarAuditoria('usuario_responsavel', m.$id, m.nome, 'Novo responsável: ' + mb.email);
-        mostrarToast(nomeUsuario + ' agora é responsável.');
+        mostrarToast(nomeUsuario + ' agora é responsável, e o cadastro do município foi atualizado.');
+        recarregarClientes();
       } else if (acao === 'suspender' || acao === 'reativar'){
         var susp = acao === 'suspender';
         if (!(await confirmar({
