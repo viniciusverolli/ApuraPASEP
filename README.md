@@ -340,6 +340,10 @@ Pendências principais:
   relatórios; não altera o cálculo. No arquivo da STN, o código 1.1.1.6.60.1.1 vem com a
   especificação truncada ("mpensa"); a ferramenta exibe "IBS - Imposto sobre Bens e Serviços -
   Município - Principal", pelo padrão do código irmão (Multas e Juros) e pela descrição da linha.
+- Anexo II — Tabelas de Escrituração Contábil - Auxiliares 2025, versão v_08 (10/11/2025), aba
+  "Classificação da Receita - 2025" (2.088 códigos valorizáveis, internalizados em 01/10/2026).
+  Os códigos usados pelas regras do motor têm a mesma especificação de 2026. A tabela só descreve
+  os códigos nos relatórios; não altera o cálculo, que não foi validado com XMLs de 2025.
 
 ---
 
