@@ -83,6 +83,17 @@ async function membrosDoTime(teams, teamId){
   return saida;
 }
 
+// Regras do município: no máximo 3 usuários e UM único responsável (papel owner). Administradores da
+// plataforma que participam do grupo (por terem cadastrado o município) não contam para o limite
+// nem como responsável: o responsável é sempre alguém do município.
+function ehDono(m){ return (m.roles || []).some(function(r){ return String(r).toLowerCase() === 'owner'; }); }
+async function idsDosAdmins(s){
+  var ids = {};
+  (await membrosDoTime(s.teams, TEAM_ADMINS_ID)).forEach(function(m){ if (m.confirm) ids[m.userId] = true; });
+  return ids;
+}
+function usuariosDoMunicipio(membros, admins){ return membros.filter(function(m){ return !admins[m.userId]; }); }
+
 async function ehMembroConfirmado(teams, teamId, userId){
   var r = await teams.listMemberships({ teamId: teamId, queries: [Query.equal('userId', userId), Query.limit(1)] });
   return r.memberships.length > 0 && r.memberships[0].confirm === true;
@@ -180,7 +191,7 @@ async function adminDecidirSolicitacao(s, adminId, c){
     if (!mun.team_id) falhar('O município não tem time associado.');
     var atuais = await membrosDoTime(s.teams, mun.team_id);
     if (atuais.some(function(m){ return m.userId === sol.user_id; })) falhar('Esta pessoa já faz parte do município.');
-    if (atuais.length >= MAX_USUARIOS_POR_MUNICIPIO) falhar('O município já tem ' + MAX_USUARIOS_POR_MUNICIPIO + ' usuários, que é o limite. Remova um usuário antes de aprovar.');
+    if (usuariosDoMunicipio(atuais, await idsDosAdmins(s)).length >= MAX_USUARIOS_POR_MUNICIPIO) falhar('O município já tem ' + MAX_USUARIOS_POR_MUNICIPIO + ' usuários, que é o limite. Remova um usuário antes de aprovar.');
     await s.teams.createMembership({ teamId: mun.team_id, roles: ['member'], userId: sol.user_id });
   }
   await s.db.updateRow({ databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', rowId: sol.$id,
@@ -335,12 +346,13 @@ function exigirTimeDeMunicipio(teamId){
 async function adminMembros(s, c){
   exigirTimeDeMunicipio(c.teamId);
   var membros = await membrosDoTime(s.teams, c.teamId);
+  var admins = await idsDosAdmins(s);
   // Situação da conta de cada membro (conta suspensa não consegue entrar, em município nenhum).
   var contas = {};
   for (var i = 0; i < membros.length; i++){
     try { contas[membros[i].userId] = (await s.users.get({ userId: membros[i].userId })).status !== false; } catch (e) { contas[membros[i].userId] = true; }
   }
-  return { ok: true, membros: membros.map(function(m){ return { id: m.$id, userId: m.userId, nome: m.userName, email: m.userEmail, papeis: m.roles, confirmado: m.confirm, entrou: m.joined, ativo: contas[m.userId] }; }) };
+  return { ok: true, membros: membros.map(function(m){ return { id: m.$id, userId: m.userId, nome: m.userName, email: m.userEmail, papeis: m.roles, confirmado: m.confirm, entrou: m.joined, ativo: contas[m.userId], admin: !!admins[m.userId] }; }) };
 }
 
 // Pelo servidor o Appwrite não envia e-mail de convite: a pessoa entra no time na hora. Por isso
@@ -358,8 +370,13 @@ async function adminConvidar(s, c){
 
   // O limite é checado antes de criar qualquer conta, para não deixar conta sem município.
   var atuais = await membrosDoTime(s.teams, c.teamId);
-  if (atuais.length >= MAX_USUARIOS_POR_MUNICIPIO) falhar('Este município já tem ' + MAX_USUARIOS_POR_MUNICIPIO + ' usuários, que é o limite. Remova um usuário antes de adicionar outro.');
+  var admins = await idsDosAdmins(s);
+  if (usuariosDoMunicipio(atuais, admins).length >= MAX_USUARIOS_POR_MUNICIPIO) falhar('Este município já tem ' + MAX_USUARIOS_POR_MUNICIPIO + ' usuários, que é o limite. Remova um usuário antes de adicionar outro.');
 
+  // Só pode haver um responsável: a pessoa nova entra como usuário e, para ser responsável, usa "Tornar responsável".
+  if (papeis.indexOf('owner') >= 0){
+    if (usuariosDoMunicipio(atuais, admins).some(ehDono)) falhar('Este município já tem um responsável. Adicione como usuário e use "Tornar responsável" para trocar.');
+  }
   var achados = await s.users.list({ queries: [Query.equal('email', email), Query.limit(1)] });
   var usuario = achados.users[0], contaCriada = false;
   if (usuario && atuais.some(function(m){ return m.userId === usuario.$id; })) falhar('Este usuário já faz parte do município.');
@@ -393,9 +410,10 @@ async function adminRemoverMembro(s, c){
   var membros = await membrosDoTime(s.teams, c.teamId);
   var alvo = membros.find(function(m){ return m.$id === c.membershipId; });
   if (!alvo) falhar('Membro não encontrado neste time.');
-  var donos = membros.filter(function(m){ return m.confirm && m.roles.indexOf('owner') >= 0; });
-  if (alvo.confirm && alvo.roles.indexOf('owner') >= 0 && donos.length <= 1 && membros.length > 1)
-    falhar('Este é o único responsável do município. Torne outro membro responsável antes de remover.');
+  var admins = await idsDosAdmins(s);
+  var gente = usuariosDoMunicipio(membros, admins);
+  if (!admins[alvo.userId] && ehDono(alvo) && gente.length > 1)
+    falhar('Este é o responsável do município. Torne outro usuário responsável antes de removê-lo.');
   await s.teams.deleteMembership({ teamId: c.teamId, membershipId: c.membershipId });
   return { ok: true };
 }
@@ -404,12 +422,23 @@ async function adminDefinirPapel(s, c){
   exigirTimeDeMunicipio(c.teamId);
   var papeis = (c.papeis || []).filter(function(p){ return ['owner', 'member'].indexOf(p) >= 0; });
   if (!papeis.length) falhar('Papel inválido.');
+  var membros = await membrosDoTime(s.teams, c.teamId);
+  var admins = await idsDosAdmins(s);
+  var alvo = membros.filter(function(m){ return m.$id === c.membershipId; })[0];
+  if (!alvo) falhar('Membro não encontrado neste time.');
+  if (admins[alvo.userId]) falhar('Administradores da plataforma não são responsáveis de município.');
+  var outrosDonos = usuariosDoMunicipio(membros, admins).filter(function(m){ return m.$id !== alvo.$id && ehDono(m); });
+  if (papeis.indexOf('owner') < 0 && ehDono(alvo) && !outrosDonos.length) falhar('Este é o responsável do município. Torne outro usuário responsável para trocar.');
   await s.teams.updateMembership({ teamId: c.teamId, membershipId: c.membershipId, roles: papeis });
+  // Um único responsável por município: quem era responsável passa a usuário comum.
+  if (papeis.indexOf('owner') >= 0){
+    for (var k = 0; k < outrosDonos.length; k++) await s.teams.updateMembership({ teamId: c.teamId, membershipId: outrosDonos[k].$id, roles: ['member'] });
+  }
   // "Responsável" aparece em dois lugares: o papel no time (owner) e os campos responsavel_* do município,
   // que o painel de administração mostra. Ao tornar alguém responsável, os dois passam a dizer a mesma coisa.
   var sincronizado = false;
   if (papeis.indexOf('owner') >= 0){
-    var membro = (await membrosDoTime(s.teams, c.teamId)).filter(function(m){ return m.$id === c.membershipId; })[0];
+    var membro = alvo;
     var linhas = await s.db.listRows({ databaseId: DATABASE_ID, tableId: 'municipios', queries: [Query.equal('team_id', c.teamId), Query.limit(1)] });
     if (membro && linhas.rows[0]){
       await s.db.updateRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: linhas.rows[0].$id,

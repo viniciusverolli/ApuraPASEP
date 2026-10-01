@@ -949,9 +949,11 @@
     try {
       var r = await chamarServidor(client, 'admin_membros', { teamId: m.team_id });
       var lista = r.membros.map(function(x){
-        return esc(x.nome || '—') + ' &lt;' + esc(x.email) + '&gt;' + ((x.papeis || []).indexOf('owner') !== -1 ? ' (responsável)' : '') + (x.confirmado ? '' : ' (convite pendente)');
+        var dono = (x.papeis || []).some(function(p){ return String(p).toLowerCase() === 'owner'; });
+        return esc(x.nome || '—') + ' &lt;' + esc(x.email) + '&gt;' + (x.admin ? ' (administrador da plataforma, não conta no limite)' : (dono ? ' (responsável)' : '')) + (x.confirmado ? '' : ' (convite pendente)');
       });
-      if (document.getElementById('mmUsuarios') === alvo) alvo.innerHTML = '<b>' + r.membros.length + ' de ' + MAX_USUARIOS_MUNICIPIO + '</b>' + (lista.length ? '<br>' + lista.join('<br>') : '');
+      var gente = r.membros.filter(function(x){ return !x.admin; }).length;
+      if (document.getElementById('mmUsuarios') === alvo) alvo.innerHTML = '<b>' + gente + ' de ' + MAX_USUARIOS_MUNICIPIO + '</b>' + (lista.length ? '<br>' + lista.join('<br>') : '');
     } catch (e) {
       alvo.innerHTML = '<span class="miudo">não foi possível listar (' + esc(erroAmigavel(e)) + ')</span>';
     }
@@ -1135,9 +1137,10 @@
     try {
       var r = await chamarServidor(client, 'admin_membros', { teamId: m.team_id });
       membrosDoConvite = r.membros;
-      var eDono = function(mb){ return (mb.papeis || []).indexOf('owner') !== -1; };
+      var eDono = function(mb){ return (mb.papeis || []).some(function(p){ return String(p).toLowerCase() === 'owner'; }); };
       alvo.innerHTML = r.membros.length ? r.membros.map(function(mb){
         var botoes = '';
+        if (mb.admin) return '<div class="membro"><div>' + esc(mb.nome || '—') + ' &lt;' + esc(mb.email) + '&gt;<br><span class="secundario">administrador da plataforma (não conta no limite de usuários)</span></div><div class="membro-acoes"></div></div>';
         if (!eDono(mb)) botoes += '<button type="button" class="btn-mini" data-mb-acao="promover" data-mb="' + esc(mb.id) + '">Tornar responsável</button>';
         botoes += '<button type="button" class="btn-mini" data-mb-acao="senha" data-mb="' + esc(mb.id) + '">Enviar link de senha</button>';
         botoes += mb.ativo === false
@@ -1145,10 +1148,11 @@
           : '<button type="button" class="btn-mini perigo" data-mb-acao="suspender" data-mb="' + esc(mb.id) + '">Suspender usuário</button>';
         botoes += '<button type="button" class="btn-mini perigo" data-mb-acao="remover" data-mb="' + esc(mb.id) + '">Remover</button>';
         return '<div class="membro"><div>' + esc(mb.nome || '—') + ' &lt;' + esc(mb.email) + '&gt;<br><span class="secundario">' +
-          (mb.ativo === false ? 'CONTA SUSPENSA' : (mb.confirmado ? 'ativo' : 'convite antigo pendente')) + (eDono(mb) ? ' · responsável (owner)' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
+          (mb.ativo === false ? 'CONTA SUSPENSA' : (mb.confirmado ? 'ativo' : 'convite antigo pendente')) + (eDono(mb) ? ' · RESPONSÁVEL' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
       }).join('') : 'Nenhum usuário.';
-      var cheio = r.membros.length >= MAX_USUARIOS_MUNICIPIO;
-      document.getElementById('mcContagem').textContent = r.membros.length + ' de ' + MAX_USUARIOS_MUNICIPIO + ' usuários' + (cheio ? '. Limite atingido: remova um usuário para adicionar outro.' : '.');
+      var qtdGente = r.membros.filter(function(x){ return !x.admin; }).length;
+      var cheio = qtdGente >= MAX_USUARIOS_MUNICIPIO;
+      document.getElementById('mcContagem').textContent = qtdGente + ' de ' + MAX_USUARIOS_MUNICIPIO + ' usuários' + (cheio ? '. Limite atingido: remova um usuário para adicionar outro.' : '.');
       document.getElementById('mcEnviar').disabled = cheio;
     } catch (e) {
       membrosDoConvite = [];
@@ -1224,7 +1228,7 @@
         await registrarAuditoria('usuario_remover', m.$id, m.nome, 'Removido: ' + mb.email);
         mostrarToast(nomeUsuario + ' removido.');
       } else if (acao === 'promover'){
-        if (!(await confirmar({ titulo: 'Tornar ' + nomeUsuario + ' responsável?', texto: 'O responsável (owner) pode convidar e remover usuários do município.', rotuloOk: 'Tornar responsável' }))) return;
+        if (!(await confirmar({ titulo: 'Tornar ' + nomeUsuario + ' responsável?', texto: 'Cada município tem um único responsável. ' + nomeUsuario + ' passa a ser o responsável e quem era responsável vira usuário comum. O cadastro do município também é atualizado.', rotuloOk: 'Tornar responsável' }))) return;
         await chamarServidor(client, 'admin_definir_papel', { teamId: m.team_id, membershipId: membershipId, papeis: ['owner'] });
         await registrarAuditoria('usuario_responsavel', m.$id, m.nome, 'Novo responsável: ' + mb.email);
         mostrarToast(nomeUsuario + ' agora é responsável, e o cadastro do município foi atualizado.');

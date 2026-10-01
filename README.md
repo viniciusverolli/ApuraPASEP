@@ -96,6 +96,12 @@ vencimento continua nas páginas.
     (`registrar_municipio`), o cadastro desfaz o time criado e o painel da pessoa mostra "Pedido de
     acesso em análise". O administrador aprova ou recusa em `admin.html` (`admin_decidir_solicitacao`);
     aprovar põe a pessoa no time do município, respeitando o limite de 3 usuários.
+    **Um único responsável por município** (papel `owner` entre os usuários do município):
+    `admin_definir_papel` passa o papel e rebaixa o responsável anterior para usuário comum, e
+    atualiza `responsavel_nome`/`responsavel_email` do município; `admin_convidar` recusa um
+    segundo responsável; o responsável só sai depois de outro assumir. Administradores da
+    plataforma que participam do grupo do município (por o terem cadastrado) **não contam** no
+    limite de 3 usuários nem como responsável.
     Suspensão **por usuário** (`admin_suspender_usuario`): suspende só a conta (status do usuário
     no Appwrite, com encerramento das sessões abertas), sem tocar no município nem nos demais
     usuários; não vale para administradores nem para a própria conta. A função precisa dos escopos
