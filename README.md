@@ -176,7 +176,8 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
   Tabela de Escrituração Contábil (Anexo II, Classificação da Receita) está carregada: hoje 2024, 2025,
   2026 e 2027. O navegador lê o `AnoExercicio` do Descritor e recusa o arquivo antes de enviá-lo, com
   aviso ao usuário; o motor repete a checagem no servidor. Para liberar outro exercício, carregar a
-  tabela dele em `TABELAS_RECEITA` e em `EXERCICIOS_RECEITA_DISPONIVEIS` (site e `function-motor`).
+  tabela dele em `tabelas-receita.js` (a ferramenta e o painel de regras leem a lista de exercícios dali) e
+  incluir o ano em `EXERCICIOS_RECEITA_DISPONIVEIS` no `function-motor/main.js`.
 - **Aviso de competência já salva (desde 01/10/2026):** ao importar o XML, a ferramenta consulta se o
   município já tem apuração salva para aquele mês/ano. Se tiver, mostra a data da última gravação e o
   valor a pagar e pergunta se o usuário prossegue (salvar de novo sobrepõe o cálculo) ou cancela
@@ -277,6 +278,13 @@ Qualquer alteração na lógica de cálculo deve ser avaliada à luz delas, não
 3. Cadastro com checagem de duplicidade (nome+UF) antes de criar a conta
 4. Log de auditoria administrativa (tabela `auditoria_admin`)
 5. Regras de cálculo migradas para a tabela `regras_motor`, editáveis por `admin-regras.html`
+   (melhorias de 01/10/2026: ao digitar o prefixo, o painel mostra a especificação oficial da tabela de
+   escrituração e sugere o rótulo; avisa se o prefixo não existe nas tabelas ou se já é alcançado por
+   regra de outra categoria; no celular as regras viram cartões. O ajuste do ITR continua fixo no motor:
+   a retenção de 1% incide sobre o valor bruto de cada receita e só o ITR é ajustado pelo líquido do FUNDEB.)
+   **Transferências sem regra:** o motor devolve `semRegra` (transferências 1.7 e 2.4 que nenhuma regra
+   classifica, com valor líquido); a ferramenta mostra a lista só para administradores, abaixo do FUNDEB.
+   É informativo, não altera o cálculo nem é gravado na apuração.
 6. Cadastro direto de município pelo admin (`admin.html`, botão "+ Cadastrar município") — cria
    o time, o município já ativo e a licença inicial
 7. `admin-apuracoes.html` — admin consulta histórico de qualquer município

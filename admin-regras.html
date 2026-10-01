@@ -123,6 +123,15 @@
   .toast.aberto{ display:block; }
   .toast.alerta{ background:#92400e; }
 
+  /* ===== Dica do prefixo (tabela oficial) ===== */
+  .dica-prefixo:empty{ display:none; }
+  .dica-prefixo{ margin-top:8px; font-size:12.5px; line-height:1.5; }
+  .dica-prefixo .bloco{ border-radius:10px; padding:9px 12px; margin-top:6px; border:1px solid var(--line); background:#f8fafc; }
+  .dica-prefixo .bloco.ok{ background:var(--green-soft); border-color:#bbf7d0; color:var(--green); }
+  .dica-prefixo .bloco.atencao{ background:var(--amber-soft); border-color:#f5d98b; color:var(--amber); }
+  .dica-prefixo .bloco ul{ margin:4px 0 0; padding-left:18px; }
+  .dica-prefixo .bloco small{ display:block; opacity:.85; margin-top:3px; }
+
   /* ===== Histórico de versões ===== */
   .secao-versoes{ margin-top:36px; }
   .secao-versoes h2{ font-size:16px; font-weight:800; margin:0 0 4px; }
@@ -157,6 +166,7 @@
     <div class="aviso-regras info" role="note">
       Nem toda a lógica do motor é configurável por esta tela. Continuam no código do motor: o ajuste do ITR (código 1711520), a detecção de correções e estornos, e o tratamento da CFEM classificada como Estado.
       Alterar ou desativar a regra do ITR aqui não muda esse ajuste.
+      A retenção na fonte incide sobre o <b>valor bruto</b> de cada receita; o ITR é o único ajustado pelo líquido do FUNDEB, porque a STN repassa o ITR já descontados os 20%.
     </div>
 
     <div id="areaRegras"><div class="estado-carregando">Carregando…</div></div>
@@ -193,6 +203,7 @@
         <label for="fPrefixo">Prefixo do código da receita</label>
         <input type="text" id="fPrefixo" inputmode="numeric" autocomplete="off">
         <div class="ajuda" id="ajudaPrefixo"></div>
+        <div class="dica-prefixo" id="dicaPrefixo" aria-live="polite"></div>
       </div>
       <div class="campo-form" id="campoBloco">
         <label for="fBloco">Bloco</label>
@@ -239,6 +250,17 @@
   }
   @media (max-width:640px){
     table.clientes{ font-size:12px; }
+    /* Regras no celular: cada regra vira um cartão, com os botões sempre visíveis (a tabela larga cortava "Ações"). */
+    table.tab-regras, table.tab-regras tbody, table.tab-regras tr, table.tab-regras td{ display:block; width:100%; }
+    table.tab-regras thead{ position:absolute; left:-9999px; }
+    table.tab-regras tr{ padding:12px 14px; border-bottom:1px solid var(--line); }
+    table.tab-regras tr:last-child{ border-bottom:none; }
+    table.tab-regras td{ border:none; padding:3px 0; font-size:13px; }
+    table.tab-regras td[data-rot]::before{ content:attr(data-rot) ': '; color:var(--muted); font-size:11.5px; }
+    table.tab-regras td.col-rotulo{ font-weight:700; font-size:14px; padding-bottom:6px; }
+    table.tab-regras td.col-rotulo::before{ content:none; }
+    table.tab-regras td.col-acoes{ padding-top:8px; }
+    table.tab-regras td.estado-vazio{ padding:18px 0; }
   }
 </style>
 <style>
@@ -252,6 +274,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
 <script src="admin-util.js"></script>
+<script src="tabelas-receita.js"></script>
 <script>
   var APPWRITE_ENDPOINT = 'https://nyc.cloud.appwrite.io/v1';
   var APPWRITE_PROJECT_ID = '6ab3fac90005f026ddb1';
@@ -366,11 +389,11 @@
             : '<button type="button" class="btn-acao primario" data-acao="alternar" data-id="' + esc(r.$id) + '">Reativar</button>';
         }
         return '<tr class="' + (ativa ? '' : 'inativa') + '">' +
-          '<td>' + esc(r.label) + '</td>' +
-          '<td><code>' + esc(r.prefixo) + '</code></td>' +
-          (cat.temBloco ? '<td>' + esc(rotuloBloco(r.bloco)) + '</td>' : '') +
-          '<td><span class="badge ' + (ativa ? 'ativo' : 'inativa') + '">' + (ativa ? 'Ativa' : 'Inativa') + '</span></td>' +
-          '<td>' + botoes + '</td></tr>';
+          '<td class="col-rotulo">' + esc(r.label) + '</td>' +
+          '<td data-rot="Prefixo"><code>' + esc(r.prefixo) + '</code></td>' +
+          (cat.temBloco ? '<td data-rot="Bloco">' + esc(rotuloBloco(r.bloco)) + '</td>' : '') +
+          '<td data-rot="Situação"><span class="badge ' + (ativa ? 'ativo' : 'inativa') + '">' + (ativa ? 'Ativa' : 'Inativa') + '</span></td>' +
+          '<td class="col-acoes">' + botoes + '</td></tr>';
       }).join('') : '<tr><td colspan="' + (cat.temBloco ? 5 : 4) + '" class="estado-vazio">Nenhuma regra nesta categoria.</td></tr>';
 
       var botaoNova = cat.permiteCriar
@@ -379,7 +402,7 @@
       return '<section class="secao-regras" aria-labelledby="titulo-' + cat.chave + '">' +
         '<div class="cab-secao"><div><h2 id="titulo-' + cat.chave + '">' + esc(cat.titulo) + '</h2><p>' + esc(cat.descricao) + '</p></div>' +
         '<div class="lado"><span class="contador-ativas">' + ativas + ' ativa' + (ativas === 1 ? '' : 's') + ' de ' + linhas.length + '</span>' + botaoNova + '</div></div>' +
-        '<div class="tabela-scroll"><table class="clientes"><thead><tr><th>Rótulo</th><th>Prefixo</th>' + (cat.temBloco ? '<th>Bloco</th>' : '') + '<th>Situação</th><th>Ações</th></tr></thead>' +
+        '<div class="tabela-scroll"><table class="clientes tab-regras"><thead><tr><th>Rótulo</th><th>Prefixo</th>' + (cat.temBloco ? '<th>Bloco</th>' : '') + '<th>Situação</th><th>Ações</th></tr></thead>' +
         '<tbody>' + corpo + '</tbody></table></div></section>';
     }).join('');
     document.getElementById('areaRegras').innerHTML = html;
@@ -409,7 +432,7 @@
     var regra = regraId ? regras.filter(function(r){ return r.$id === regraId; })[0] : null;
     var cat = catPorChave(regra ? regra.categoria : categoriaChave);
     if (!cat) return;
-    estado = { modo: modo, cat: cat, regra: regra, novo: null, motivo: '', salvando: false };
+    estado = { modo: modo, cat: cat, regra: regra, novo: null, motivo: '', salvando: false, rotuloManual: !!regra };
 
     var titulo, sub;
     if (modo === 'criar'){ titulo = 'Nova regra'; sub = cat.titulo; }
@@ -431,11 +454,73 @@
     document.getElementById('erroForm').style.display = 'none';
     document.getElementById('erroConfirmacao').style.display = 'none';
     mostrarPainel('formulario');
+    atualizarDicaPrefixo();
 
     document.getElementById('modalFundo').classList.add('aberto');
     document.body.style.overflow = 'hidden';
     setTimeout(function(){ document.getElementById(mostrarCampos ? 'fRotulo' : 'fMotivo').focus(); }, 30);
   }
+
+  // ---------------- Dica do prefixo: tabela oficial do exercício e regras que já o alcançam ----------------
+  function formatarCodigoReceita(c){
+    return c.length === 8 ? c.replace(/^(\d)(\d)(\d)(\d)(\d{2})(\d)(\d)$/, '$1.$2.$3.$4.$5.$6.$7') : c;
+  }
+  function prefixoValido(prefixo, cat){ return /^[0-9]+$/.test(prefixo) && prefixo.length === cat.tamanho; }
+
+  // Outras regras (de qualquer categoria) cujo prefixo coincide com este ou o contém/está contido nele.
+  function regrasQueAlcancam(prefixo, regraId){
+    return regras.filter(function(r){
+      if (r.$id === regraId) return false;
+      var p = String(r.prefixo);
+      return p.indexOf(prefixo) === 0 || prefixo.indexOf(p) === 0;
+    });
+  }
+
+  // Resumo do que a tabela diz sobre o prefixo: { achou, anos, faltam, nome, linhas, total }.
+  function consultarTabela(prefixo){
+    var porAno = TabelasReceita.porPrefixo(prefixo), anos = Object.keys(porAno).sort();
+    var todos = TabelasReceita.exercicios();
+    if (!anos.length) return { achou: false, todos: todos };
+    var recente = anos[anos.length - 1], lista = porAno[recente];
+    return {
+      achou: true, anos: anos, todos: todos,
+      faltam: todos.filter(function(a){ return anos.indexOf(a) === -1; }),
+      nome: TabelasReceita.nomeDoPrefixo(prefixo), recente: recente, lista: lista
+    };
+  }
+
+  function atualizarDicaPrefixo(){
+    var el = document.getElementById('dicaPrefixo'), cat = estado.cat;
+    if (!cat || estado.modo === 'alternar'){ el.innerHTML = ''; return; }
+    var prefixo = document.getElementById('fPrefixo').value.trim();
+    if (!prefixoValido(prefixo, cat)){ el.innerHTML = ''; return; }
+
+    var t = consultarTabela(prefixo), html = '';
+    if (!t.achou){
+      html += '<div class="bloco atencao"><b>Prefixo não localizado nas tabelas de escrituração</b> (' + esc(t.todos.join(', ')) + '). Confira se digitou corretamente antes de salvar.</div>';
+    } else {
+      var itens = t.lista.slice(0, 6).map(function(x){ return '<li><code>' + esc(formatarCodigoReceita(x.codigo)) + '</code> ' + esc(x.especificacao) + '</li>'; }).join('');
+      var mais = t.lista.length > 6 ? '<li>e mais ' + (t.lista.length - 6) + ' código(s)</li>' : '';
+      html += '<div class="bloco ok"><b>Tabela oficial (' + esc(t.recente) + ')</b>' + (t.nome && cat.tamanho === 7 ? ': ' + esc(t.nome) : '') +
+        '<ul>' + itens + mais + '</ul>' +
+        (t.faltam.length ? '<small>Atenção: o prefixo não consta na tabela de ' + esc(t.faltam.join(', ')) + '.</small>' : '<small>Consta em todas as tabelas carregadas (' + esc(t.anos.join(', ')) + ').</small>') + '</div>';
+    }
+    var outras = regrasQueAlcancam(prefixo, estado.regra ? estado.regra.$id : null);
+    if (outras.length){
+      html += '<div class="bloco atencao"><b>Este prefixo já é alcançado por outra regra:</b><ul>' + outras.map(function(r){
+        var c = catPorChave(r.categoria);
+        return '<li>' + esc(c ? c.titulo : r.categoria) + ': ' + esc(r.label) + ' (<code>' + esc(r.prefixo) + '</code>' + (estaAtiva(r) ? '' : ', inativa') + ')</li>';
+      }).join('') + '</ul><small>Isso é permitido entre categorias diferentes (por exemplo, FPM e ITR estão na retenção e no FUNDEB), mas confira se é o desejado.</small></div>';
+    }
+    el.innerHTML = html;
+
+    // Sugere o rótulo pela tabela oficial enquanto o campo não foi preenchido à mão.
+    if (estado.modo === 'criar' && !estado.rotuloManual && t.achou && cat.tamanho === 7 && t.nome){
+      document.getElementById('fRotulo').value = t.nome;
+    }
+  }
+  document.getElementById('fPrefixo').addEventListener('input', atualizarDicaPrefixo);
+  document.getElementById('fRotulo').addEventListener('input', function(){ estado.rotuloManual = true; });
 
   function fecharModal(){
     if (estado.salvando) return;
@@ -526,6 +611,16 @@
         : ' Ao reativar, códigos com esse prefixo ' + cat.efeitoAtivar + '.';
     } else if (modo === 'editar' && novo.prefixo !== String(regra.prefixo)){
       texto += ' Códigos com o prefixo antigo deixam de ser classificados por esta regra, e códigos com o novo prefixo passam a ser.';
+    }
+    if (modo !== 'alternar'){
+      var tc = consultarTabela(novo.prefixo);
+      if (!tc.achou) texto += ' Atenção: o prefixo ' + novo.prefixo + ' não foi localizado nas tabelas de escrituração carregadas.';
+      else if (tc.faltam.length) texto += ' Atenção: o prefixo ' + novo.prefixo + ' não consta na tabela de ' + tc.faltam.join(', ') + '.';
+      var outrasRegras = regrasQueAlcancam(novo.prefixo, regra ? regra.$id : null);
+      if (outrasRegras.length) texto += ' Este prefixo também é alcançado por: ' + outrasRegras.map(function(r){ var c = catPorChave(r.categoria); return (c ? c.titulo : r.categoria) + ' (' + r.prefixo + ')'; }).join('; ') + '.';
+    }
+    if (cat.chave === 'retencao' && (modo === 'criar' || modo === 'editar' || (modo === 'alternar' && !estaAtiva(regra)))){
+      texto += ' A retenção de 1% incide sobre o valor bruto do código; o único ajuste pelo líquido do FUNDEB é o do ITR, fixo no motor.';
     }
     if (modo !== 'criar' && String(regra.prefixo) === '1711520'){
       texto += ' Atenção: o ajuste do ITR usa o código 1711520 fixo no motor e não é alterado por esta regra.';
