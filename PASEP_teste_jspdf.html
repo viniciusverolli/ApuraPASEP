@@ -309,7 +309,10 @@
     return { excede: !!c.excede,
       titulo: c.excede ? 'Atenção: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01.' : 'Conferência com a conta 6.2.1.3.1.01: diferença de ' + brl(Math.abs(c.diferenca)) + ', dentro do limite de R$ 0,10.',
       corpo: c.excede ? 'Dedução calculada (20% das receitas do FUNDEB): ' + brl(c.calculada) + '. Retenção lançada na conta 6.2.1.3.1.01 (débito menos crédito): ' + brl(c.contabil) + '. Diferença: ' + brl(c.diferenca) + '. ' +
-        'Confira os lançamentos do FUNDEB. A diferença pode vir, por exemplo, de estorno de receita (débito na 6.2.1.2) cuja retenção não foi ajustada no mesmo mês, ou de ajuste ainda a lançar. A apuração usa os 20% calculados.' : '' };
+        (c.rubricas && c.rubricas.length ? 'Diferença por rubrica: ' + c.rubricas.map(function(x){
+          return x.rubrica + ' (' + x.codigo + '): calculado ' + brl(x.calculada) + ', lançado na conta ' + brl(x.contabil) + (Math.abs(x.contabil) < 0.005 ? ' (sem retenção lançada)' : '') + ', diferença ' + brl(x.diferenca);
+        }).join('; ') + '. ' : '') +
+        'Confira os lançamentos do FUNDEB. A diferença pode vir, por exemplo, de estorno de receita (débito na 6.2.1.2) cuja retenção não foi ajustada no mesmo mês, de rubrica sem retenção lançada na conta, ou de ajuste ainda a lançar. A apuração usa os 20% calculados.' : '' };
   }
   function htmlConferenciaFundeb(d){
     var t = textoConferenciaFundeb(d); if (!t) return '';

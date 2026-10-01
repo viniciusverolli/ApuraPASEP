@@ -128,7 +128,7 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
       }},
       {rotulo:'Extraindo a receita realizada (crédito menos débito da 6.2.1.2)', exec:function(){
         ctx.lancamentosPorCodigo = {}; ctx.bruto = {}; ctx.devol = {}; ctx.devolPorFicha = {}; ctx.devolucoesPorCodigo = {};
-        ctx.extratoReceita = []; ctx.extratoApoio = []; ctx.dedFundebContabil = 0;
+        ctx.extratoReceita = []; ctx.extratoApoio = []; ctx.dedFundebContabil = 0; ctx.fundebContabilPorCodigo = {};
         function lerBloco(b){
           var mov = childByLocal(b,'MovimentoContabil');
           return {
@@ -157,6 +157,7 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
             // Conta 6.2.1.3.1.01 (deduções do FUNDEB), de natureza devedora: a retenção é o débito. Só serve de
             // conferência da dedução de 20% (não altera a receita nem a base).
             ctx.dedFundebContabil += l.debito - l.credito;
+            ctx.fundebContabilPorCodigo[l.codigo] = (ctx.fundebContabilPorCodigo[l.codigo]||0) + l.debito - l.credito;
             ctx.extratoApoio.push(l);
           } else if (l.conta === '521290000'){
             ctx.extratoApoio.push(l);   // reestimativa orçamentária: só informativa
@@ -267,7 +268,21 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
           // (débito menos crédito). Diferença acima de R$ 0,10 gera alerta ao usuário. Não altera o cálculo.
           conferenciaFundeb: (function(){
             var dif = ctx.dedFundebContabil - ctx.dedFundebFlat;
-            return { calculada: ctx.dedFundebFlat, contabil: ctx.dedFundebContabil, diferenca: dif, limite: 0.10, excede: Math.round(Math.abs(dif)*100) > 10 };
+            // Onde a diferença se concentra: por rubrica do FUNDEB (20% do valor da rubrica contra a retenção lançada
+            // na 6.2.1.3.1.01 para os códigos da rubrica) e por código com retenção fora das rubricas. Só entram as
+            // diferenças acima de R$ 0,10.
+            var rubricas = [], usados = {};
+            ctx.bloco4.forEach(function(rb){
+              var cont = 0;
+              Object.keys(ctx.fundebContabilPorCodigo).forEach(function(c){ if (c.substr(0,7) === rb.codigo){ cont += ctx.fundebContabilPorCodigo[c]; usados[c] = true; } });
+              var calc = rb.valor * 0.2, d = cont - calc;
+              if (Math.round(Math.abs(d)*100) > 10) rubricas.push({ rubrica: rb.label, codigo: rb.codigo, calculada: calc, contabil: cont, diferenca: d });
+            });
+            Object.keys(ctx.fundebContabilPorCodigo).forEach(function(c){
+              var v = ctx.fundebContabilPorCodigo[c];
+              if (!usados[c] && Math.round(Math.abs(v)*100) > 10) rubricas.push({ rubrica: 'Retenção em código fora das rubricas do FUNDEB', codigo: c, calculada: 0, contabil: v, diferenca: v });
+            });
+            return { calculada: ctx.dedFundebFlat, contabil: ctx.dedFundebContabil, diferenca: dif, limite: 0.10, excede: Math.round(Math.abs(dif)*100) > 10, rubricas: rubricas };
           })(),
           avisoExercicio: ctx.avisoExercicio || null,
           registros: ctx.extratoReceita.length
