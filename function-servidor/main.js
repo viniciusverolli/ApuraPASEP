@@ -15,6 +15,7 @@
 //   admin_convidar        (admin) coloca um usuário (criando a conta, se preciso) em qualquer time de município
 //   admin_remover_membro  (admin) remove membro de time de município
 //   admin_definir_papel   (admin) altera os papéis de um membro
+//   admin_suspender_usuario (admin) suspende ou reativa a conta de um usuário, sem afetar o município
 //   admin_notificar       (admin) e-mail ao responsável sobre aprovação/suspensão/reativação
 //
 // Execução agendada (cron diário, sem usuário): avisos de licença a vencer/vencida e lembrete
@@ -285,7 +286,12 @@ function exigirTimeDeMunicipio(teamId){
 async function adminMembros(s, c){
   exigirTimeDeMunicipio(c.teamId);
   var membros = await membrosDoTime(s.teams, c.teamId);
-  return { ok: true, membros: membros.map(function(m){ return { id: m.$id, userId: m.userId, nome: m.userName, email: m.userEmail, papeis: m.roles, confirmado: m.confirm, entrou: m.joined }; }) };
+  // Situação da conta de cada membro (conta suspensa não consegue entrar, em município nenhum).
+  var contas = {};
+  for (var i = 0; i < membros.length; i++){
+    try { contas[membros[i].userId] = (await s.users.get({ userId: membros[i].userId })).status !== false; } catch (e) { contas[membros[i].userId] = true; }
+  }
+  return { ok: true, membros: membros.map(function(m){ return { id: m.$id, userId: m.userId, nome: m.userName, email: m.userEmail, papeis: m.roles, confirmado: m.confirm, entrou: m.joined, ativo: contas[m.userId] }; }) };
 }
 
 // Pelo servidor o Appwrite não envia e-mail de convite: a pessoa entra no time na hora. Por isso
@@ -316,6 +322,21 @@ async function adminConvidar(s, c){
   }
   await s.teams.createMembership({ teamId: c.teamId, roles: papeis, userId: usuario.$id });
   return { ok: true, contaCriada: contaCriada, userId: usuario.$id };
+}
+
+// Suspende (ou reativa) a conta de UM usuário, sem mexer no município nem nos demais usuários.
+// A conta suspensa não entra mais no sistema; as sessões abertas são encerradas na hora.
+// Não vale para administradores da plataforma nem para o próprio administrador que chama.
+async function adminSuspenderUsuario(s, adminId, c){
+  if (!c.userId) falhar('Usuário não informado.');
+  if (c.userId === adminId) falhar('Você não pode suspender a sua própria conta.');
+  if (await ehMembroConfirmado(s.teams, TEAM_ADMINS_ID, c.userId)) falhar('Administradores da plataforma não podem ser suspensos por aqui.');
+  var alvo;
+  try { alvo = await s.users.get({ userId: c.userId }); } catch (e) { falhar('Usuário não encontrado.'); }
+  var suspender = c.suspender !== false;
+  await s.users.updateStatus({ userId: c.userId, status: !suspender });
+  if (suspender){ try { await s.users.deleteSessions({ userId: c.userId }); } catch (e) { /* sem sessões abertas */ } }
+  return { ok: true, userId: c.userId, email: alvo.email, suspenso: suspender };
 }
 
 async function adminRemoverMembro(s, c){
@@ -419,6 +440,7 @@ export default async ({ req, res, log, error }) => {
         case 'admin_membros':         return res.json(await adminMembros(s, c));
         case 'admin_convidar':        return res.json(await adminConvidar(s, c));
         case 'admin_remover_membro':  return res.json(await adminRemoverMembro(s, c));
+        case 'admin_suspender_usuario': return res.json(await adminSuspenderUsuario(s, userId, c));
         case 'admin_definir_papel':   return res.json(await adminDefinirPapel(s, c));
         case 'admin_notificar':       return res.json(await adminNotificar(s, c));
       }

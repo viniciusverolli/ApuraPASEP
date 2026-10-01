@@ -335,7 +335,7 @@
     <div class="barra-tabela">
       <input type="search" id="muBusca" placeholder="Buscar por nome, e-mail ou município" aria-label="Buscar usuário">
       <select id="muFiltro" aria-label="Filtrar usuários">
-        <option value="">Todos</option><option value="semmun">Sem município</option><option value="naoverif">E-mail não confirmado</option><option value="nuncaacessou">Nunca acessaram</option><option value="inativos">Sem acesso há 60 dias</option>
+        <option value="">Todos</option><option value="semmun">Sem município</option><option value="naoverif">E-mail não confirmado</option><option value="nuncaacessou">Nunca acessaram</option><option value="inativos">Sem acesso há 60 dias</option><option value="suspensos">Contas suspensas</option>
       </select>
     </div>
     <div class="tabela-scroll"><table class="clientes">
@@ -404,7 +404,7 @@
   var ROTULOS_ACAO = {
     aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de', cadastrar: 'Cadastrou',
     dados: 'Alterou dados de', consulta_apuracoes: 'Consultou apurações de', convidar_usuario: 'Convidou usuário para',
-    usuario_remover: 'Removeu usuário de', usuario_responsavel: 'Tornou responsável um usuário de', usuario_reenviar: 'Reenviou convite em',
+    usuario_suspender: 'Suspendeu a conta de um usuário de', usuario_reativar: 'Reativou a conta de um usuário de', usuario_remover: 'Removeu usuário de', usuario_responsavel: 'Tornou responsável um usuário de', usuario_reenviar: 'Reenviou convite em',
     exportar_municipio: 'Exportou os dados de', exportar_lista: 'Exportou a lista de municípios', backup: 'Exportou o backup completo',
     admin_convidar: 'Convidou administrador', admin_remover: 'Removeu administrador',
     regra_criar: 'Criou a regra', regra_editar: 'Editou a regra', regra_desativar: 'Desativou a regra', regra_reativar: 'Reativou a regra',
@@ -663,7 +663,7 @@
       var id = esc(m.$id);
       var acoes = '';
       if (m.status === 'pendente') acoes += '<button type="button" class="btn-acao primario" data-acao="aprovar" data-id="' + id + '">Aprovar</button>';
-      if (m.status === 'ativo') acoes += '<button type="button" class="btn-acao perigo" data-acao="suspender" data-id="' + id + '">Suspender</button>';
+      if (m.status === 'ativo') acoes += '<button type="button" class="btn-acao perigo" data-acao="suspender" data-id="' + id + '" title="Suspende o município inteiro, com todos os usuários">Suspender município</button>';
       if (m.status === 'suspenso') acoes += '<button type="button" class="btn-acao primario" data-acao="reativar" data-id="' + id + '">Reativar</button>';
       acoes += '<button type="button" class="btn-acao" data-acao="dados" data-id="' + id + '">Dados</button>';
       acoes += '<button type="button" class="btn-acao" data-acao="licenca" data-id="' + id + '">Licença</button>';
@@ -1100,9 +1100,12 @@
         var botoes = '';
         if (!eDono(mb)) botoes += '<button type="button" class="btn-mini" data-mb-acao="promover" data-mb="' + esc(mb.id) + '">Tornar responsável</button>';
         botoes += '<button type="button" class="btn-mini" data-mb-acao="senha" data-mb="' + esc(mb.id) + '">Enviar link de senha</button>';
+        botoes += mb.ativo === false
+          ? '<button type="button" class="btn-mini" data-mb-acao="reativar" data-mb="' + esc(mb.id) + '">Reativar acesso</button>'
+          : '<button type="button" class="btn-mini perigo" data-mb-acao="suspender" data-mb="' + esc(mb.id) + '">Suspender usuário</button>';
         botoes += '<button type="button" class="btn-mini perigo" data-mb-acao="remover" data-mb="' + esc(mb.id) + '">Remover</button>';
         return '<div class="membro"><div>' + esc(mb.nome || '—') + ' &lt;' + esc(mb.email) + '&gt;<br><span class="secundario">' +
-          (mb.confirmado ? 'ativo' : 'convite antigo pendente') + (eDono(mb) ? ' · responsável (owner)' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
+          (mb.ativo === false ? 'CONTA SUSPENSA' : (mb.confirmado ? 'ativo' : 'convite antigo pendente')) + (eDono(mb) ? ' · responsável (owner)' : '') + '</span></div><div class="membro-acoes">' + botoes + '</div></div>';
       }).join('') : 'Nenhum usuário.';
       var cheio = r.membros.length >= MAX_USUARIOS_MUNICIPIO;
       document.getElementById('mcContagem').textContent = r.membros.length + ' de ' + MAX_USUARIOS_MUNICIPIO + ' usuários' + (cheio ? '. Limite atingido: remova um usuário para adicionar outro.' : '.');
@@ -1185,6 +1188,16 @@
         await chamarServidor(client, 'admin_definir_papel', { teamId: m.team_id, membershipId: membershipId, papeis: ['owner'] });
         await registrarAuditoria('usuario_responsavel', m.$id, m.nome, 'Novo responsável: ' + mb.email);
         mostrarToast(nomeUsuario + ' agora é responsável.');
+      } else if (acao === 'suspender' || acao === 'reativar'){
+        var susp = acao === 'suspender';
+        if (!(await confirmar({
+          titulo: (susp ? 'Suspender ' : 'Reativar ') + nomeUsuario + '?',
+          texto: susp ? 'Só a conta de ' + nomeUsuario + ' perde o acesso (e as sessões abertas são encerradas). O município e os outros usuários continuam normalmente. Você pode reativar depois.' : nomeUsuario + ' volta a poder entrar no sistema.',
+          rotuloOk: susp ? 'Suspender usuário' : 'Reativar', perigo: susp
+        }))) return;
+        await chamarServidor(client, 'admin_suspender_usuario', { userId: mb.userId, suspender: susp });
+        await registrarAuditoria(susp ? 'usuario_suspender' : 'usuario_reativar', m.$id, m.nome, (susp ? 'Conta suspensa: ' : 'Conta reativada: ') + mb.email);
+        mostrarToast(nomeUsuario + (susp ? ' suspenso. Os demais usuários não foram afetados.' : ' reativado.'));
       } else if (acao === 'senha'){
         await account.createRecovery({ email: mb.email, url: window.location.origin + '/recuperar-senha.html' });
         await registrarAuditoria('usuario_reenviar', m.$id, m.nome, 'Link de senha enviado para ' + mb.email);
@@ -1415,6 +1428,7 @@
     var lista = usuariosPlataforma.filter(function(u){
       var munis = u.municipios.map(function(x){ return x.nome + '/' + x.uf; }).join(' ');
       if (busca && norm(u.nome + ' ' + u.email + ' ' + munis).indexOf(busca) === -1) return false;
+      if (f === 'suspensos') return u.ativo === false;
       if (f === 'semmun') return !u.admin && !u.municipios.length;
       if (f === 'naoverif') return u.verificado === false;
       if (f === 'nuncaacessou') return !u.ultimoAcesso;
@@ -1426,7 +1440,8 @@
       var munis = u.admin ? '<span class="badge ativo">administrador</span> ' : '';
       munis += u.municipios.length ? u.municipios.map(function(x){ return esc(x.nome) + '/' + esc(x.uf) + ((x.papeis || []).indexOf('owner') !== -1 ? ' (responsável)' : ''); }).join('<br>') : (u.admin ? '' : '<span class="badge pendente">sem município</span>');
       return '<tr><td>' + esc(u.nome || '—') + '<br><span class="secundario">' + esc(u.email) + '</span></td><td>' + munis + '</td>' +
-        '<td>' + (u.verificado === false ? '<span class="badge pendente">não confirmado</span>' : '<span class="secundario">confirmado</span>') + '</td>' +
+        '<td>' + (u.ativo === false ? '<span class="badge suspenso">conta suspensa</span><br>' : '') + (u.verificado === false ? '<span class="badge pendente">não confirmado</span>' : '<span class="secundario">confirmado</span>') +
+          (u.admin ? '' : '<br><button type="button" class="btn-mini ' + (u.ativo === false ? '' : 'perigo') + '" data-mu-acao="' + (u.ativo === false ? 'reativar' : 'suspender') + '" data-mu="' + esc(u.id) + '">' + (u.ativo === false ? 'Reativar acesso' : 'Suspender usuário') + '</button>') + '</td>' +
         '<td>' + (u.criadoEm ? dataBr(u.criadoEm) : '—') + '</td>' +
         '<td>' + (u.ultimoAcesso ? dataHoraBr(u.ultimoAcesso) : '<span class="secundario">nunca</span>') + '</td></tr>';
     }).join('') : '<tr><td colspan="5" class="estado-carregando">Nenhum usuário encontrado.</td></tr>';
@@ -1444,6 +1459,23 @@
     }
   }
   document.getElementById('btnUsuariosPlataforma').addEventListener('click', abrirUsuariosPlataforma);
+  document.getElementById('muCorpo').addEventListener('click', async function(e){
+    var b = e.target.closest('[data-mu-acao]'); if (!b) return;
+    var u = usuariosPlataforma.filter(function(x){ return x.id === b.getAttribute('data-mu'); })[0]; if (!u) return;
+    var susp = b.getAttribute('data-mu-acao') === 'suspender', nomeU = u.nome || u.email;
+    if (!(await confirmar({
+      titulo: (susp ? 'Suspender ' : 'Reativar ') + nomeU + '?',
+      texto: susp ? 'Só a conta de ' + nomeU + ' perde o acesso (e as sessões abertas são encerradas). Os municípios e os outros usuários não são afetados.' : nomeU + ' volta a poder entrar no sistema.',
+      rotuloOk: susp ? 'Suspender usuário' : 'Reativar', perigo: susp
+    }))) return;
+    try {
+      await chamarServidor(client, 'admin_suspender_usuario', { userId: u.id, suspender: susp });
+      var mun = u.municipios[0];
+      await registrarAuditoria(susp ? 'usuario_suspender' : 'usuario_reativar', mun ? mun.id : u.id, mun ? mun.nome : u.email, (susp ? 'Conta suspensa: ' : 'Conta reativada: ') + u.email);
+      u.ativo = !susp; renderUsuariosPlataforma();
+      mostrarToast(nomeU + (susp ? ' suspenso.' : ' reativado.')); recarregarAuditoria();
+    } catch (err) { mostrarToast('Não foi possível alterar: ' + erroAmigavel(err), true); }
+  });
   document.getElementById('muFechar').addEventListener('click', function(){ document.getElementById('modalUsuarios').classList.remove('aberto'); });
   document.getElementById('modalUsuarios').addEventListener('click', function(e){ if (e.target === this) this.classList.remove('aberto'); });
   document.getElementById('muBusca').addEventListener('input', renderUsuariosPlataforma);
