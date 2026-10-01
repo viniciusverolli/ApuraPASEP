@@ -314,12 +314,6 @@
         '&#9888; ' + d.avisoExercicio +
         '</div>';
     }
-    if (d.reestimativaTotal && d.reestimativaTotal > 0.005){
-      html += '<div class="empty-block" style="border-color:var(--gold);background:var(--gold-soft);margin-bottom:10px;font-size:12px">' +
-        '<b>Reestimativa de receita excluída da apuração:</b> ' + brl(d.reestimativaTotal) + '. ' +
-        'O XML traz, na conta contábil 5.2.1.2.90.00.00, ajustes de reestimativa orçamentária que geram um lançamento espelhado na conta de execução (6.2.1.1.00.00.00) — dinheiro que não foi de fato arrecadado. A ferramenta identifica e desconta esse valor automaticamente, por código, para que a Receita Corrente reflita só o que foi efetivamente arrecadado.' +
-        '</div>';
-    }
     html += '<table class="review"><tr><th>Item</th><th class="th-num">Valor</th></tr>'+
       '<tr><td>Receita Corrente Arrecadada</td><td class="num">'+numFmt(d.receitaCorrente)+'</td></tr>'+
       '<tr><td>Receita de Capital Arrecadada</td><td class="num">'+numFmt(d.receitaCapital)+'</td></tr></table>';
@@ -671,17 +665,6 @@
     }
 
     var tableWidth = 210 - margin*2;
-
-    // Aviso de reestimativa de receita excluída (quando aplicável a esta competência)
-    if (d.reestimativaTotal && d.reestimativaTotal > 0.005){
-      doc.setFont('helvetica','bold'); doc.setFontSize(8);
-      doc.setTextColor(46,125,107);
-      doc.text('Reestimativa de receita excluída da apuração: ' + numFmt(d.reestimativaTotal), margin, y); y+=3.5;
-      doc.setFont('helvetica','normal'); doc.setFontSize(7.5);
-      var linhasReest = doc.splitTextToSize('O XML traz, na conta contábil 5.2.1.2.90.00.00, ajustes de reestimativa orçamentária que geram um lançamento espelhado na conta de execução (6.2.1.1.00.00.00) — dinheiro que não foi de fato arrecadado. A ferramenta identifica e desconta esse valor automaticamente, por código, para que a Receita Corrente reflita só o que foi efetivamente arrecadado.', tableWidth);
-      doc.text(linhasReest, margin, y); y += linhasReest.length*3.2 + 1.5;
-      doc.setTextColor(0,0,0); y += 2;
-    }
 
     // Bloco 1 — Total de Receitas
     tituloSecao('Bloco 1 — Total de Receitas');
