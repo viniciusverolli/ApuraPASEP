@@ -32,7 +32,7 @@ import { DOMParser } from '@xmldom/xmldom';
 import { Client, TablesDB, Query } from 'node-appwrite';
 
 var DATABASE_ID = 'apurapasep';
-var EXERCICIOS_RECEITA_DISPONIVEIS = ['2026','2027'];
+var EXERCICIOS_RECEITA_DISPONIVEIS = ['2024','2025','2026','2027'];
 
 // Regras de classificação — começam vazias e são preenchidas a cada execução pela
 // função carregarRegras(), lendo a tabela regras_motor. construirEtapasParse (abaixo)
@@ -106,13 +106,10 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
         var tipo = descritor ? childText(descritor, 'TipoDocumento') : null;
         if (!ctx.ano || !ctx.mes) throw new Error('Não foi possível identificar a competência (mês/ano) no descritor do arquivo.');
         if (tipo && tipo.indexOf('CONTA-CORRENTE') === -1) throw new Error('Leiaute não reconhecido (' + tipo + '). Esta versão lê apenas Contas Correntes.');
-        // A tabela de especificação de códigos da receita (TABELAS_RECEITA) tem uma versão por
-        // exercício. Não bloqueia a apuração (que não depende dessa tabela para o cálculo em si, só
-        // para exibir a descrição por extenso dos códigos nos relatórios), mas o usuário precisa
-        // saber quando o exercício do XML não tem tabela própria carregada.
+        // Só apura exercício cuja Tabela de Escrituração Contábil (especificação da receita) está carregada.
+        // A ferramenta barra antes no navegador; esta checagem repete no servidor.
         if (EXERCICIOS_RECEITA_DISPONIVEIS.indexOf(String(ctx.ano)) === -1){
-          var maisRecente = EXERCICIOS_RECEITA_DISPONIVEIS[EXERCICIOS_RECEITA_DISPONIVEIS.length-1];
-          ctx.avisoExercicio = 'Este XML é do exercício ' + ctx.ano + ', mas não há tabela de especificação de códigos da receita carregada para esse exercício (disponíveis: ' + EXERCICIOS_RECEITA_DISPONIVEIS.join(', ') + '). A apuração do PASEP não é afetada (não depende dessa tabela), mas a descrição por extenso de códigos nos relatórios usará a tabela de ' + maisRecente + ', que pode não corresponder à classificação vigente para ' + ctx.ano + '.';
+          throw new Error('Exercício ' + ctx.ano + ' sem tabela carregada: a ferramenta ainda não tem a Tabela de Escrituração Contábil desse exercício (disponíveis: ' + EXERCICIOS_RECEITA_DISPONIVEIS.join(', ') + ').');
         }
       }},
       {rotulo:'Separando os registros da conta 6.2.1.2 (receita realizada)', exec:function(){
