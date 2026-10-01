@@ -192,8 +192,8 @@
 
   // Etapas de quem ainda não pode apurar: 1 confirmar o e-mail, 2 aprovação do cadastro, 3 acesso liberado.
   // "atual" é o número da etapa em andamento.
-  function passosCadastro(atual){
-    var nomes = ['Confirmar o e-mail', 'Aprovação do cadastro pelo administrador', 'Acesso liberado para apurar'];
+  function passosCadastro(atual, nomesPersonalizados){
+    var nomes = nomesPersonalizados || ['Confirmar o e-mail', 'Aprovação do cadastro pelo administrador', 'Acesso liberado para apurar'];
     return '<ol class="passos-uso" aria-label="Etapas do cadastro">' + nomes.map(function(n, i){
       var cls = i + 1 < atual ? 'feito' : (i + 1 === atual ? 'atual' : '');
       return '<li' + (cls ? ' class="' + cls + '"' : '') + (i + 1 === atual ? ' aria-current="step"' : '') + '>' + n + '</li>';
@@ -253,10 +253,16 @@
     // E-mail ainda não confirmado: bloqueia o painel até a verificação, com opção de reenviar
     // o e-mail (caso o original tenha expirado, ido para spam, ou nunca chegado).
     if (!usuario.emailVerification){
+      // Se a pessoa já pediu acesso a um município cadastrado, diz isso: falta só confirmar o e-mail.
+      var textoPedido = '';
+      try {
+        var rp = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', queries: [Query.equal('status', 'pendente'), Query.limit(1)] });
+        if (rp.rows[0]) textoPedido = ' Seu pedido de acesso a ' + rp.rows[0].municipio_nome + ' já foi enviado ao administrador.';
+      } catch (e) { /* sem a informação, mostra só o aviso do e-mail */ }
       document.getElementById('infoExercicio').textContent = '';
       document.getElementById('cardsResumo').innerHTML =
         '<div class="card destaque largo"><div class="lab">E-mail ainda não confirmado</div>' +
-        '<div class="sub">Enviamos um link de confirmação para ' + usuario.email + ' ao concluir seu cadastro. Confira também a caixa de spam. ' +
+        '<div class="sub">Enviamos um link de confirmação para ' + usuario.email + ' ao concluir seu cadastro. Confira também a caixa de spam.' + textoPedido + ' ' +
         '<a href="#" id="link-reenviar-verificacao" style="color:var(--ink); font-weight:600">Reenviar e-mail de confirmação</a></div>' + passosCadastro(1) + '</div>';
       document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
       document.getElementById('blocoAcoes').style.display = 'none';
@@ -286,6 +292,28 @@
     var equipeMunicipio = minhasEquipes.teams.find(function(t){ return t.$id !== TEAM_ADMINS_ID; });
 
     if (!equipeMunicipio){
+      // Pedido de acesso a município que já estava cadastrado (a própria pessoa lê o pedido).
+      try {
+        var rs = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', queries: [Query.orderDesc('$createdAt'), Query.limit(1)] });
+        var pedido = rs.rows[0];
+        if (pedido && pedido.status === 'pendente'){
+          document.getElementById('infoExercicio').textContent = '';
+          document.getElementById('cardsResumo').innerHTML = '<div class="card destaque largo"><div class="lab">Pedido de acesso em análise</div>' +
+            '<div class="sub">Você pediu acesso a ' + pedido.municipio_nome + ', que já está cadastrado. O administrador vai conferir o pedido e liberar o acesso. Assim que for aprovado, esta tela libera a apuração.</div>' +
+            passosCadastro(2, ['Pedido enviado', 'Análise do administrador', 'Acesso liberado para apurar']) + '</div>';
+          document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+          document.getElementById('blocoAcoes').style.display = 'none';
+          return;
+        }
+        if (pedido && pedido.status === 'recusada'){
+          document.getElementById('infoExercicio').textContent = '';
+          document.getElementById('cardsResumo').innerHTML = '<div class="card largo" style="border-color:#DCB6B0"><div class="lab" style="color:var(--red)">Pedido de acesso não aprovado</div>' +
+            '<div class="sub">O pedido de acesso a ' + pedido.municipio_nome + ' não foi aprovado. Em caso de dúvida, fale com o administrador da plataforma ou com o responsável pelo município.</div></div>';
+          document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';
+          document.getElementById('blocoAcoes').style.display = 'none';
+          return;
+        }
+      } catch (e) { /* sem a tabela legível, cai na mensagem genérica abaixo */ }
       document.getElementById('infoExercicio').textContent = '';
       document.getElementById('cardsResumo').innerHTML = '<div class="card"><div class="lab">Nenhum município vinculado a este usuário</div><div class="sub">Fale com o administrador do sistema para vincular seu acesso a um município.</div></div>';
       document.getElementById('corpoTabelaHist').innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--muted); padding:24px">—</td></tr>';

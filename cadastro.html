@@ -1051,7 +1051,14 @@
   // é usado pelo painel para retomar um cadastro interrompido no meio.
   async function finalizarCadastro(nomeMunicipio, uf, sistemaGestao, responsavel){
     try {
-      await concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao, responsavel);
+      var resultado = await concluirCadastroMunicipio(nomeMunicipio, uf, sistemaGestao, responsavel);
+      if (resultado && resultado.solicitacao){
+        mostrarSucesso(
+          'Pedido de acesso enviado',
+          nomeMunicipio + '/' + uf + ' já está cadastrado na plataforma. Sua conta foi criada e o seu pedido de acesso foi enviado ao administrador, que vai conferir e liberar o acesso. Confirme o seu e-mail pelo link que enviamos e acompanhe a situação no painel.'
+        );
+        return;
+      }
       mostrarSucesso(
         'Cadastro enviado',
         'O cadastro de ' + nomeMunicipio + '/' + uf + ' foi registrado e está aguardando aprovação do administrador da plataforma. Você será avisado assim que o acesso for liberado.'

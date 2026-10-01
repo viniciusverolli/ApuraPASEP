@@ -195,6 +195,11 @@
       </div>
     </div>
 
+    <div id="blocoSolicitacoes" style="display:none; margin-bottom:28px">
+      <div class="section-title">Pedidos de acesso a municípios já cadastrados</div>
+      <div class="card" id="listaSolicitacoes" style="padding:0"></div>
+    </div>
+
     <div class="section-title">Cadastros recentes</div>
     <div class="card" id="listaCadastrosRecentes" style="padding:0; margin-bottom:32px"><div class="estado-carregando">Carregando…</div></div>
 
@@ -404,7 +409,7 @@
   var ROTULOS_ACAO = {
     aprovar: 'Aprovou', suspender: 'Suspendeu', reativar: 'Reativou', licenca: 'Alterou licença de', cadastrar: 'Cadastrou',
     dados: 'Alterou dados de', consulta_apuracoes: 'Consultou apurações de', convidar_usuario: 'Convidou usuário para',
-    usuario_suspender: 'Suspendeu a conta de um usuário de', usuario_reativar: 'Reativou a conta de um usuário de', usuario_remover: 'Removeu usuário de', usuario_responsavel: 'Tornou responsável um usuário de', usuario_reenviar: 'Reenviou convite em',
+    acesso_aprovar: 'Aprovou pedido de acesso a', acesso_recusar: 'Recusou pedido de acesso a', usuario_suspender: 'Suspendeu a conta de um usuário de', usuario_reativar: 'Reativou a conta de um usuário de', usuario_remover: 'Removeu usuário de', usuario_responsavel: 'Tornou responsável um usuário de', usuario_reenviar: 'Reenviou convite em',
     exportar_municipio: 'Exportou os dados de', exportar_lista: 'Exportou a lista de municípios', backup: 'Exportou o backup completo',
     admin_convidar: 'Convidou administrador', admin_remover: 'Removeu administrador',
     regra_criar: 'Criou a regra', regra_editar: 'Editou a regra', regra_desativar: 'Desativou a regra', regra_reativar: 'Reativou a regra',
@@ -507,8 +512,43 @@
 
     document.getElementById('shellPrincipal').style.display = 'grid';
 
-    await Promise.all([recarregarClientes(), recarregarAuditoria(), carregarAdmins()]);
+    await Promise.all([recarregarClientes(), recarregarAuditoria(), carregarAdmins(), carregarSolicitacoes()]);
   }
+
+  // ---------------- Pedidos de acesso (município que já existia) ----------------
+  var solicitacoes = [];
+  async function carregarSolicitacoes(){
+    try {
+      var r = await tablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', queries: [Query.equal('status', 'pendente'), Query.orderDesc('$createdAt'), Query.limit(100)] });
+      solicitacoes = r.rows;
+    } catch (e) { solicitacoes = []; }
+    var bloco = document.getElementById('blocoSolicitacoes');
+    bloco.style.display = solicitacoes.length ? '' : 'none';
+    document.getElementById('listaSolicitacoes').innerHTML = solicitacoes.map(function(p){
+      var aviso = !dominioInstitucional(p.usuario_email) ? '<br><span class="aviso-dominio">e-mail não institucional</span>' : '';
+      return '<div class="item-lista"><span><span class="principal">' + esc(p.usuario_nome || '—') + '</span> pede acesso a <b>' + esc(p.municipio_nome) + '</b><br>' +
+        '<span class="secundario">' + esc(p.usuario_email || '') + ' · ' + dataHoraBr(p.$createdAt) + '</span>' + aviso + '</span>' +
+        '<span class="membro-acoes"><button type="button" class="btn-acao primario" data-sol="' + esc(p.$id) + '" data-decisao="aprovar">Aprovar</button>' +
+        '<button type="button" class="btn-acao perigo" data-sol="' + esc(p.$id) + '" data-decisao="recusar">Recusar</button></span></div>';
+    }).join('');
+  }
+  document.getElementById('listaSolicitacoes').addEventListener('click', async function(e){
+    var b = e.target.closest('[data-decisao]'); if (!b) return;
+    var p = solicitacoes.filter(function(x){ return x.$id === b.getAttribute('data-sol'); })[0]; if (!p) return;
+    var aprovar = b.getAttribute('data-decisao') === 'aprovar';
+    if (!(await confirmar({
+      titulo: (aprovar ? 'Aprovar o acesso de ' : 'Recusar o pedido de ') + (p.usuario_nome || p.usuario_email) + '?',
+      texto: aprovar ? (p.usuario_nome || p.usuario_email) + ' passa a ter acesso a ' + p.municipio_nome + ' (limite de 3 usuários por município).' : 'O pedido de acesso a ' + p.municipio_nome + ' será recusado.',
+      alerta: aprovar && !dominioInstitucional(p.usuario_email) ? 'O e-mail (' + p.usuario_email + ') não é de domínio institucional (.gov.br). Confirme que a pessoa representa o município.' : null,
+      rotuloOk: aprovar ? 'Aprovar' : 'Recusar', perigo: !aprovar
+    }))) return;
+    try {
+      var r = await chamarServidor(client, 'admin_decidir_solicitacao', { id: p.$id, aprovar: aprovar });
+      await registrarAuditoria(aprovar ? 'acesso_aprovar' : 'acesso_recusar', p.municipio_id, p.municipio_nome, (aprovar ? 'Acesso aprovado: ' : 'Pedido recusado: ') + p.usuario_email);
+      mostrarToast(aprovar ? p.usuario_email + ' agora tem acesso a ' + p.municipio_nome + '.' : 'Pedido recusado.');
+      await carregarSolicitacoes(); recarregarAuditoria();
+    } catch (err) { mostrarToast('Não foi possível decidir: ' + erroAmigavel(err), true); }
+  });
 
   async function recarregarClientes(){
     var municipios, licencas = [], apuracoes = [], erroListagem = null;
