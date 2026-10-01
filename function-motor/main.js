@@ -32,7 +32,7 @@ import { DOMParser } from '@xmldom/xmldom';
 import { Client, TablesDB, Query } from 'node-appwrite';
 
 var DATABASE_ID = 'apurapasep';
-var EXERCICIOS_RECEITA_DISPONIVEIS = ['2026','2027'];
+var EXERCICIOS_RECEITA_DISPONIVEIS = ['2025','2026','2027'];
 
 // Regras de classificação — começam vazias e são preenchidas a cada execução pela
 // função carregarRegras(), lendo a tabela regras_motor. construirEtapasParse (abaixo)
