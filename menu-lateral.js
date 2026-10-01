@@ -444,6 +444,11 @@
   // Ajuda contextual: qualquer elemento com data-ajuda="texto" ganha um botão "?" que abre uma
   // explicação curta (teclado: Enter/Espaço abre, Esc fecha). Pode ser chamada de novo depois
   // de a página redesenhar trechos: window.iniciarAjuda(raiz).
+  // Nome de cada norma do repositório que a ajuda pode citar (data-ajuda-norma="id1,id2").
+  var NORMAS_AJUDA = {
+    'cosit-278-2017': 'Cosit nº 278/2017', 'cosit-99016-2018': 'Cosit nº 99016/2018', 'disit-srrf09-9014-2018': 'Disit/SRRF09 nº 9014/2018',
+    'cosit-99073-2017': 'Cosit nº 99073/2017', 'disit-srrf06-6031-2017': 'Disit/SRRF06 nº 6031/2017', 'cosit-99071-2017': 'Cosit nº 99071/2017'
+  };
   var popAberto = null;
   function fecharAjuda(){
     if (!popAberto) return;
@@ -466,6 +471,16 @@
         var pop = document.createElement('div');
         pop.className = 'ml-ajuda-pop'; pop.setAttribute('role', 'tooltip');
         pop.textContent = alvo.getAttribute('data-ajuda');
+        var normas = (alvo.getAttribute('data-ajuda-norma') || '').split(',').filter(Boolean);
+        if (normas.length){
+          var rot = document.createElement('div'); rot.style.cssText = 'margin-top:8px;font-size:11.5px;opacity:.8'; rot.textContent = 'Norma de referência:'; pop.appendChild(rot);
+          normas.forEach(function(id){
+            var l = document.createElement('a'); l.href = 'repositorio_pasep_cosit.html#' + id; l.target = '_blank'; l.rel = 'noopener';
+            l.textContent = NORMAS_AJUDA[id] || id; l.style.cssText = 'display:block;color:#5eead4;padding:3px 0;font-weight:600';
+            pop.appendChild(l);
+          });
+          pop.addEventListener('click', function(ev){ ev.stopPropagation(); });
+        }
         document.body.appendChild(pop);
         var r = b.getBoundingClientRect();
         var esq = Math.max(8, Math.min(window.scrollX + r.left - 8, window.scrollX + document.documentElement.clientWidth - pop.offsetWidth - 8));

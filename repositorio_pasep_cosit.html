@@ -121,6 +121,16 @@ header p { margin: 0; font-size: 12.5px; color: #C9CEDB; line-height:1.5; }
 }
 ::-webkit-scrollbar { width:9px; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius:5px; }
+.temas { display:flex; flex-wrap:wrap; gap:5px; padding:10px 12px 6px; }
+.tema { font:600 11.5px Inter,system-ui,sans-serif; padding:4px 9px; min-height:30px; border-radius:999px; border:1px solid var(--line); background:var(--paper); color:var(--ink); cursor:pointer; }
+.tema:hover { border-color:var(--gold); }
+.tema[aria-pressed="true"] { background:var(--gold); border-color:var(--gold); color:#fff; }
+.tags-norma { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0 0; }
+.tag-norma { font-size:11px; font-weight:600; padding:2px 8px; border-radius:999px; background:var(--gold-soft); color:var(--ink); border:1px solid var(--line); }
+.acoes-norma { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 0; }
+.btn-citacao { font:600 12.5px Inter,system-ui,sans-serif; padding:8px 12px; min-height:36px; border-radius:10px; border:1px solid var(--line); background:var(--panel); color:var(--ink); cursor:pointer; }
+.btn-citacao:hover { border-color:var(--gold); }
+.aviso-temas { font-size:11px; color:var(--muted); padding:0 12px 10px; line-height:1.4; }
 .voltar-lista { display:none; margin:0 0 16px; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:10px 14px; min-height:44px; font:600 14px Inter,system-ui,sans-serif; cursor:pointer; }
 @media (max-width: 760px) {
   /* No celular a página rola inteira: primeiro a lista, depois a norma escolhida, com botão para voltar à lista. */
@@ -149,6 +159,8 @@ header p { margin: 0; font-size: 12.5px; color: #C9CEDB; line-height:1.5; }
     <div class="search-box">
       <input type="text" id="busca" placeholder="Buscar por número, assunto ou palavra-chave...">
     </div>
+    <div class="temas" id="temas" role="group" aria-label="Filtrar por tema"></div>
+    <div class="aviso-temas">Temas atribuídos automaticamente pelas palavras da ementa. Confira na norma.</div>
     <div class="list" id="lista"></div>
     <div class="sidebar-footer" id="rodape-lateral"></div>
   </div>
@@ -168,17 +180,44 @@ function escapeHtml(s){
   return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// Temas por palavras-chave da ementa e da relevância (classificação automática, só para filtrar a lista).
+const TEMAS = [
+  { id: 'fundeb', rotulo: 'FUNDEB', re: /fundeb/i },
+  { id: 'saude', rotulo: 'Saúde e assistência', re: /\bSUS\b|SUAS|FNAS|\bFMS\b|sa[úu]de/i },
+  { id: 'voluntarias', rotulo: 'Voluntárias e finalidade definida', re: /volunt|finalidade|conv[êe]nio|cong[êe]nere|\bPAC\b/i },
+  { id: 'constitucionais', rotulo: 'Transferências constitucionais', re: /constitucion|IPVA|intergovernamentais/i },
+  { id: 'entidades', rotulo: 'Autarquias, fundos, RPPS e consórcios', re: /autarqu|funda[çc][õo]es|fundo p[úu]blico|RPPS|previd|cons[óo]rcio/i }
+];
+let temaAtivo = null;
+function temasDa(n){
+  const texto = (n.ementa || '') + ' ' + (n.relevancia || '');
+  return TEMAS.filter(t => t.re.test(texto));
+}
+function renderTemas(){
+  document.getElementById('temas').innerHTML = TEMAS.map(t => {
+    const qtd = DADOS.normas.filter(n => temasDa(n).includes(t)).length;
+    return `<button type="button" class="tema" data-tema="${t.id}" aria-pressed="${temaAtivo === t.id}">${t.rotulo} (${qtd})</button>`;
+  }).join('');
+}
+document.getElementById('temas').addEventListener('click', e => {
+  const b = e.target.closest('.tema'); if (!b) return;
+  temaAtivo = (temaAtivo === b.dataset.tema) ? null : b.dataset.tema;
+  renderTemas();
+  renderLista(document.getElementById('busca').value);
+});
+
 function renderLista(filtro){
   const lista = document.getElementById('lista');
   filtro = (filtro||'').toLowerCase();
   const itens = DADOS.normas.filter(n =>
-    !filtro ||
+    (!temaAtivo || temasDa(n).some(t => t.id === temaAtivo)) &&
+    (!filtro ||
     n.numero.toLowerCase().includes(filtro) ||
     n.ementa.toLowerCase().includes(filtro) ||
-    (n.relevancia||'').toLowerCase().includes(filtro)
+    (n.relevancia||'').toLowerCase().includes(filtro))
   );
   if (itens.length === 0){
-    lista.innerHTML = '<div class="empty-msg">Nenhuma norma encontrada para esse termo.</div>';
+    lista.innerHTML = '<div class="empty-msg">Nenhuma norma encontrada para esse termo' + (temaAtivo ? ' neste tema. Desmarque o tema para ampliar a busca.' : '.') + '</div>';
     return;
   }
   lista.innerHTML = itens.map(n => `
@@ -201,6 +240,11 @@ function selecionar(id){
       <div class="meta-row">
         <span><b>Data:</b> ${n.data}</span>
         <span><b>Publicação:</b> ${n.publicacao}</span>
+      </div>
+      <div class="tags-norma">${temasDa(n).map(t => `<span class="tag-norma">${t.rotulo}</span>`).join('')}</div>
+      <div class="acoes-norma">
+        <button type="button" class="btn-citacao" onclick="copiarCitacao('${n.id}', false, this)">Copiar citação</button>
+        <button type="button" class="btn-citacao" onclick="copiarCitacao('${n.id}', true, this)">Copiar citação com ementa</button>
       </div>
     </div>
   `;
@@ -228,6 +272,23 @@ function selecionar(id){
   if (history.replaceState) history.replaceState(null, '', '#' + id);
 }
 
+// Citação pronta para parecer ou nota técnica: número, data e publicação, como constam no repositório.
+function copiarCitacao(id, comEmenta, botao){
+  const n = DADOS.normas.find(x => x.id === id); if (!n) return;
+  let txt = 'BRASIL. Receita Federal do Brasil. ' + n.numero + ', de ' + n.data + (n.publicacao ? '. ' + n.publicacao : '') + '.';
+  if (comEmenta) txt += '\nEmenta: ' + (n.ementa || '').replace(/\s+/g, ' ').trim();
+  const pronto = () => { const antes = botao.textContent; botao.textContent = 'Copiado'; setTimeout(() => { botao.textContent = antes; }, 1800); };
+  if (navigator.clipboard && window.isSecureContext){
+    navigator.clipboard.writeText(txt).then(pronto, () => copiarPlano(txt, pronto));
+  } else copiarPlano(txt, pronto);
+}
+function copiarPlano(txt, pronto){
+  const t = document.createElement('textarea'); t.value = txt; t.style.position = 'fixed'; t.style.opacity = '0';
+  document.body.appendChild(t); t.select();
+  try { document.execCommand('copy'); pronto(); } catch (e) { window.prompt('Copie a citação:', txt); }
+  document.body.removeChild(t);
+}
+
 function voltarLista(){
   document.body.classList.remove('ver-detalhe');
   if (history.replaceState) history.replaceState(null, '', location.pathname);
@@ -246,6 +307,7 @@ document.getElementById('rodape-lateral').innerHTML =
   DADOS.normas.filter(n=>n.destaque).length + ' com relevância direta para a ferramenta<br>' +
   '<span style="opacity:.75">Excluídas: 1 duplicata (mesma norma, 2 arquivos) e 1 fora do escopo (SC ' + DADOS.fora_do_escopo.numero.replace('Cosit nº ','') + ', sobre bonificações PIS/Cofins)</span>';
 
+renderTemas();
 renderLista('');
 if (location.hash) selecionar(decodeURIComponent(location.hash.slice(1)));
 </script>
