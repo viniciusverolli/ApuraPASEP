@@ -79,7 +79,11 @@
   // Conferência da dedução do FUNDEB com a conta 6.2.1.3.1.01 (guardada na apuração; só as novas a trazem).
   function avisoFundeb(c){
     if (!c) return '';
-    if (!c.excede) return '<p style="font-size:12px; color:#475569; margin:8px 0 0">Conferência com a conta 6.2.1.3.1.01: diferença de R$ ' + num(Math.abs(c.diferenca)) + ', dentro do limite de R$ 0,10.</p>';
+    var semRet = (c.semRetencao || []).map(function(x){
+      var nome = String(x.rubrica || '').replace(/^Cota-Parte\s+/i, '');
+      return '<p style="font-size:12.5px; line-height:1.5; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; color:#92400e; padding:10px 12px; margin:10px 0 0"><b>Atenção:</b> Há lançamentos na Receita "' + esc(nome) + ' - código ' + esc((x.codigos && x.codigos.length ? x.codigos.join(', ') : x.codigo)) + '" sem retenção do FUNDEB, é recomendável verificar essa contabilização.</p>';
+    }).join('');
+    if (!c.excede) return semRet + '<p style="font-size:12px; color:#475569; margin:8px 0 0">Conferência com a conta 6.2.1.3.1.01: diferença de R$ ' + num(Math.abs(c.diferenca)) + ', dentro do limite de R$ 0,10.</p>';
     return '<p style="font-size:12.5px; line-height:1.5; background:#fffbeb; border:1px solid #fde68a; border-radius:10px; color:#92400e; padding:10px 12px; margin:10px 0 0"><b>Atenção:</b> a dedução calculada (R$ ' + num(c.calculada) +
       ') difere da retenção lançada na conta 6.2.1.3.1.01 (R$ ' + num(c.contabil) + ') em R$ ' + num(c.diferenca) + ', acima do limite de R$ 0,10. Confira os lançamentos do FUNDEB.</p>';
   }

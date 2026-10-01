@@ -282,7 +282,19 @@ function num(v){ var n = parseFloat(v); return isNaN(n) ? 0 : n; }
               var v = ctx.fundebContabilPorCodigo[c];
               if (!usados[c] && Math.round(Math.abs(v)*100) > 10) rubricas.push({ rubrica: 'Retenção em código fora das rubricas do FUNDEB', codigo: c, calculada: 0, contabil: v, diferenca: v });
             });
-            return { calculada: ctx.dedFundebFlat, contabil: ctx.dedFundebContabil, diferenca: dif, limite: 0.10, excede: Math.round(Math.abs(dif)*100) > 10, rubricas: rubricas };
+            // Rubricas do FUNDEB com receita no mês e nenhuma retenção lançada na 6.2.1.3.1.01 (caso comum: IPI-Municípios).
+            // Aviso próprio, independente do limite de R$ 0,10 do total.
+            function formatarCodigo(c){ return c.length === 8 ? c.replace(/^(\d)(\d)(\d)(\d)(\d{2})(\d{2})$/, '$1.$2.$3.$4.$5.$6') : c; }
+            var semRetencao = [];
+            ctx.bloco4.forEach(function(rb){
+              var cont = 0;
+              Object.keys(ctx.fundebContabilPorCodigo).forEach(function(c){ if (c.substr(0,7) === rb.codigo) cont += ctx.fundebContabilPorCodigo[c]; });
+              if (Math.abs(rb.valor) > 0.005 && Math.abs(cont) < 0.005){
+                var codigos = ctx.codes.filter(function(c){ return c.substr(0,7) === rb.codigo && Math.abs(ctx.liquido(c)) > 0.005; }).sort().map(formatarCodigo);
+                semRetencao.push({ rubrica: rb.label, codigo: rb.codigo, codigos: codigos, receita: rb.valor });
+              }
+            });
+            return { calculada: ctx.dedFundebFlat, contabil: ctx.dedFundebContabil, diferenca: dif, limite: 0.10, excede: Math.round(Math.abs(dif)*100) > 10, rubricas: rubricas, semRetencao: semRetencao };
           })(),
           avisoExercicio: ctx.avisoExercicio || null,
           registros: ctx.extratoReceita.length

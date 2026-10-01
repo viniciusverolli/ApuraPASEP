@@ -201,12 +201,30 @@
   // Só administradores da plataforma recebem, na planilha em Excel, a aba "Classificação"
   // (que revela as regras de classificação). Verificado uma vez ao carregar a página.
   var souAdmin = false;
-  (async function(){
+  // Município do cadastro do usuário (não administrador). A ferramenta só aceita XML desse município:
+  // {admin:true} libera qualquer um (suporte e testes); {municipio:null} = sem vínculo; {erro:true} = não foi
+  // possível confirmar (nesse caso não aceita XML, por segurança).
+  var perfilMunicipio = { erro: true };
+  var perfilPronto = (async function(){
     if (!appwriteTeams) return;
     try {
       var minhasEquipes = await appwriteTeams.list();
       souAdmin = minhasEquipes.teams.some(function(t){ return t.$id === TEAM_ADMINS_ID; });
-    } catch (e) { souAdmin = false; }
+      if (souAdmin){ perfilMunicipio = { admin: true }; return; }
+      var equipe = minhasEquipes.teams.filter(function(t){ return t.$id !== TEAM_ADMINS_ID; })[0];
+      var linha = null;
+      if (equipe){
+        var rm = await appwriteTablesDB.listRows({ databaseId: DATABASE_ID, tableId: 'municipios', queries: [AppwriteQuery.equal('team_id', equipe.$id), AppwriteQuery.limit(1)] });
+        linha = rm.rows[0] || null;
+      }
+      perfilMunicipio = { admin: false, municipio: linha };
+      if (linha && linha.codigo_tce){
+        // Município autorizado desde o início: o nome já aparece no menu e o arquivo de outro município é recusado.
+        municipioAutorizado = { codigo: String(linha.codigo_tce), nome: linha.nome + '/' + linha.uf };
+        document.getElementById('nome-ente').value = linha.nome + '/' + linha.uf;
+        document.getElementById('municipio-trava').innerHTML = 'Município do seu cadastro: <b>' + linha.nome + '/' + linha.uf + '</b> (código TCE ' + linha.codigo_tce + '). Só são aceitos XML deste município.';
+      }
+    } catch (e) { souAdmin = false; perfilMunicipio = { erro: true }; }
   })();
 
   var appwriteFunctions = appwriteClient ? new Appwrite.Functions(appwriteClient) : null;
@@ -314,9 +332,20 @@
         }).join('; ') + '. ' : '') +
         'Confira os lançamentos do FUNDEB. A diferença pode vir, por exemplo, de estorno de receita (débito na 6.2.1.2) cuja retenção não foi ajustada no mesmo mês, de rubrica sem retenção lançada na conta, ou de ajuste ainda a lançar. A apuração usa os 20% calculados.' : '' };
   }
+  // Rubricas do FUNDEB com receita e sem nenhuma retenção lançada na 6.2.1.3.1.01 (comum no IPI-Municípios).
+  function textosSemRetencao(d){
+    var c = d.conferenciaFundeb; if (!c || !c.semRetencao) return [];
+    return c.semRetencao.map(function(x){
+      var nome = String(x.rubrica || '').replace(/^Cota-Parte\s+/i, '');
+      var codigos = (x.codigos && x.codigos.length) ? x.codigos.join(', ') : x.codigo;
+      return 'Há lançamentos na Receita "' + nome + ' - código ' + codigos + '" sem retenção do FUNDEB, é recomendável verificar essa contabilização.';
+    });
+  }
   function htmlConferenciaFundeb(d){
     var t = textoConferenciaFundeb(d); if (!t) return '';
-    return t.excede ? '<div class="alerta-fundeb" role="alert"><b>' + t.titulo + '</b><br>' + t.corpo + '</div>' : '<div class="nota-fundeb">' + t.titulo + '</div>';
+    var html = t.excede ? '<div class="alerta-fundeb" role="alert"><b>' + t.titulo + '</b><br>' + t.corpo + '</div>' : '<div class="nota-fundeb">' + t.titulo + '</div>';
+    textosSemRetencao(d).forEach(function(x){ html += '<div class="alerta-fundeb" role="alert"><b>Atenção:</b> ' + x + '</div>'; });
+    return html;
   }
 
   function renderDetalhe(chave){
@@ -436,13 +465,14 @@
       [/Não foram encontrados registros de receita|Nenhum bloco de receita/i, 'O arquivo não traz registros de receita arrecadada.', 'Confira se é o XML da competência inteira (com Receita Arrecadada) e não de outro módulo, como despesa ou folha.'],
       [/competência \(mês\/ano\)/i, 'Não foi possível identificar o mês e o ano do arquivo.', 'O descritor do XML precisa informar a competência. Gere o arquivo de novo e confira se ele não foi editado.'],
       [/Leiaute não reconhecido/i, 'Este leiaute do AUDESP ainda não é lido pela ferramenta.', 'Envie o leiaute "Contas Correntes". Outros leiautes ainda não são aceitos.'],
+      [/mas o seu cadastro é de|ainda não está vinculado|código do TCE do seu município/i, null, 'Seu usuário só apura o município do seu cadastro. Envie o XML do seu município (ou, se o cadastro estiver incompleto, fale com o administrador).'],
       [/pertence a .* mas esta sessão/i, 'O arquivo é de outro município.', 'Cada sessão trabalha com um município. Envie apenas arquivos do seu município.'],
       [/excede o limite de envio/i, 'O arquivo é grande demais mesmo depois de reduzido.', 'Avise o suporte informando o município e a competência.'],
       [/Não foi possível carregar a conexão|Failed to fetch|Network/i, 'Sem conexão com o servidor de apuração.', 'Confira a internet e tente de novo.'],
       [/Faça login|Sessão|401/i, 'Sua sessão expirou.', 'Entre de novo no sistema e repita o envio.']
     ];
     for (var i = 0; i < casos.length; i++){
-      if (casos[i][0].test(m)) return { titulo: casos[i][1], dica: casos[i][2], detalhe: m };
+      if (casos[i][0].test(m)) return { titulo: casos[i][1] || m, dica: casos[i][2], detalhe: casos[i][1] ? m : '' };
     }
     return { titulo: 'Não foi possível processar este arquivo.', dica: 'Tente de novo. Se o erro continuar, avise o suporte informando o município, a competência e o texto abaixo.', detalhe: m };
   }
@@ -453,7 +483,7 @@
     el.innerHTML = '<div class="alerta-erro" role="alert"><button type="button" class="fechar-erro" aria-label="Fechar aviso">&times;</button>' +
       '<strong>' + (nomeArquivo ? '"' + nomeArquivo + '": ' : '') + ex.titulo + '</strong>' +
       '<div class="dica">' + ex.dica + '</div>' +
-      '<div class="dica" style="opacity:.8">Detalhe técnico: ' + ex.detalhe + '</div></div>';
+      (ex.detalhe ? '<div class="dica" style="opacity:.8">Detalhe técnico: ' + ex.detalhe + '</div>' : '') + '</div>';
     el.querySelector('.fechar-erro').addEventListener('click', function(){ el.innerHTML = ''; });
     setTimeout(function(){ if (el.firstChild && el.querySelector('.fechar-erro')) el.innerHTML = ''; }, 30000);
   }
@@ -528,7 +558,8 @@
     partes.sort(function(a, b){ return a.pos - b.pos; });
 
     var corpo = partes.map(function(p){ return p.txt.replace(/>\s+</g, '><'); }).join('\n');
-    return { xml: '<?xml version="1.0"?>\n' + abertura + '\n' + corpo + '\n</' + nomeRaiz + '>', contagem: contagem };
+    var mMun = /<(?:[A-Za-z_][\w.-]*:)?Municipio>\s*(\d+)\s*</.exec((partes.filter(function(p){ return /^<(?:[A-Za-z_][\w.-]*:)?Descritor[\s>]/.test(p.txt); })[0] || { txt: '' }).txt);
+    return { xml: '<?xml version="1.0"?>\n' + abertura + '\n' + corpo + '\n</' + nomeRaiz + '>', contagem: contagem, municipio: mMun ? mMun[1] : null };
   }
 
   function tamanhoLegivel(n){
@@ -559,6 +590,18 @@
 
           var reduzido = reduzirXml(e.target.result);
           if (reduzido.erro) throw new Error(reduzido.erro);
+          // Só aceita XML do município do cadastro do usuário (administradores podem importar qualquer um).
+          await perfilPronto;
+          if (!perfilMunicipio.admin){
+            if (perfilMunicipio.erro) throw new Error('Não foi possível confirmar o município do seu cadastro agora. Recarregue a página e tente de novo.');
+            if (!perfilMunicipio.municipio) throw new Error('Seu usuário ainda não está vinculado a um município. Fale com o administrador da plataforma.');
+            if (!perfilMunicipio.municipio.codigo_tce) throw new Error('O código do TCE do seu município ainda não foi cadastrado. Fale com o administrador da plataforma.');
+            var codigoXml = reduzido.municipio;
+            if (codigoXml && codigoXml !== String(perfilMunicipio.municipio.codigo_tce)){
+              var infoXml = MUNICIPIOS_TCE[codigoXml];
+              throw new Error('O XML é de ' + (infoXml ? infoXml[1] : 'outro município') + ' (código ' + codigoXml + '), mas o seu cadastro é de ' + perfilMunicipio.municipio.nome + '/' + perfilMunicipio.municipio.uf + ' (código ' + perfilMunicipio.municipio.codigo_tce + '). O arquivo não foi importado.');
+            }
+          }
           if (!reduzido.contagem.Descritor) throw new Error('Este arquivo não parece um XML AUDESP de Contas Correntes: o Descritor não foi encontrado.');
           if (!reduzido.contagem.PrevisaoReceitaOrcamentaria) throw new Error('Não foram encontrados registros da conta 6.2.1.2 (receita realizada) neste arquivo. Confira se é o XML de Contas Correntes do mês.');
 
@@ -754,10 +797,14 @@
     y = doc.lastAutoTable.finalY + 4;
     (function(){
       var t = textoConferenciaFundeb(d); if (!t) return;
-      doc.setFont('helvetica', t.excede ? 'bold' : 'italic'); doc.setFontSize(8); doc.setTextColor(t.excede ? 146 : 107, t.excede ? 64 : 102, t.excede ? 14 : 86);
-      var linhasT = doc.splitTextToSize(t.titulo + (t.corpo ? ' ' + t.corpo : ''), tableWidth);
-      if (y + linhasT.length*3.6 > 280){ doc.addPage(); y = margin; }
-      doc.text(linhasT, margin, y + 3); y += linhasT.length*3.6 + 3; doc.setTextColor(0,0,0);
+      var blocosTexto = [{ txt: t.titulo + (t.corpo ? ' ' + t.corpo : ''), destaque: t.excede }];
+      textosSemRetencao(d).forEach(function(x){ blocosTexto.push({ txt: 'Atenção: ' + x, destaque: true }); });
+      blocosTexto.forEach(function(b){
+        doc.setFont('helvetica', b.destaque ? 'bold' : 'italic'); doc.setFontSize(8); doc.setTextColor(b.destaque ? 146 : 107, b.destaque ? 64 : 102, b.destaque ? 14 : 86);
+        var linhasT = doc.splitTextToSize(b.txt, tableWidth);
+        if (y + linhasT.length*3.6 > 280){ doc.addPage(); y = margin; }
+        doc.text(linhasT, margin, y + 3); y += linhasT.length*3.6 + 3; doc.setTextColor(0,0,0);
+      });
     })();
     y += 2;
 
@@ -1286,7 +1333,11 @@
       var cAlerta = wsP.getCell(r,1);
       cAlerta.value = {formula:'IF(ABS(ROUND(B'+L_DIFFUNDEB+',2))>0.1,"ALERTA: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01 em mais de R$ 0,10","Conferência do FUNDEB: dentro do limite de R$ 0,10")', result: confF.excede ? 'ALERTA: a dedução do FUNDEB calculada difere do saldo da conta 6.2.1.3.1.01 em mais de R$ 0,10' : 'Conferência do FUNDEB: dentro do limite de R$ 0,10'};
       cAlerta.font = { name:FONTE, size:10, bold:true, color:{argb: confF.excede ? 'FF92400E' : 'FF166534'} };
-      r += 2;
+      r++;
+      textosSemRetencao(d).forEach(function(x){
+        var cSR = wsP.getCell(r,1); cSR.value = 'ALERTA: ' + x; cSR.font = { name:FONTE, size:10, bold:true, color:{argb:'FF92400E'} }; r++;
+      });
+      r += 1;
 
       tituloBloco(wsP, r, 'BLOCO 3/4 — Finalidade definida (art. 2º, §7º), excluída por padrão'); r++;
       function somaPrefixos(rangeCod, rangeVal, prefixos){
