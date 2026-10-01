@@ -333,6 +333,14 @@ Pendências principais:
 - Anexo II — Tabelas de Escrituração Contábil - Auxiliares 2026 (AUDESP/STN), aba
   "Classificação da Receita - 2026", internalizada na ferramenta para exibir a especificação
   oficial de cada código de receita nos relatórios
+- Anexo II — Tabelas de Escrituração Contábil - Auxiliares 2027, versão V-03 (28/09/2026), aba
+  "Classificação da Receita - 2027" (2.172 códigos valorizáveis, internalizados em 01/10/2026).
+  Em relação a 2026: 220 códigos novos e 10 retirados (inclui IBS, cota-parte do IBS e do Imposto
+  Seletivo, contribuições previdenciárias do servidor). Nenhum dos códigos usados pelas regras do
+  motor (retenção, FUNDEB e finalidade definida) mudou. A tabela só descreve os códigos nos
+  relatórios; não altera o cálculo. No arquivo da STN, o código 1.1.1.6.60.1.1 vem com a
+  especificação truncada ("mpensa"); a ferramenta exibe "IBS - Imposto sobre Bens e Serviços -
+  Município - Principal", pelo padrão do código irmão (Multas e Juros) e pela descrição da linha.
 
 ---
 
