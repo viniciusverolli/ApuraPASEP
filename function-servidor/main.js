@@ -15,6 +15,7 @@
 //   admin_convidar        (admin) coloca um usuário (criando a conta, se preciso) em qualquer time de município
 //   admin_remover_membro  (admin) remove membro de time de município
 //   admin_definir_papel   (admin) altera os papéis de um membro
+//   admin_decidir_solicitacao (admin) aprova ou recusa um pedido de acesso a município já cadastrado
 //   admin_suspender_usuario (admin) suspende ou reativa a conta de um usuário, sem afetar o município
 //   admin_notificar       (admin) e-mail ao responsável sobre aprovação/suspensão/reativação
 //
@@ -144,6 +145,54 @@ async function emailsDosAdministradores(s){
 
 // ---------- ações ----------
 
+// O município já existe: em vez de recusar sem saída, registra um PEDIDO DE ACESSO para o administrador
+// decidir (aprovar coloca a pessoa no time do município, respeitando o limite de usuários). A própria
+// pessoa lê o pedido (permissão por linha), para o painel mostrar em que pé ele está.
+async function solicitarAcesso(s, userId, mun){
+  if (mun.team_id && await ehMembroConfirmado(s.teams, mun.team_id, userId)) falhar('Você já tem acesso a ' + mun.nome + '/' + mun.uf + '.');
+  var u = await s.users.get({ userId: userId });
+  var rotulo = mun.nome + '/' + mun.uf;
+  var abertas = await s.db.listRows({ databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', queries: [Query.equal('user_id', userId), Query.equal('municipio_id', mun.$id), Query.equal('status', 'pendente'), Query.limit(1)] });
+  if (abertas.rows.length) return { ok: true, solicitacao: true, municipio_nome: rotulo, jaExistia: true };
+  await s.db.createRow({
+    databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', rowId: ID.unique(),
+    data: { user_id: userId, usuario_nome: u.name || null, usuario_email: u.email || null, municipio_id: mun.$id, municipio_nome: rotulo, status: 'pendente' },
+    permissions: [ Permission.read(Role.user(userId)) ]
+  });
+  var email = await enviarEmail(s, await emailsDosAdministradores(s), 'Pedido de acesso a ' + rotulo,
+    corpoEmail('Pedido de acesso a município já cadastrado', [
+      esc(u.name || '—') + ' (' + esc(u.email || '—') + ') pediu acesso a <b>' + esc(rotulo) + '</b>.',
+      'Confira se a pessoa representa o município e decida no painel de administração (Solicitações de acesso).'
+    ]));
+  return { ok: true, solicitacao: true, municipio_nome: rotulo, email: email };
+}
+
+// Decisão do administrador sobre um pedido de acesso.
+async function adminDecidirSolicitacao(s, adminId, c){
+  var sol;
+  try { sol = await s.db.getRow({ databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', rowId: String(c.id) }); } catch (e) { falhar('Pedido não encontrado.'); }
+  if (sol.status !== 'pendente') falhar('Este pedido já foi decidido (' + sol.status + ').');
+  var admin = await s.users.get({ userId: adminId });
+  var aprovar = c.aprovar === true;
+  if (aprovar){
+    var mun;
+    try { mun = await s.db.getRow({ databaseId: DATABASE_ID, tableId: 'municipios', rowId: sol.municipio_id }); } catch (e) { falhar('Município não encontrado.'); }
+    if (!mun.team_id) falhar('O município não tem time associado.');
+    var atuais = await membrosDoTime(s.teams, mun.team_id);
+    if (atuais.some(function(m){ return m.userId === sol.user_id; })) falhar('Esta pessoa já faz parte do município.');
+    if (atuais.length >= MAX_USUARIOS_POR_MUNICIPIO) falhar('O município já tem ' + MAX_USUARIOS_POR_MUNICIPIO + ' usuários, que é o limite. Remova um usuário antes de aprovar.');
+    await s.teams.createMembership({ teamId: mun.team_id, roles: ['member'], userId: sol.user_id });
+  }
+  await s.db.updateRow({ databaseId: DATABASE_ID, tableId: 'solicitacoes_acesso', rowId: sol.$id,
+    data: { status: aprovar ? 'aprovada' : 'recusada', decidido_por: admin.email, decidido_em: new Date().toISOString() },
+    permissions: [ Permission.read(Role.user(sol.user_id)) ] });
+  var email = await enviarEmail(s, [sol.usuario_email], 'ApuraPASEP: pedido de acesso ' + (aprovar ? 'aprovado' : 'não aprovado'),
+    corpoEmail(aprovar ? 'Acesso aprovado' : 'Pedido de acesso não aprovado', [aprovar
+      ? 'Seu pedido de acesso a <b>' + esc(sol.municipio_nome) + '</b> foi aprovado. Entre no ApuraPASEP com seu e-mail e senha.'
+      : 'Seu pedido de acesso a <b>' + esc(sol.municipio_nome) + '</b> não foi aprovado. Em caso de dúvida, fale com o administrador da plataforma.']));
+  return { ok: true, status: aprovar ? 'aprovada' : 'recusada', email: email };
+}
+
 async function registrarMunicipio(s, userId, c){
   var nome = String(c.nome || '').trim(), uf = String(c.uf || '').trim().toUpperCase();
   var sistema = c.sistema_gestao;
@@ -163,8 +212,8 @@ async function registrarMunicipio(s, userId, c){
 
   // Duplicidade: mesmo município e UF já cadastrado por outro time (comparação sem acentos e caixa).
   var mesmos = await todasAsLinhas(s.db, 'municipios', [Query.equal('uf', uf)]);
-  if (mesmos.some(function(m){ return norm(m.nome) === norm(nome); }))
-    falhar('O município ' + nome + '/' + uf + ' já está cadastrado. Se você precisa de acesso, peça ao responsável pelo município que envie um convite, ou fale com o administrador da plataforma.');
+  var existente = mesmos.filter(function(m){ return norm(m.nome) === norm(nome); })[0];
+  if (existente) return await solicitarAcesso(s, userId, existente);
 
   // Vincula o código do TCESP pelo nome do município, se a tabela tiver e nenhum outro município usar o código.
   var codigoTce = (uf === 'SP' && CODIGO_TCE_POR_NOME[norm(nome)]) || null;
@@ -443,6 +492,7 @@ export default async ({ req, res, log, error }) => {
         case 'admin_suspender_usuario': return res.json(await adminSuspenderUsuario(s, userId, c));
         case 'admin_definir_papel':   return res.json(await adminDefinirPapel(s, c));
         case 'admin_notificar':       return res.json(await adminNotificar(s, c));
+        case 'admin_decidir_solicitacao': return res.json(await adminDecidirSolicitacao(s, userId, c));
       }
     }
     return res.json({ ok: false, erro: 'Ação desconhecida.' }, 400);

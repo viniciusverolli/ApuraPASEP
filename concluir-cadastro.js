@@ -61,10 +61,17 @@
       // com status "pendente", só leitura para o time, sem duplicar município e avisando os
       // administradores. O navegador não tem mais permissão de criar linhas em "municipios".
       // Quem pediu o cadastro fica como responsável (nome e e-mail), para o administrador conferir.
-      await chamarServidor(client, 'registrar_municipio', {
+      var resposta = await chamarServidor(client, 'registrar_municipio', {
         teamId: teamId, nome: pendente.nome, uf: pendente.uf, sistema_gestao: pendente.sistema_gestao,
         responsavel_nome: pendente.responsavel_nome || null
       });
+      // O município já estava cadastrado: o servidor registrou um PEDIDO DE ACESSO para o administrador
+      // decidir. O time que este navegador criou para o cadastro novo não serve mais: é desfeito.
+      if (resposta.solicitacao){
+        try { await teams.delete({ teamId: teamId }); } catch (e) { /* sem permissão: fica sem uso */ }
+        try { await gravarPendente(prefs, null); } catch (e) { /* o painel tenta de novo */ }
+        return { solicitacao: true, municipio_nome: resposta.municipio_nome };
+      }
     }
 
     // 3. Tudo concluído: limpa os dados pendentes. Se só a limpeza falhar, o município já está
@@ -93,8 +100,8 @@
     var pendente = usuario && usuario.prefs && usuario.prefs.cadastroPendente;
     if (!pendente || !pendente.nome || !pendente.uf) return null;
     try {
-      await executar(pendente, usuario.prefs);
-      return { concluido: true };
+      var r = await executar(pendente, usuario.prefs);
+      return { concluido: true, solicitacao: !!(r && r.solicitacao), municipio_nome: r && r.municipio_nome };
     } catch (e) {
       // Recusa definitiva do servidor (por exemplo, município já cadastrado): repetir não adianta.
       // Desfaz o que sobrou (time criado e dados pendentes) para não tentar de novo a cada acesso.

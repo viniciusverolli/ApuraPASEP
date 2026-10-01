@@ -90,6 +90,12 @@ vencimento continua nas páginas.
     qualquer conta; um responsável que convidasse direto pela API do Appwrite não passaria por
     essa trava) e vínculo automático do **código TCE** no autocadastro, pela tabela
     `function-servidor/municipios-tce.json` (644 municípios; a mesma tabela está em `admin.html`).
+    **Pedido de acesso** (`solicitacoes_acesso`, tabela criada em 01/10/2026; leitura e decisão só
+    do time de administradores, e a própria pessoa lê o seu pedido por permissão de linha): quando
+    alguém se cadastra num município que já existe, o servidor não recusa mais; registra o pedido
+    (`registrar_municipio`), o cadastro desfaz o time criado e o painel da pessoa mostra "Pedido de
+    acesso em análise". O administrador aprova ou recusa em `admin.html` (`admin_decidir_solicitacao`);
+    aprovar põe a pessoa no time do município, respeitando o limite de 3 usuários.
     Suspensão **por usuário** (`admin_suspender_usuario`): suspende só a conta (status do usuário
     no Appwrite, com encerramento das sessões abertas), sem tocar no município nem nos demais
     usuários; não vale para administradores nem para a própria conta. A função precisa dos escopos
