@@ -121,10 +121,19 @@ header p { margin: 0; font-size: 12.5px; color: #C9CEDB; line-height:1.5; }
 }
 ::-webkit-scrollbar { width:9px; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius:5px; }
+.voltar-lista { display:none; margin:0 0 16px; background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:10px; padding:10px 14px; min-height:44px; font:600 14px Inter,system-ui,sans-serif; cursor:pointer; }
 @media (max-width: 760px) {
-  .wrap { flex-direction:column; }
-  .sidebar { width:100%; min-width:0; max-height:38vh; border-right:none; border-bottom:1px solid var(--line); }
-  .main { padding: 20px 16px 60px; }
+  /* No celular a página rola inteira: primeiro a lista, depois a norma escolhida, com botão para voltar à lista. */
+  html, body { height:auto; }
+  .wrap { display:block; }
+  .sidebar { width:100%; min-width:0; max-height:none; overflow:visible; border-right:none; border-bottom:1px solid var(--line); }
+  .list { overflow:visible; }
+  .item { padding:14px 12px; min-height:48px; }
+  .main { overflow:visible; padding: 20px 16px 60px; }
+  body:not(.ver-detalhe) .main { display:none; }
+  body.ver-detalhe .sidebar { display:none; }
+  body.ver-detalhe header p { display:none; }
+  .voltar-lista { display:block; width:100%; }
 }
 </style>
 </head>
@@ -146,7 +155,7 @@ header p { margin: 0; font-size: 12.5px; color: #C9CEDB; line-height:1.5; }
   <div class="main">
     <div class="main-inner" id="conteudo">
       <div class="welcome">
-        <b>Selecione uma Solução de Consulta à esquerda</b> para ver a ementa completa,<br>os dispositivos legais e a relevância para a apuração do PASEP municipal.
+        <b>Selecione uma Solução de Consulta na lista</b> para ver a ementa completa,<br>os dispositivos legais e a relevância para a apuração do PASEP municipal.
       </div>
     </div>
   </div>
@@ -186,6 +195,7 @@ function selecionar(id){
   document.querySelectorAll('.item').forEach(el => el.classList.toggle('active', el.dataset.id === id));
 
   let html = `
+    <button type="button" class="voltar-lista" onclick="voltarLista()">&larr; Voltar à lista de normas</button>
     <div class="doc-header">
       <div class="numero">${n.numero}</div>
       <div class="meta-row">
@@ -210,6 +220,19 @@ function selecionar(id){
 
   document.getElementById('conteudo').innerHTML = html;
   document.querySelector('.main').scrollTop = 0;
+  if (window.matchMedia('(max-width: 760px)').matches){
+    document.body.classList.add('ver-detalhe');
+    window.scrollTo(0, 0);
+  }
+  // Endereço próprio da norma, para guardar ou enviar o link (ex.: repositorio_pasep_cosit.html#cosit-278-2017).
+  if (history.replaceState) history.replaceState(null, '', '#' + id);
+}
+
+function voltarLista(){
+  document.body.classList.remove('ver-detalhe');
+  if (history.replaceState) history.replaceState(null, '', location.pathname);
+  const ativo = document.querySelector('.item.active');
+  if (ativo) ativo.scrollIntoView({ block: 'center' });
 }
 
 function toggleTexto(){
@@ -224,6 +247,7 @@ document.getElementById('rodape-lateral').innerHTML =
   '<span style="opacity:.75">Excluídas: 1 duplicata (mesma norma, 2 arquivos) e 1 fora do escopo (SC ' + DADOS.fora_do_escopo.numero.replace('Cosit nº ','') + ', sobre bonificações PIS/Cofins)</span>';
 
 renderLista('');
+if (location.hash) selecionar(decodeURIComponent(location.hash.slice(1)));
 </script>
 <script src="https://cdn.jsdelivr.net/npm/appwrite"></script>
 </body>

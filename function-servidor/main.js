@@ -28,6 +28,7 @@
 // ============================================================
 
 import { randomBytes } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { Client, Users, Teams, TablesDB, Messaging, Query, ID, Permission, Role } from 'node-appwrite';
 
 var DATABASE_ID = 'apurapasep';
@@ -35,6 +36,14 @@ var TEAM_ADMINS_ID = '6ab476f0000e158fa770';
 var UFS = ['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO'];
 var MESES = ['', 'janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
 var UMA_HORA = 60 * 60 * 1000;
+var MAX_USUARIOS_POR_MUNICIPIO = 3;
+
+// Código do TCESP de cada município paulista (valor da tag Municipio dos XML AUDESP).
+var CODIGO_TCE_POR_NOME = {};
+try {
+  var tabela = JSON.parse(readFileSync(new URL('./municipios-tce.json', import.meta.url), 'utf8'));
+  Object.keys(tabela).forEach(function(codigo){ CODIGO_TCE_POR_NOME[tabela[codigo].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim()] = codigo; });
+} catch (e) { /* sem a tabela, o código fica para o administrador preencher */ }
 
 class ErroNegocio extends Error {}
 function falhar(msg){ throw new ErroNegocio(msg); }
@@ -156,11 +165,15 @@ async function registrarMunicipio(s, userId, c){
   if (mesmos.some(function(m){ return norm(m.nome) === norm(nome); }))
     falhar('O município ' + nome + '/' + uf + ' já está cadastrado. Se você precisa de acesso, peça ao responsável pelo município que envie um convite, ou fale com o administrador da plataforma.');
 
+  // Vincula o código do TCESP pelo nome do município, se a tabela tiver e nenhum outro município usar o código.
+  var codigoTce = (uf === 'SP' && CODIGO_TCE_POR_NOME[norm(nome)]) || null;
+  if (codigoTce && mesmos.some(function(m){ return String(m.codigo_tce || '') === codigoTce; })) codigoTce = null;
+
   var u = await s.users.get({ userId: userId });
   var linha = await s.db.createRow({
     databaseId: DATABASE_ID, tableId: 'municipios', rowId: ID.unique(),
     data: {
-      nome: nome, uf: uf, sistema_gestao: sistema, status: 'pendente', team_id: c.teamId,
+      nome: nome, uf: uf, sistema_gestao: sistema, status: 'pendente', team_id: c.teamId, codigo_tce: codigoTce,
       responsavel_nome: String(c.responsavel_nome || u.name || '').slice(0, 200) || null,
       responsavel_email: u.email || null
     },
@@ -173,7 +186,7 @@ async function registrarMunicipio(s, userId, c){
       'Responsável: ' + esc(linha.responsavel_nome || '—') + ' (' + esc(linha.responsavel_email || '—') + ').',
       'Confira os dados no painel de administração antes de aprovar.'
     ]));
-  return { ok: true, municipio_id: linha.$id, email: email };
+  return { ok: true, municipio_id: linha.$id, codigo_tce: codigoTce, email: email };
 }
 
 async function salvarApuracao(s, userId, c){
@@ -288,16 +301,19 @@ async function adminConvidar(s, c){
   if (!papeis.length) papeis = ['member'];
   await s.teams.get({ teamId: c.teamId });
 
+  // O limite é checado antes de criar qualquer conta, para não deixar conta sem município.
+  var atuais = await membrosDoTime(s.teams, c.teamId);
+  if (atuais.length >= MAX_USUARIOS_POR_MUNICIPIO) falhar('Este município já tem ' + MAX_USUARIOS_POR_MUNICIPIO + ' usuários, que é o limite. Remova um usuário antes de adicionar outro.');
+
   var achados = await s.users.list({ queries: [Query.equal('email', email), Query.limit(1)] });
   var usuario = achados.users[0], contaCriada = false;
+  if (usuario && atuais.some(function(m){ return m.userId === usuario.$id; })) falhar('Este usuário já faz parte do município.');
   if (!usuario){
     var senha = randomBytes(24).toString('base64url') + 'Aa1!';
     usuario = await s.users.create({ userId: ID.unique(), email: email, password: senha, name: String(c.nome || '').slice(0, 128) || undefined });
     await s.users.updateEmailVerification({ userId: usuario.$id, emailVerification: true });
     contaCriada = true;
   }
-  var ja = await s.teams.listMemberships({ teamId: c.teamId, queries: [Query.equal('userId', usuario.$id), Query.limit(1)] });
-  if (ja.memberships.length) falhar('Este usuário já faz parte do município.');
   await s.teams.createMembership({ teamId: c.teamId, roles: papeis, userId: usuario.$id });
   return { ok: true, contaCriada: contaCriada, userId: usuario.$id };
 }
