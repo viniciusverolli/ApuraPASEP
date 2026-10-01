@@ -20,7 +20,10 @@
 
   async function gravarPendente(prefsAtuais, pendente){
     var novas = Object.assign({}, prefsAtuais || {});
-    if (pendente) novas.cadastroPendente = pendente; else delete novas.cadastroPendente;
+    // Limpar NÃO pode enviar um objeto vazio: o Appwrite recusa ("Invalid `prefs` param: Value must be a
+    // valid object") e o cadastro ficava preso como "pendente" mesmo já concluído. Por isso a limpeza
+    // grava cadastroPendente: null, que mantém o objeto não vazio e vale como "sem pendência".
+    novas.cadastroPendente = pendente || null;
     await account.updatePrefs({ prefs: novas });
     return novas;
   }
@@ -64,8 +67,9 @@
       });
     }
 
-    // 3. Tudo concluído: limpa os dados pendentes.
-    await gravarPendente(prefs, null);
+    // 3. Tudo concluído: limpa os dados pendentes. Se só a limpeza falhar, o município já está
+    // criado, então não vale tratar como erro (e bloquear o usuário): a limpeza é refeita no próximo acesso.
+    try { await gravarPendente(prefs, null); } catch (e) { /* o painel tenta de novo */ }
     return { teamId: teamId };
   }
 
