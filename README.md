@@ -90,6 +90,11 @@ vencimento continua nas páginas.
     qualquer conta; um responsável que convidasse direto pela API do Appwrite não passaria por
     essa trava) e vínculo automático do **código TCE** no autocadastro, pela tabela
     `function-servidor/municipios-tce.json` (644 municípios; a mesma tabela está em `admin.html`).
+    Suspensão **por usuário** (`admin_suspender_usuario`): suspende só a conta (status do usuário
+    no Appwrite, com encerramento das sessões abertas), sem tocar no município nem nos demais
+    usuários; não vale para administradores nem para a própria conta. A função precisa dos escopos
+    `users.write` e `sessions.write` (acrescentados em 01/10/2026; sem `users.write`, criar conta
+    nova pelo `admin_convidar` falharia).
     Em 01/10/2026 foi retirado o `create` de `users` das tabelas `municipios` (agora só o time de
     administradores cria) e `apuracoes` (só a função grava).
 

@@ -364,7 +364,10 @@
     } catch (error) {
       // Mensagem genérica de propósito — não revela se o problema foi o usuário ou a senha,
       // para não ajudar tentativa de adivinhação de conta.
-      caixaErro.textContent = 'Usuário ou senha incorretos. Confira os dados e tente novamente.';
+      // Conta suspensa pelo administrador: avisa com clareza, em vez de dizer que a senha está errada.
+      caixaErro.textContent = (error && error.type === 'user_blocked')
+        ? 'Esta conta está suspensa. Fale com o administrador da plataforma ou com o responsável pelo seu município.'
+        : 'Usuário ou senha incorretos. Confira os dados e tente novamente.';
       caixaErro.classList.add('show');
       btn.textContent = textoOriginal;
       btn.disabled = false;
